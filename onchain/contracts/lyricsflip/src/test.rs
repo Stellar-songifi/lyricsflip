@@ -5,6 +5,8 @@
 //! this environment (no Rust toolchain available) — run `cargo test` inside
 //! `onchain/` before relying on them.
 
+extern crate std;
+
 use crate::{Answer, Card, Genre, LyricsFlip, LyricsFlipClient, Role};
 use soroban_sdk::{testutils::Address as _, Address, Env, String};
 
@@ -179,4 +181,64 @@ fn set_role_is_owner_gated_and_updates_is_admin() {
     let outsider = Address::generate(&env);
     let result = client.try_set_role(&outsider, &new_admin, &Role::Admin, &false);
     assert!(result.is_err(), "only the owner may grant/revoke admin");
+}
+
+// ── LF-011: bounded random sampling ─────────────────────────────────────────
+
+/// Direct unit coverage for the partial Fisher-Yates sampler: full cover,
+/// range, determinism, and the card-ID offset.
+#[test]
+fn lf011_random_numbers_full_cover() {
+    let env = Env::default();
+    let out = crate::LyricsFlip::get_random_numbers(&env, 42, 50, 50, true);
+
+    assert_eq!(out.len(), 50);
+
+    // Full coverage: every index in 0..50 appears exactly once.
+    let mut seen = [false; 50];
+    for v in out.iter() {
+        assert!(v < 50, "index out of range: {v}");
+        assert!(!seen[v as usize], "duplicate index: {v}");
+        seen[v as usize] = true;
+    }
+
+    // Deterministic for a given (seed, ledger) state.
+    let again = crate::LyricsFlip::get_random_numbers(&env, 42, 50, 50, true);
+    assert_eq!(out, again);
+
+    // Card-ID mode offsets into 1..=limit.
+    let ids = crate::LyricsFlip::get_random_numbers(&env, 7, 50, 50, false);
+    assert_eq!(ids.len(), 50);
+    for id in ids.iter() {
+        assert!((1..=50).contains(&id), "card id out of range: {id}");
+    }
+}
+
+/// Worst case for the old retry-on-collision sampler: `amount == limit`
+/// degenerates into coupon-collector behavior with an unbounded loop.
+/// Drives the sampler through `create_round` (50 cards, 50 per round) and
+/// records the metered CPU cost of the invocation.
+#[test]
+fn lf011_random_numbers_bounded_budget() {
+    let (env, client, owner) = setup();
+    seed_cards(&env, &client, &owner, 50);
+    client.set_cards_per_round(&owner, &50);
+
+    // Internally draws amount == limit == 50 via get_random_numbers.
+    let round_id = client.create_round(&owner, &Some(Genre::Pop), &9u64);
+    assert_eq!(round_id, 1);
+
+    let resources = env.cost_estimate().resources();
+    std::println!(
+        "LF-011 budget: instructions={} mem_bytes={}",
+        resources.instructions,
+        resources.mem_bytes
+    );
+    // Worst-case draw must stay far below mainnet budget limits; the old
+    // unbounded loop had no such guarantee.
+    assert!(
+        resources.instructions < 2_000_000,
+        "cpu budget exceeded: {}",
+        resources.instructions
+    );
 }

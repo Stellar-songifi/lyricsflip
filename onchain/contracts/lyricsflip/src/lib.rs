@@ -551,12 +551,32 @@ impl LyricsFlip {
         result
     }
 
-    /// Ported from `_get_random_numbers` in the Cairo contract: hashes
-    /// `(seed, ledger sequence, ledger timestamp, index)` in place of Cairo's
-    /// `(seed, block_number, timestamp, index)` Poseidon-hash entropy, then
-    /// reduces mod `limit` and dedupes until `amount` unique numbers are
-    /// found. `for_index` mirrors the same +1 offset used when the numbers
-    /// are card IDs rather than array indices.
+    /// Ported from `_get_random_numbers` in the Cairo contract, reworked
+    /// (LF-011) as a partial Fisher-Yates shuffle: the old version hashed
+    /// candidates and retried on collision, which degenerates into an
+    /// unbounded loop (coupon-collector) when `amount` approaches `limit`
+    /// and can blow the transaction budget. This version builds `0..limit`
+    /// once, then shuffles only the first `amount` positions, so the work
+    /// is `O(limit)` with exactly `amount` hashes.
+    ///
+    /// Entropy per swap hashes `(seed, ledger sequence, ledger timestamp,
+    /// draw)` exactly like before, preserving determinism for a given
+    /// ledger state. `for_index` mirrors the same +1 offset used when the
+    /// numbers are card IDs rather than array indices.
+    fn draw_u64(env: &Env, seed: u64, sequence: u64, timestamp: u64, draw: u64) -> u64 {
+        let mut buf = [0u8; 32];
+        buf[0..8].copy_from_slice(&seed.to_be_bytes());
+        buf[8..16].copy_from_slice(&sequence.to_be_bytes());
+        buf[16..24].copy_from_slice(&timestamp.to_be_bytes());
+        buf[24..32].copy_from_slice(&draw.to_be_bytes());
+        let bytes = Bytes::from_array(env, &buf);
+        let hash = env.crypto().sha256(&bytes).to_array();
+
+        let mut num_bytes = [0u8; 8];
+        num_bytes.copy_from_slice(&hash[0..8]);
+        u64::from_be_bytes(num_bytes)
+    }
+
     fn get_random_numbers(
         env: &Env,
         seed: u64,
@@ -574,38 +594,39 @@ impl LyricsFlip {
         let sequence = env.ledger().sequence() as u64;
         let timestamp = env.ledger().timestamp();
 
-        let mut unique_numbers: Vec<u64> = Vec::new(env);
+        // Pool holds `0..limit`; only the first `amount` slots are shuffled
+        // into place (partial Fisher-Yates).
+        let mut pool: Vec<u64> = Vec::new(env);
+        let mut k: u64 = 0;
+        while k < limit {
+            pool.push_back(k);
+            k += 1;
+        }
+
+        let mut drawn: u64 = 0;
         let mut i: u64 = 0;
-        while (unique_numbers.len() as u64) < amount {
-            let mut buf = [0u8; 32];
-            buf[0..8].copy_from_slice(&seed.to_be_bytes());
-            buf[8..16].copy_from_slice(&sequence.to_be_bytes());
-            buf[16..24].copy_from_slice(&timestamp.to_be_bytes());
-            buf[24..32].copy_from_slice(&i.to_be_bytes());
-            let bytes = Bytes::from_array(env, &buf);
-            let hash = env.crypto().sha256(&bytes).to_array();
-
-            let mut num_bytes = [0u8; 8];
-            num_bytes.copy_from_slice(&hash[0..8]);
-            let rand_u64 = u64::from_be_bytes(num_bytes);
-            let mut rand = rand_u64 % limit;
-            if !for_index {
-                rand += 1;
-            }
-
-            let mut seen = false;
-            for n in unique_numbers.iter() {
-                if n == rand {
-                    seen = true;
-                    break;
-                }
-            }
-            if !seen {
-                unique_numbers.push_back(rand);
-            }
-
+        while i < amount {
+            let remaining = limit - i;
+            let r = Self::draw_u64(env, seed, sequence, timestamp, drawn) % remaining;
+            drawn += 1;
+            let swap_idx = (i + r) as u32;
+            let a = pool.get(i as u32).unwrap();
+            let b = pool.get(swap_idx).unwrap();
+            pool.set(i as u32, b);
+            pool.set(swap_idx, a);
             i += 1;
         }
-        unique_numbers
+
+        let mut out: Vec<u64> = Vec::new(env);
+        let mut j: u32 = 0;
+        while (j as u64) < amount {
+            let mut v = pool.get(j).unwrap();
+            if !for_index {
+                v += 1;
+            }
+            out.push_back(v);
+            j += 1;
+        }
+        out
     }
 }

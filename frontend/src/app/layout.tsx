@@ -6,7 +6,9 @@ import { Inter, JetBrains_Mono } from 'next/font/google';
 import localFont from 'next/font/local';
 import './globals.css';
 import dynamic from 'next/dynamic';
-import { Suspense } from 'react';
+import { Suspense, useMemo } from 'react';
+import { getMissingRequiredEnv } from '@/lib/requiredEnv';
+import AppNotConfigured from '@/components/atoms/app-not-configured';
 
 const inter = Inter({
   variable: '--font-geist-sans',
@@ -40,6 +42,16 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const missingEnv = useMemo(() => getMissingRequiredEnv(), []);
+  if (missingEnv.length > 0) {
+    return (
+      <html lang="en">
+        <body className={`${inter.variable} ${jetBrainsMono.variable} ${interV.variable} antialiased`}>
+          <AppNotConfigured missing={missingEnv} />
+        </body>
+      </html>
+    );
+  }
   return (
     <html lang="en">
       <body className={`${inter.variable} ${jetBrainsMono.variable} ${interV.variable} antialiased`}>

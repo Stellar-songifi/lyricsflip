@@ -18,7 +18,7 @@ export function GameModal() {
       isOpen={isModalOpen}
       onClose={closeModal}
       title="Quick Game"
-      description="Quisque ipsum dolor sit amet, consectetur adipiscing elit. Nunc vulputate libero et velit interdum."
+      description="Pick a genre, difficulty, and duration — then guess the missing lyrics before time runs out."
       primaryActionLabel="Start Game"
     >
       <div className="grid gap-6">

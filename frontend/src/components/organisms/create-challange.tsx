@@ -134,8 +134,7 @@ export default function CreateChallenge() {
             Wager (Multi Player)
           </h1>
           <p className="text-[14px] font-[400] text-[#120029]">
-            Qorem ipsum dolor sit amet, consectetur adipiscing elit. Nunc
-            vulputate libero et velit interdum,
+            Create a multiplayer wager room — set the genre and stake, then invite players to battle for the pot.
           </p>
         </div>
 

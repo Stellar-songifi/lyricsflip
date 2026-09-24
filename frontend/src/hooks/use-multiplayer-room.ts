@@ -44,7 +44,7 @@ const mockRoomData: RoomData = {
   id: 'sample-room-id',
   name: 'Wager (Multi Player)',
   description:
-    'Oorem ipsum dolor sit amet, consectetur adipiscing elit. Nunc vulputate libero et velit interdum,',
+    'High-stakes multiplayer room — outscore your rivals to claim the STRK pot.',
   timeLeft: '59:00',
   potWin: '10,000 STRK',
   scores: 456,

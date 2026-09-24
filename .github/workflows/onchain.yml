@@ -15,25 +15,89 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: wasm32v1-none
-          components: rustfmt
+          components: rustfmt, clippy
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: onchain
       - run: cargo fmt --check
         working-directory: onchain
+      - name: Clippy
+        working-directory: onchain
+        run: |
+          set -o pipefail
+          cargo clippy --all-targets -- -D warnings 2>&1 | tee clippy.log
+          {
+            echo "### Clippy"
+            echo '```'
+            tail -n 20 clippy.log
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
       - run: cargo build --target wasm32v1-none --release
         working-directory: onchain
+      - uses: actions/upload-artifact@v4
+        with:
+          name: contracts-wasm
+          path: onchain/target/wasm32v1-none/release/*.wasm
+      - name: Build main for WASM size baseline
+        if: github.event_name == 'pull_request'
+        run: |
+          git fetch --depth=1 origin "${{ github.base_ref }}"
+          git worktree add ../base FETCH_HEAD
+          cd ../base/onchain
+          cargo build --target wasm32v1-none --release \
+            --target-dir "${{ github.workspace }}/onchain/target-base" || true
+      - name: WASM sizes (fail on >10% growth over main)
+        shell: bash
+        working-directory: onchain
+        run: |
+          fail=0
+          {
+            echo "### WASM sizes"
+            echo "| Contract | Base | PR | Change |"
+            echo "|---|---:|---:|---:|"
+          } >> "$GITHUB_STEP_SUMMARY"
+          for f in lyricsflip lyricsflip_nft; do
+            new=$(stat -c %s "target/wasm32v1-none/release/$f.wasm")
+            base_file="target-base/wasm32v1-none/release/$f.wasm"
+            if [[ -f "$base_file" ]]; then
+              base=$(stat -c %s "$base_file")
+              pct=$(awk -v n="$new" -v b="$base" 'BEGIN { printf "%+.2f", (n - b) * 100 / b }')
+              if awk -v n="$new" -v b="$base" 'BEGIN { exit !(n > b * 1.10) }'; then
+                fail=1; pct="$pct% ❌"
+              else
+                pct="$pct%"
+              fi
+            else
+              base="n/a"; pct="n/a"
+            fi
+            echo "| $f.wasm | $base | $new | $pct |" >> "$GITHUB_STEP_SUMMARY"
+          done
+          if [[ $fail -eq 1 ]]; then
+            echo "::error::A contract WASM grew by more than 10% over the base branch"
+            exit 1
+          fi
 
   test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: llvm-tools-preview
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: onchain
-      - run: cargo test
+      - uses: taiki-e/install-action@cargo-llvm-cov
+      - name: Test with coverage
         working-directory: onchain
+        run: |
+          cargo llvm-cov --workspace --summary-only | tee coverage.txt
+          {
+            echo "### Coverage"
+            echo '```'
+            cat coverage.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
 
   bindings-check:
     name: TypeScript bindings are up to date (LF-032)

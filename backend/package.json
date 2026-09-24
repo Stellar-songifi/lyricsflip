@@ -22,6 +22,7 @@
   },
   "dependencies": {
     "@nestjs/common": "^10.3.3",
+    "@nestjs/config": "^3.2.0",
     "@nestjs/core": "^10.3.3",
     "@nestjs/event-emitter": "^2.0.4",
     "@nestjs/jwt": "^10.2.0",
@@ -30,6 +31,7 @@
     "@nestjs/platform-socket.io": "^11.0.10",
     "@nestjs/schedule": "^4.0.0",
     "@nestjs/swagger": "^7.3.0",
+    "@nestjs/terminus": "^10.2.3",
     "@nestjs/throttler": "^5.1.2",
     "@nestjs/typeorm": "^10.0.2",
     "@nestjs/websockets": "^11.0.10",
@@ -83,6 +85,14 @@
       "**/*.(t|j)s"
     ],
     "coverageDirectory": "../coverage",
+    "coverageThreshold": {
+      "global": {
+        "branches": 20,
+        "functions": 20,
+        "lines": 30,
+        "statements": 30
+      }
+    },
     "testEnvironment": "node"
   },
   "engines": {

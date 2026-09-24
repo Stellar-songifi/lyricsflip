@@ -3,9 +3,9 @@ import { AppModule } from './app.module';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { swaggerConfig, swaggerCustomOptions } from './utility/Swagger';
 import { SocketIOAdapter } from './config/socket-io.config';
-import { Logger, ValidationPipe } from '@nestjs/common';
+import { Logger } from '@nestjs/common';
 import { CustomLoggerService } from './logger/custom-logger.service';
-import { LoggingInterceptor } from './interceptors/logging.interceptor';
+import { configureApp } from './config/app-setup';
 import { ConfigService } from '@nestjs/config';
 
 async function bootstrap() {
@@ -16,13 +16,7 @@ async function bootstrap() {
   const config = app.get(ConfigService);
   const logger = new Logger('Main');
 
-  app.useGlobalPipes(
-    new ValidationPipe({
-      whitelist: true,
-      transform: true,
-      forbidNonWhitelisted: true,
-    }),
-  );
+  configureApp(app);
 
   const corsOrigin = config.get<string>('cors.origin') ?? '*';
   app.enableCors({
@@ -31,8 +25,6 @@ async function bootstrap() {
   });
 
   app.useWebSocketAdapter(new SocketIOAdapter(app, config));
-
-  app.useGlobalInterceptors(new LoggingInterceptor());
 
   if (process.env.NODE_ENV !== 'production') {
     const document = SwaggerModule.createDocument(app, swaggerConfig);

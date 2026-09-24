@@ -1,45 +1,47 @@
-
-import { 
-  Injectable, 
-  NestInterceptor, 
-  ExecutionContext, 
+import {
+  Injectable,
+  NestInterceptor,
+  ExecutionContext,
   CallHandler,
-  Logger
+  Logger,
 } from '@nestjs/common';
 import { Observable } from 'rxjs';
 import { tap } from 'rxjs/operators';
 
+/**
+ * Single HTTP logging/timing interceptor. Replaces the former
+ * `http-logging` and `performance` interceptors, which duplicated this.
+ */
 @Injectable()
 export class LoggingInterceptor implements NestInterceptor {
   private readonly logger = new Logger(LoggingInterceptor.name);
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
+    if (context.getType() !== 'http') {
+      return next.handle();
+    }
+
     const request = context.switchToHttp().getRequest();
-    const method = request.method;
-    const url = request.url;
-    const now = Date.now();
+    const { method, url } = request;
+    const start = process.hrtime.bigint();
+    const elapsed = () =>
+      (Number(process.hrtime.bigint() - start) / 1e6).toFixed(2);
 
     return next.handle().pipe(
       tap({
-        next: (data) => {
+        next: () => {
           const response = context.switchToHttp().getResponse();
-          const delay = Date.now() - now;
-          
           this.logger.log(
-           ` ${method} ${url} ${response.statusCode} ${delay}ms`
+            `${method} ${url} ${response.statusCode} ${elapsed()}ms`,
           );
-          
-          // Log response data if needed
-          this.logger.debug('Response data:', data);
         },
         error: (error) => {
-          const delay = Date.now() - now;
           this.logger.error(
-            `${method} ${url} ${error.status} ${delay}ms`,
-            error.stack
+            `${method} ${url} ${error?.status ?? 500} ${elapsed()}ms`,
+            error?.stack,
           );
-        }
-      })
-    );
-  }
+        },
+      }),
+    );
+  }
 }

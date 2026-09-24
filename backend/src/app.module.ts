@@ -42,6 +42,7 @@ import { GameInsightsModule } from './game-insights/game-insights.module';
 import { PaginationModule } from './common/pagination/pagination.module';
 import { StateRecoveryModule } from './state-recovery/state-recovery.module';
 import { IndexerModule } from './indexer/indexer.module';
+import { HealthModule } from './health/health.module';
 
 @Module({
   imports: [
@@ -99,6 +100,7 @@ import { IndexerModule } from './indexer/indexer.module';
     StateRecoveryModule,
     GameInsightsModule,
     IndexerModule,
+    HealthModule,
   ],
   controllers: [AppController],
   providers: [

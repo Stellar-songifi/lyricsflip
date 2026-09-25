@@ -11,16 +11,38 @@ here; other modules import that module (or its entity) instead of redefining it.
 | --- | --- | --- | --- | --- |
 | Auth | `auth/` | JWT issue/verify, `AccessTokenGuard` (global), `JwtAuthGuard`, `WsAuthenticator`, `@CurrentUser()` | `/auth` | — |
 | Users | `user/` | `User` (`users`, incl. `stellarAddress` for wallet login) | `/user` | — |
-| Players | `player/` | `Player` (`players`), `PlayerStatus` | — | — |
 | Songs | `songs/` | `Song` (`songs`, mirrors the contract `Card`), `Tag`, `UserGenrePreference`, `Genre` enum | `/songs`, `/songs/genres` | — |
 | Rooms | `room/` | `Room` (`rooms`), `PlayerRoom`; room CRUD, join/leave, player presence | `/rooms` | `/rooms` |
 | Game | `game/` | Built-in game modes, scoring strategies, matchmaking, stats, `CustomGameMode` | `/game-modes` | `/game` |
 | Game sessions | `game-session/` | `GameSession` (`game_sessions`) for every mode, tournaments and insights | `/game-session` | — |
+| Quick game | `quick-game/` | Single-player quick-game flow with anti-cheat scoring | `/quick-game` | — |
+| Scoring | `scoring/` | Points calculation, leaderboard events | `/scoring` | — |
+| Leaderboard | `leaderboard/` | Global and genre-scoped rankings | `/leaderboard` | — |
+| Wager | `wager/` | On-chain wager records | `/wager` | — |
+| Reward | `reward/` | NFT reward claims and distribution | `/reward` | — |
+| Achievements | `achievement/` | Player achievements and badges | `/achievements` | — |
 | Notifications | `notification/` | `Notification` (`notifications`); also pushes achievement and progression events | `/notifications` | `/notifications` |
+| Social | `social/` | Friend requests, activity feed, challenges | `/social` | — |
+| Chat rooms | `chat-room/` | In-game text chat | `/chat` | — |
+| Referrals | `referral/` | Referral links and rewards | `/referral` | — |
+| Questions | `questions/` | Question bank for practice/game | `/questions` | — |
+| Tournament | `tournament/` | Tournament management and scheduling | `/tournament` | — |
+| Music education | `music-education/` | Music theory lessons, quizzes, genre history | `/lessons` | — |
+| Practice | `practice/` | Practice sessions and results | `/practice` | — |
+| Power-ups | `power-ups/` | In-game power-up purchase and activation | `/power-ups` | — |
+| Progression | `progression/` | Player level and XP progression | `/progression` | — |
+| Challenges | `challenges/` | Challenge creation and management | `/challenges` | — |
+| Game insights | `game-insights/` | Per-player performance analytics | `/game-insights` | — |
+| State recovery | `state-recovery/` | Reconnect and restore interrupted sessions | `/state-recovery` | — |
 | Chain indexer | `indexer/` | Soroban event indexing | — | `/indexer` |
-| Lesson progress | `music-education/` | `LessonProgress` (`lesson_progress`) | `/lessons/progress` | — |
-| Practice progress | `practice/` | `PracticeProgress` (`practice_progress`) | `/practice/progress` | — |
 | Health | `health/` | Postgres, Redis and Stellar RPC checks | `/health` | — |
+
+### Experimental / out-of-scope modules
+
+Modules that are not yet wired into `AppModule` live in `src/_experimental/`.
+See [`src/_experimental/README.md`](src/_experimental/README.md) for the
+maintainers' decision on each one and instructions on how to promote a module
+back into the build.
 
 Rules of thumb:
 

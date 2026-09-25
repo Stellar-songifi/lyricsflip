@@ -7,7 +7,7 @@ export class RedisService {
 
   constructor() {
     this.client = new Redis({
-      host: '127.0.0.1', 
+      host: '127.0.0.1',
       port: 6379,
     });
   }
@@ -27,5 +27,23 @@ export class RedisService {
   async del(key: string): Promise<void> {
     await this.client.del(key);
   }
-}
 
+  // Deletes every key matching a glob pattern (e.g. 'leaderboard:*'). Uses
+  // SCAN rather than KEYS so it doesn't block Redis on large keyspaces.
+  async delPattern(pattern: string): Promise<void> {
+    let cursor = '0';
+    do {
+      const [nextCursor, keys] = await this.client.scan(
+        cursor,
+        'MATCH',
+        pattern,
+        'COUNT',
+        100,
+      );
+      cursor = nextCursor;
+      if (keys.length > 0) {
+        await this.client.del(...keys);
+      }
+    } while (cursor !== '0');
+  }
+}

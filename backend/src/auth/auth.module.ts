@@ -12,6 +12,8 @@ import { ConfigModule } from '@nestjs/config';
 import jwtConfig from './authConfig/jwt.config';
 import { JwtModule } from '@nestjs/jwt';
 import { AccessTokenGuard } from './guard/access-token/access-token.guard';
+import { WsJwtAuthGuard } from './guard/ws-jwt-auth.guard';
+import { WsRolesGuard } from './guard/ws-roles.guard';
 import { PasswordResetProvider } from './providers/password-reset.provider';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { PasswordResetToken } from './entities/password-reset-token.entity';
@@ -30,6 +32,9 @@ import { WalletAuthProvider } from './providers/wallet-auth.provider';
     },
     PasswordResetProvider,
     AccessTokenGuard,
+    WsJwtAuthGuard,
+    WsRolesGuard,
+    Reflector, 
     Reflector,
     GenerateTokensProvider,
     WsAuthenticator,
@@ -42,6 +47,6 @@ import { WalletAuthProvider } from './providers/wallet-auth.provider';
     ConfigModule.forFeature(jwtConfig),
     JwtModule.registerAsync(jwtConfig.asProvider()),
   ],
-  exports: [AuthService, HashingProvider, AccessTokenGuard, WsAuthenticator, JwtModule],
+  exports: [AuthService, HashingProvider, AccessTokenGuard, WsJwtAuthGuard, WsRolesGuard, WsAuthenticator, JwtModule],
 })
 export class AuthModule {}

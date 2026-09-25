@@ -9,7 +9,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { User } from './user.entity';
 import { ConfigModule } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
-import jwtConfig from 'src/auth/authConfig/jwt.config';
+import jwtConfig from '@app/auth/authConfig/jwt.config';
 
 @Module({
   controllers: [UserController],

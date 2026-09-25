@@ -1,6 +1,6 @@
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne } from 'typeorm';
 import { PowerUp } from './power-up.entity';
-import { User } from 'src/user/user.entity';
+import { User } from '@app/user/user.entity';
 
 @Entity()
 export class PowerUpPurchase {

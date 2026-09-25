@@ -77,6 +77,7 @@
     "typescript": "^5.3.3"
   },
   "jest": {
+    "preset": "ts-jest",
     "moduleFileExtensions": [
       "js",
       "json",
@@ -107,7 +108,7 @@
     },
     "testEnvironment": "node",
     "moduleNameMapper": {
-      "^src/(.*)$": "<rootDir>/$1"
+      "^@app/(.*)$": "<rootDir>/src/$1"
     }
   },
   "engines": {

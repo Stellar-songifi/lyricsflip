@@ -1,4 +1,7 @@
 // src/store/controllers/store.controller.ts
+import { ApiTags } from '@nestjs/swagger';
+
+@ApiTags('store')
 @Controller('store')
 @UseGuards(AuthGuard)
 export class StoreController {

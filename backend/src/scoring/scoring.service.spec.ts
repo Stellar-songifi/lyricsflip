@@ -3,7 +3,7 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { ScoringService } from './scoring.service';
 import { SCORING_CONSTANTS } from './constants/scoring.constants';
-import { Player } from 'src/player/player.entity';
+import { Player } from '@app/player/player.entity';
 
 describe('ScoringService', () => {
   let service: ScoringService;

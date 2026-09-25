@@ -1,8 +1,10 @@
 import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { ApiTags } from '@nestjs/swagger';
 import { StateRecoveryService } from './state-recovery.service';
 import { CreateStateRecoveryDto } from './dto/create-state-recovery.dto';
 import { UpdateStateRecoveryDto } from './dto/update-state-recovery.dto';
 
+@ApiTags('state-recovery')
 @Controller('state-recovery')
 export class StateRecoveryController {
   constructor(private readonly stateRecoveryService: StateRecoveryService) {}

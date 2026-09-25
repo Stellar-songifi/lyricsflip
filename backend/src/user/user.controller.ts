@@ -15,10 +15,10 @@ import {
 import { ApiTags, ApiOperation, ApiResponse, ApiBody } from '@nestjs/swagger';
 import { UserService } from './providers/user.service';
 import { UserDTO } from './dtos/create-user.dto';
-import { AccessTokenGuard } from 'src/auth/guard/access-token/access-token.guard';
-import { RolesGuard } from 'src/common/guards/roles.guard';
-import { Roles } from 'src/common/decorators/roles.decorator';
-import { UserRole } from 'src/common/enums/role.enum';
+import { AccessTokenGuard } from '@app/auth/guard/access-token/access-token.guard';
+import { RolesGuard } from '@app/common/guards/roles.guard';
+import { Roles } from '@app/common/decorators/roles.decorator';
+import { UserRole } from '@app/common/enums/role.enum';
 //import { SignInDTO } from './dtos/sign-in.dto';
 //import { UpdateProfileDTO } from './dtos/update-profile.dto';
 //import { RefreshTokenDTO } from './dtos/refresh-token.dto';

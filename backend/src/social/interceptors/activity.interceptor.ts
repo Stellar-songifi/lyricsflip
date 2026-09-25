@@ -3,6 +3,7 @@ import { Injectable, NestInterceptor, ExecutionContext, CallHandler } from '@nes
 import { Observable } from 'rxjs';
 import { tap } from 'rxjs/operators';
 import { ActivityService } from '../services/activity.service';
+import { ActivityType } from '../entities/activity.entity';
 
 @Injectable()
 export class ActivityInterceptor implements NestInterceptor {
@@ -26,8 +27,9 @@ export class ActivityInterceptor implements NestInterceptor {
     );
   }
 
-  private getActivityType(request: any): ActivityType {
+  private getActivityType(request: any): ActivityType | undefined {
     // Logic to determine activity type based on request
+    return undefined;
   }
 
   private getActivityData(request: any): any {

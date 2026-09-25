@@ -9,6 +9,7 @@ import { PracticeItem } from '../entities/practice-item.entity';
 import { User } from '../../user/user.entity';
 import { SubmitResultDto } from '../dto/submit-result.dto';
 import { FeedbackService } from './feedback.service';
+import { ItemType } from '../enums/item-type.enum';
 
 @Injectable()
 export class PracticeResultService {

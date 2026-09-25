@@ -85,7 +85,7 @@ export class UserProgressionService {
       acc[date].total += metric.level
       acc[date].count++
       return acc
-    }, {})
+    }, {} as Record<string, { total: number; count: number }>)
 
     return Object.entries(dailyAverages).map(([date, stats]) => ({
       date,

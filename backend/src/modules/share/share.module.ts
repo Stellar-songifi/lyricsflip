@@ -12,10 +12,7 @@ import { ActivityModule } from '../activity/activity.module';
 @Module({
   imports: [
     TypeOrmModule.forFeature([Share, ShareAnalytics]),
-    ThrottlerModule.forRoot({
-      ttl: 60,
-      limit: 10,
-    }),
+    ThrottlerModule.forRoot([{ name: 'default', ttl: 60000, limit: 10 }]),
     NotificationModule,
     ActivityModule,
   ],

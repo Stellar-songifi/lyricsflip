@@ -125,10 +125,10 @@ export class PracticeProgressService {
     }
     
     // Calculate average score per subcategory
-    const subcategoryAverages = {};
+    const subcategoryAverages: Record<string, number> = {};
     
     for (const [subcategory, totalScore] of Object.entries(subcategoryScores)) {
-      subcategoryAverages[subcategory] = totalScore / subcategoryCounts[subcategory];
+      subcategoryAverages[subcategory] = (totalScore as number) / subcategoryCounts[subcategory];
     }
     
     // Merge with existing data

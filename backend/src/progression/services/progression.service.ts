@@ -86,7 +86,7 @@ export class ProgressionService {
     // Implement reward calculation based on level
     return {
       coins: level * 100,
-      items: [reward_${level}],
+      items: [`reward_${level}`],
     };
   }
 
@@ -124,7 +124,7 @@ export class ProgressionService {
     }
   }
 
-  private async getOrCreatePlayerStats(userId: string): Promise<PlayerStats> {
+  async getOrCreatePlayerStats(userId: string): Promise<PlayerStats> {
     let playerStats = await this.playerStatsRepository.findOne({
       where: { userId },
       relations: ['levelHistory', 'skills'],

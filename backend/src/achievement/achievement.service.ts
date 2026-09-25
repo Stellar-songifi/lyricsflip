@@ -23,11 +23,10 @@ export class AchievementService {
   }
 
   async trackProgress(userId: string, eventType: string, eventData: any): Promise<void> {
-    const relevantAchievements = await this.achievementRepository.find({
-      where: {
-        'criteria.eventType': eventType,
-      },
-    });
+    const relevantAchievements = await this.achievementRepository
+      .createQueryBuilder('achievement')
+      .where("achievement.criteria->>'eventType' = :eventType", { eventType })
+      .getMany();
 
     for (const achievement of relevantAchievements) {
       const userAchievement = await this.getUserAchievement(userId, achievement.id);
@@ -53,7 +52,7 @@ export class AchievementService {
     userAchievement.unlockedAt = new Date();
     await this.userAchievementRepository.save(userAchievement);
 
-    const achievement = await this.achievementRepository.findOne(achievementId);
+    const achievement = await this.achievementRepository.findOne({ where: { id: achievementId } });
     this.eventEmitter.emit('achievement.unlocked', {
       userId,
       achievement,
@@ -97,5 +96,26 @@ export class AchievementService {
     // Implement criteria evaluation logic
     // This is a simplified example
     return 0.1; // Return progress increment
+  }
+
+  async getUserAchievements(userId: string): Promise<UserAchievement[]> {
+    return this.userAchievementRepository.find({
+      where: { user: { id: userId } },
+      relations: ['achievement'],
+      order: { unlockedAt: 'DESC' },
+    });
+  }
+
+  async getLeaderboard(): Promise<{ userId: string; count: number }[]> {
+    const result = await this.userAchievementRepository
+      .createQueryBuilder('ua')
+      .select('ua.userId', 'userId')
+      .addSelect('COUNT(ua.id)', 'count')
+      .where('ua.isCompleted = :completed', { completed: true })
+      .groupBy('ua.userId')
+      .orderBy('count', 'DESC')
+      .limit(20)
+      .getRawMany();
+    return result;
   }
 }

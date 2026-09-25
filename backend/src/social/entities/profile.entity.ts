@@ -3,6 +3,21 @@ import { Entity, Column, PrimaryGeneratedColumn, OneToMany } from 'typeorm';
 import { Friend } from './friend.entity';
 import { Activity } from './activity.entity';
 
+export interface UserStats {
+  totalGames: number;
+  gamesWon: number;
+  currentStreak: number;
+  bestStreak: number;
+  totalXp: number;
+}
+
+export interface Achievement {
+  id: string;
+  name: string;
+  description: string;
+  unlockedAt: Date;
+}
+
 @Entity()
 export class Profile {
   @PrimaryGeneratedColumn('uuid')
@@ -29,9 +44,9 @@ export class Profile {
   @Column()
   lastActive: Date;
 
-  @OneToMany(() => Friend, friend => friend.profile)
+  @OneToMany(() => Friend, (friend) => friend.profile)
   friends: Friend[];
 
-  @OneToMany(() => Activity, activity => activity.profile)
+  @OneToMany(() => Activity, (activity) => activity.profile)
   activities: Activity[];
 }

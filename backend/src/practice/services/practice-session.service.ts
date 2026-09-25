@@ -7,6 +7,7 @@ import { User } from '../../user/user.entity';
 import { PracticeItemService } from './practice-item.service';
 import { CreateSessionDto } from '../dto/create-session.dto';
 import { PracticeProgressService } from './practice-progress.service';
+import { PracticeItem } from '../entities/practice-item.entity';
 
 @Injectable()
 export class PracticeSessionService {

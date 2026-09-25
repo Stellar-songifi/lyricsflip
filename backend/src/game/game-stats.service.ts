@@ -2,7 +2,7 @@
 import { Injectable } from '@nestjs/common';
 import { GameResult } from './interfaces/game-result.interface';
 
-interface PlayerStats {
+export interface PlayerStats {
   totalGames: number;
   wins: number;
   bestScore: number;

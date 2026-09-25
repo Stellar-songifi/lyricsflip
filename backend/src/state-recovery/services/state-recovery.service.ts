@@ -1,3 +1,11 @@
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { MoreThan, Repository } from 'typeorm';
+import { createHash } from 'crypto';
+import { GameState } from '../entities/game-state.entity';
+import { StateAudit } from '../entities/state-audit.entity';
+import { RedisService } from '../../redis/redis.service';
+
 @Injectable()
 export class StateRecoveryService {
   constructor(
@@ -30,9 +38,8 @@ export class StateRecoveryService {
 
     // Store in Redis for quick access
     await this.redisService.set(
-      game:${gameId}:state,
+      `game:${gameId}:state`,
       JSON.stringify(snapshot),
-      'EX',
       3600
     );
 
@@ -52,7 +59,7 @@ export class StateRecoveryService {
 
   async recoverState(gameId: string): Promise<GameState> {
     // Try to get from Redis first
-    const cachedState = await this.redisService.get(game:${gameId}:state);
+    const cachedState = await this.redisService.get(`game:${gameId}:state`);
     if (cachedState) {
       return JSON.parse(cachedState);
     }
@@ -105,9 +112,8 @@ export class StateRecoveryService {
 
     // Update Redis cache
     await this.redisService.set(
-      game:${gameId}:state,
+      `game:${gameId}:state`,
       JSON.stringify(targetState),
-      'EX',
       3600
     );
 
@@ -131,7 +137,7 @@ export class StateRecoveryService {
 
     await this.auditRepository.save(audit);
     this.logger.log(
-      State audit created: ${action} for game ${gameState.gameId}
+      `State audit created: ${action} for game ${gameState.gameId}`
     );
   }
 

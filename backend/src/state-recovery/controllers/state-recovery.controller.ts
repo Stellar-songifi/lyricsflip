@@ -1,3 +1,17 @@
+import { Controller, Post, Get, Body, Param } from '@nestjs/common';
+import { StateRecoveryService } from '../services/state-recovery.service';
+
+export class CreateSnapshotDto {
+  gameId: string;
+  playerId: string;
+  state: any;
+}
+
+export class RollbackDto {
+  gameId: string;
+  version: number;
+}
+
 @Controller('state-recovery')
 export class StateRecoveryController {
   constructor(

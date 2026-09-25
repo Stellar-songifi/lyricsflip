@@ -45,12 +45,13 @@ export class SongAnalyticsService {
       }
 
       acc[metric.categoryId].totalPlays += metric.playCount
-      metric.popularityTrend.userIds?.forEach((userId) => acc[metric.categoryId].uniqueUsers.add(userId))
+      const trendData = metric.popularityTrend as any;
+      trendData?.userIds?.forEach((userId: string) => acc[metric.categoryId].uniqueUsers.add(userId))
       acc[metric.categoryId].totalPlayTime += metric.averagePlayTime
       acc[metric.categoryId].samples += 1
 
       return acc
-    }, {})
+    }, {} as Record<string, { categoryId: string; categoryName: string; totalPlays: number; uniqueUsers: Set<string>; totalPlayTime: number; samples: number }>)
 
     return Object.values(categoryStats).map((stat) => ({
       categoryId: stat.categoryId,

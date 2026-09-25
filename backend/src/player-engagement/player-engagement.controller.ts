@@ -2,7 +2,7 @@ import { Controller, Get, Query } from "@nestjs/common";
 import { ApiTags } from "@nestjs/swagger";
 import { PlayerEngagementService } from "@app/player-engagement/player-engagement.service";
 import { DateRangeDto } from "@app/analytics/dto/date-range.dto";
-import { PlayerEngagementDto } from "./dto/player-engagement.dto";
+import { PlayerEngagementDto } from "@app/analytics/dto/player-engagement.dto";
 
 @ApiTags("player-engagement")
 @Controller("player-engagement")

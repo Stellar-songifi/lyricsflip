@@ -1,4 +1,5 @@
-import { Module, CacheModule } from "@nestjs/common"
+import { Module } from "@nestjs/common"
+import { CacheModule } from "@nestjs/cache-manager"
 import { TypeOrmModule } from "@nestjs/typeorm"
 import { AnalyticsController } from "./controllers/analytics.controller"
 import { PlayerEngagementService } from "../player-engagement/player-engagement.service"

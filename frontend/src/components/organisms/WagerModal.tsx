@@ -303,7 +303,7 @@ export function WagerModal() {
       title={stage === 'form' ? 'Wager (Single Player)' : 'Wager Summary'}
       description={
         stage === 'form'
-          ? 'Quisque ipsum dolor sit amet, consectetur adipiscing elit. Nunc vulputate libero et velit interdum.'
+          ? 'Pick your genre, set your wager amount, and play solo to rack up points before time runs out.'
           : undefined
       }
       primaryActionLabel={

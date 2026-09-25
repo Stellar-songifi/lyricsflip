@@ -1,3 +1,12 @@
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  ManyToOne,
+  Column,
+  CreateDateColumn,
+  UpdateDateColumn,
+} from 'typeorm';
+
 @Entity()
 export class Template {
   @PrimaryGeneratedColumn('uuid')

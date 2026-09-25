@@ -1,4 +1,13 @@
 // src/replay-analysis/entities/pattern.entity.ts
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  ManyToOne,
+  CreateDateColumn,
+} from 'typeorm';
+import { Replay } from './replay.entity';
+
 @Entity('patterns')
 export class Pattern {
   @PrimaryGeneratedColumn('uuid')
@@ -7,7 +16,7 @@ export class Pattern {
   @Column()
   replayId: string;
 
-  @ManyToOne(() => Replay, replay => replay.patterns)
+  @ManyToOne(() => Replay, (replay) => replay.patterns)
   replay: Replay;
 
   @Column()

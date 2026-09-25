@@ -11,7 +11,6 @@ export default function WaitingForOpponent() {
 
   // Handle closing the waiting screen
   const handleClose = () => {
-    console.log('Closing waiting screen');
   };
 
   // Handle copying the invite code
@@ -138,7 +137,7 @@ export default function WaitingForOpponent() {
             {playersJoined === totalPlayers && (
               <button
                 className="mt-4 text-[16px] font-[500] w-full max-w-[200px] hover:bg-transparent hover:border border-[#9747FF] hover:text-[#9747FF] transition-colors duration-200 rounded-full bg-[#9747FF] text-white py-[12px]"
-                onClick={() => console.log('Starting game...')}
+                onClick={() => {}}
               >
                 Start Game
               </button>

@@ -9,6 +9,7 @@
 import { contract } from '@stellar/stellar-sdk';
 import { StellarWalletsKit } from '@creit.tech/stellar-wallets-kit';
 import type { StellarConfig } from './stellarConfig';
+import { withTxToast } from './toast';
 import {
   type Answer,
   type Card,
@@ -40,6 +41,7 @@ export interface SystemCalls {
   setCardsPerRound: (value: number) => Promise<void>;
   setRole: (recipient: string, isEnable: boolean) => Promise<void>;
   isAdmin: (address: string) => Promise<boolean>;
+  isOwner: (address: string) => Promise<boolean>;
   isRoundPlayer: (roundId: bigint, address: string) => Promise<boolean>;
   getRound: (roundId: bigint) => Promise<Round>;
   getRoundCards: (roundId: bigint) => Promise<bigint[]>;
@@ -131,12 +133,6 @@ async function getGameClient(config: StellarConfig, publicKey: string | null) {
   });
 }
 
-/** Signs + submits a mutating call and returns its decoded result. */
-async function submit<T>(assembled: contract.AssembledTransaction<T>): Promise<T> {
-  const sent = await assembled.signAndSend();
-  return sent.result;
-}
-
 const cardFromWire = (card: WireCard): Card => ({ ...card, genre: genreFromWire(card.genre) });
 const cardToWire = (card: Omit<Card, 'card_id'>): WireCard => ({
   ...card,
@@ -146,6 +142,10 @@ const cardToWire = (card: Omit<Card, 'card_id'>): WireCard => ({
 const roundFromWire = (round: WireRound): Round => ({ ...round, genre: genreFromWire(round.genre) });
 
 export function createSystemCalls(config: StellarConfig, publicKey: string | null): SystemCalls {
+  /** Signs + submits a mutating call (with toast feedback) and returns its decoded result. */
+  const submit = <T>(build: () => Promise<contract.AssembledTransaction<T>>) =>
+    withTxToast(build, config.networkPassphrase);
+
   const requireAccount = (): string => {
     if (!publicKey) {
       throw new Error('Connect a Stellar wallet before performing this action.');
@@ -157,20 +157,19 @@ export function createSystemCalls(config: StellarConfig, publicKey: string | nul
     createRound: async (genre, seed = randomSeed()) => {
       const caller = requireAccount();
       const client = await getGameClient(config, caller);
-      const assembled = await client.create_round({ caller, genre: genreToWire(genre), seed });
-      return submit(assembled);
+      return submit(() => client.create_round({ caller, genre: genreToWire(genre), seed }));
     },
 
     joinRound: async (roundId) => {
       const caller = requireAccount();
       const client = await getGameClient(config, caller);
-      await submit(await client.join_round({ caller, round_id: roundId }));
+      await submit(() => client.join_round({ caller, round_id: roundId }));
     },
 
     startRound: async (roundId) => {
       const caller = requireAccount();
       const client = await getGameClient(config, caller);
-      await submit(await client.start_round({ caller, round_id: roundId }));
+      await submit(() => client.start_round({ caller, round_id: roundId }));
     },
 
     nextCard: async (roundId) => {
@@ -179,26 +178,26 @@ export function createSystemCalls(config: StellarConfig, publicKey: string | nul
       // simulated) by a connected, fee-paying account.
       const caller = requireAccount();
       const client = await getGameClient(config, caller);
-      const wireCard = await submit(await client.next_card({ round_id: roundId }));
+      const wireCard = await submit(() => client.next_card({ round_id: roundId }));
       return cardFromWire(wireCard);
     },
 
     submitAnswer: async (roundId, answer) => {
       const caller = requireAccount();
       const client = await getGameClient(config, caller);
-      return submit(await client.submit_answer({ caller, round_id: roundId, answer }));
+      return submit(() => client.submit_answer({ caller, round_id: roundId, answer }));
     },
 
     addCard: async (card) => {
       const caller = requireAccount();
       const client = await getGameClient(config, caller);
-      await submit(await client.add_card({ caller, card: cardToWire(card) }));
+      await submit(() => client.add_card({ caller, card: cardToWire(card) }));
     },
 
     addCards: async (cards) => {
       const caller = requireAccount();
       const client = await getGameClient(config, caller);
-      return submit(await client.add_cards({ caller, cards: cards.map(cardToWire) }));
+      return submit(() => client.add_cards({ caller, cards: cards.map(cardToWire) }));
     },
 
     getCard: async (cardId) => {
@@ -216,15 +215,31 @@ export function createSystemCalls(config: StellarConfig, publicKey: string | nul
     setCardsPerRound: async (value) => {
       const caller = requireAccount();
       const client = await getGameClient(config, caller);
-      await submit(await client.set_cards_per_round({ caller, value }));
+      await submit(() => client.set_cards_per_round({ caller, value }));
     },
 
     setRole: async (recipient, isEnable) => {
       const caller = requireAccount();
       const client = await getGameClient(config, caller);
-      await submit(
-        await client.set_role({ caller, recipient, role: ROLE_ADMIN, is_enable: isEnable }),
-      );
+      await submit(() => client.set_role({ caller, recipient, role: ROLE_ADMIN, is_enable: isEnable }));
+    },
+
+    isOwner: async (address) => {
+      // There is no owner getter on-chain, but `set_role` rejects every caller
+      // except the owner, so a successful dry-run simulation identifies them.
+      try {
+        const client = await getGameClient(config, address);
+        const assembled = await client.set_role({
+          caller: address,
+          recipient: address,
+          role: ROLE_ADMIN,
+          is_enable: true,
+        });
+        void assembled.result;
+        return true;
+      } catch {
+        return false;
+      }
     },
 
     isAdmin: async (address) => {
@@ -294,7 +309,7 @@ export function createSystemCalls(config: StellarConfig, publicKey: string | nul
     claimReward: async (milestone) => {
       const caller = requireAccount();
       const client = await getGameClient(config, caller);
-      return submit(await client.claim_reward({ caller, milestone }));
+      return submit(() => client.claim_reward({ caller, milestone }));
     },
 
     getCategories: notImplemented('getCategories'),

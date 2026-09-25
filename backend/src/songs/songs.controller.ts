@@ -3,25 +3,21 @@ import {
   Get,
   Post,
   Body,
-  Patch,
   Param,
-  Delete,
   Query,
-  HttpCode,
-  HttpStatus,
   ParseUUIDPipe,
   ParseEnumPipe,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiQuery } from '@nestjs/swagger';
 import { SongsService } from './songs.service';
 import { GenresService } from './genres.service';
-import { CreateSongDto } from './dto/create-song.dto';
-import { UpdateSongDto } from './dto/update-song.dto';
 import { QuerySongsDto } from './dto/query-songs.dto';
 import { RecordGenrePlayDto } from './dto/record-genre-play.dto';
 import { Genre } from './enums/genre.enum';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 
+// Public, read-only song catalogue. Curation (create/update/delete/approve)
+// lives under AdminSongsController ('/admin/songs') — see LF-090.
 @ApiTags('songs')
 @Controller('songs')
 export class SongsController {
@@ -30,14 +26,10 @@ export class SongsController {
     private readonly genresService: GenresService,
   ) {}
 
-  @Post()
-  @ApiOperation({ summary: 'Create a song' })
-  create(@Body() dto: CreateSongDto) {
-    return this.songsService.create(dto);
-  }
-
   @Get()
-  @ApiOperation({ summary: 'List songs with filtering, search, sorting and pagination' })
+  @ApiOperation({
+    summary: 'List songs with filtering, search, sorting and pagination',
+  })
   findAll(@Query() query: QuerySongsDto) {
     return this.songsService.findAll(query);
   }
@@ -45,7 +37,9 @@ export class SongsController {
   @Get('random')
   @ApiOperation({ summary: 'Get a random song, optionally within a genre' })
   @ApiQuery({ name: 'genre', enum: Genre, required: false })
-  getRandom(@Query('genre', new ParseEnumPipe(Genre, { optional: true })) genre?: Genre) {
+  getRandom(
+    @Query('genre', new ParseEnumPipe(Genre, { optional: true })) genre?: Genre,
+  ) {
     return this.songsService.getRandom(genre);
   }
 
@@ -62,7 +56,9 @@ export class SongsController {
   }
 
   @Post('genres/:genre/plays')
-  @ApiOperation({ summary: 'Record a round played in a genre for the current user' })
+  @ApiOperation({
+    summary: 'Record a round played in a genre for the current user',
+  })
   recordGenrePlay(
     @CurrentUser('sub') userId: string,
     @Param('genre', new ParseEnumPipe(Genre)) genre: Genre,
@@ -72,7 +68,9 @@ export class SongsController {
   }
 
   @Get('recommended')
-  @ApiOperation({ summary: "Songs ordered by the current user's genre preferences" })
+  @ApiOperation({
+    summary: "Songs ordered by the current user's genre preferences",
+  })
   recommend(@CurrentUser('sub') userId: string) {
     return this.genresService.recommendSongs(userId);
   }
@@ -93,19 +91,6 @@ export class SongsController {
   @ApiOperation({ summary: 'Get a song by id' })
   findOne(@Param('id', ParseUUIDPipe) id: string) {
     return this.songsService.findOne(id);
-  }
-
-  @Patch(':id')
-  @ApiOperation({ summary: 'Update a song' })
-  update(@Param('id', ParseUUIDPipe) id: string, @Body() dto: UpdateSongDto) {
-    return this.songsService.update(id, dto);
-  }
-
-  @Delete(':id')
-  @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ summary: 'Delete a song' })
-  remove(@Param('id', ParseUUIDPipe) id: string) {
-    return this.songsService.remove(id);
   }
 
   @Post(':id/play')

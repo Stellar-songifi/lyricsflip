@@ -18,7 +18,10 @@
     "test:cov": "jest --coverage",
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "seed": "ts-node src/database/seed-songs.ts",
-    "migration:run": "typeorm-ts-node-commonjs migration:run -d src/database/data-source.ts"
+    "migration:run": "typeorm-ts-node-commonjs migration:run -d src/database/data-source.ts",
+    "migration:revert": "typeorm-ts-node-commonjs migration:revert -d src/database/data-source.ts",
+    "migration:generate": "typeorm-ts-node-commonjs migration:generate -d src/database/data-source.ts",
+    "migration:show": "typeorm-ts-node-commonjs migration:show -d src/database/data-source.ts"
   },
   "dependencies": {
     "@nestjs/common": "^10.3.3",
@@ -108,7 +111,7 @@
     },
     "testEnvironment": "node",
     "moduleNameMapper": {
-      "^@app/(.*)$": "<rootDir>/src/$1"
+      "^@app/(.*)$": "<rootDir>/$1"
     }
   },
   "engines": {

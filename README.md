@@ -278,7 +278,7 @@ All chain access goes through [`src/lib/stellar/`](frontend/src/lib/stellar/):
 | `/multiplayer` | `app/multiplayer/page.tsx` | Join a round by ID, ready up, play with others |
 | `/admin` | `app/admin/page.tsx` | Admin configuration (`cards_per_round`) |
 | `/set-username` | `app/set-username/page.tsx` | Choose a display name |
-| `/sign-in-page` | `app/sign-in-page/page.tsx` | Sign-in landing page |
+| `/sign-in` | `app/sign-in/page.tsx` | Sign-in landing page |
 
 ### Component structure (atomic design)
 

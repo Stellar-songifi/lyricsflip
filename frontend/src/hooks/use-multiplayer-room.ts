@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { io, type Socket } from 'socket.io-client';
+import { WAGER_ASSET_CODE } from '@/lib/utils';
 import type {
   ClientToServerEvents,
   RoomData,
@@ -29,7 +30,7 @@ const mockRoomData: RoomData = {
   description:
     'Create a round, invite friends, and compete head-to-head. Winner takes the pot.',
   timeLeft: '59:00',
-  potWin: '10,000 STRK',
+  potWin: `10,000 ${WAGER_ASSET_CODE}`,
   scores: 456,
   players: [
     { id: 'player1', name: 'Player 1', score: 120 },

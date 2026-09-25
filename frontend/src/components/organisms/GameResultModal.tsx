@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Check } from 'lucide-react';
 import { useStellar } from '@/lib/stellar/hooks/useStellar';
 import { useState, useEffect } from 'react';
+import { WAGER_ASSET_CODE } from '@/lib/utils';
 
 export const GameResultModal = () => {
   const { isOpen, modalType, closeModal } = useModalStore();
@@ -100,14 +101,14 @@ export const GameResultModal = () => {
           <div className="flex justify-between items-center border-b py-[12px]">
             <span className="text-gray-600">Wager Amount</span>
             <span className="font-medium">
-              {roundData.wagerAmount} STRK
+              {roundData.wagerAmount} {WAGER_ASSET_CODE}
             </span>
           </div>
           {modalType === 'won' && (
             <div className="flex justify-between items-center border-b py-[12px]">
               <span className="text-gray-600">You Win</span>
               <span className="font-medium text-[#9747FF]">
-                {roundData.potentialWin} STRK
+                {roundData.potentialWin} {WAGER_ASSET_CODE}
               </span>
             </div>
           )}

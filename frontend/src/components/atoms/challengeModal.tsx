@@ -11,10 +11,13 @@ import {
 import { Button } from '../atoms/button';
 import { Input } from '../atoms/input';
 import { Card, CardContent } from '../atoms/card';
+import { useXlmBalance } from '@/lib/stellar/hooks/useXlmBalance';
+import { WAGER_ASSET_CODE } from '@/lib/utils';
 
 export default function ChallengeModal() {
   const [code, setCode] = useState('');
   const [isChallengeModalOpen, setIsChallengeModalOpen] = useState(false);
+  const { formatted: walletBalance } = useXlmBalance();
 
   const handleSelectGame = (gameId: string) => {
     if (gameId === 'challenge') {
@@ -42,20 +45,20 @@ export default function ChallengeModal() {
             <Card>
               <CardContent className="space-y-2">
                 <p>
-                  <strong>Wager Amount:</strong> 10,000 STRK (100 USD)
+                  <strong>Wager Amount:</strong> — {WAGER_ASSET_CODE}
                 </p>
                 <p>
                   <strong>Number of Participants:</strong> Six (6)
                 </p>
                 <p>
                   <strong>Payout If Won:</strong>{' '}
-                  <span className="text-purple-600">80,000 STRK (800 USD)</span>
+                  <span className="text-purple-600">— {WAGER_ASSET_CODE}</span>
                 </p>
                 <p>
                   <strong>Creator:</strong> thetimleyn
                 </p>
                 <p>
-                  <strong>Wallet Balance:</strong> 200,780 STRK
+                  <strong>Wallet Balance:</strong> {walletBalance ?? '—'} XLM
                 </p>
               </CardContent>
             </Card>

@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useStellar } from '@/lib/stellar/hooks/useStellar';
 import type { Genre } from '@/lib/stellar/types';
 import { useRouter } from 'next/navigation';
+import { useXlmBalance } from '@/lib/stellar/hooks/useXlmBalance';
 
 // Maps the form's genre <select> values to the contract's Genre variants.
 const FORM_GENRE_TO_CONTRACT_GENRE: Record<string, Genre> = {
@@ -14,7 +15,7 @@ const FORM_GENRE_TO_CONTRACT_GENRE: Record<string, Genre> = {
 export default function CreateChallenge() {
   const router = useRouter();
   const { systemCalls } = useStellar();
-  const currency_Amount = { STRK: '18,678', USD: '5,676' };
+  const { formatted: walletBalance } = useXlmBalance();
   const [formData, setFormData] = useState({
     genre: '',
     level: '',
@@ -261,18 +262,9 @@ export default function CreateChallenge() {
             )}
             <p className="flex space-x-2 items-center">
               <span className="font-[400] text-[12px]">Wallet Balance:</span>
-              {currency_Amount &&
-                Object.entries(currency_Amount).map(
-                  ([key, value]: [string, string]) => (
-                    <span
-                      key={key}
-                      className="font-[500] text-[#9747FF] text-[12px]"
-                    >
-                      {' '}
-                      {value} {key}
-                    </span>
-                  ),
-                )}
+              <span className="font-[500] text-[#9747FF] text-[12px]">
+                {walletBalance ?? '—'} XLM
+              </span>
             </p>
           </div>
 

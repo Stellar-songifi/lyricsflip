@@ -9,6 +9,8 @@ import { FiHome, FiCreditCard, FiGrid } from 'react-icons/fi';
 import { IoTrophyOutline } from 'react-icons/io5';
 import { useThemeStore } from '@/store/useThemeStore';
 import { useStellar } from '@/lib/stellar/hooks/useStellar';
+import { WalletButton } from './wallet-button';
+import { WalletStatusBanner } from './wallet-status-banner';
 
 // Navigation items array — profile href is dynamic (resolved in the component)
 const staticNavItems = [
@@ -110,31 +112,9 @@ const Navbar = () => {
             <Settings className="h-5 w-5 text-gray-600 dark:text-gray-300" />
           </div>
 
-          <div className="flex py-2 px-3 justify-center items-center gap-3 rounded border border-[#DBE2E8] dark:border-gray-600 bg-white dark:bg-gray-800 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-            <div className="flex justify-center gap-2">
-              <Image
-                src="/layer1.svg"
-                alt="logo"
-                width={22}
-                height={20}
-                priority
-                className="object-cover"
-              />
-              <span className="text-[#909090] dark:text-gray-400 font-interv text-[12px] font-normal leading-[20px]">
-                0xg5600134d...55e1
-              </span>
-            </div>
-
-            <Image
-              src="/dropdown.svg"
-              alt="logo"
-              width={16}
-              height={16}
-              priority
-              className="object-cover"
-            />
-          </div>
+          <WalletButton />
         </div>
+        <WalletStatusBanner className="absolute top-full inset-x-0" />
       </header>
     </div>
   );
@@ -147,6 +127,13 @@ export const MobileNav = () => {
   const { theme, toggleTheme } = useThemeStore();
 
   return (
+    <>
+    <div className="md:hidden fixed top-0 inset-x-0 z-50 bg-white dark:bg-gray-900 border-b dark:border-gray-700">
+      <div className="flex justify-end px-4 py-2">
+        <WalletButton />
+      </div>
+      <WalletStatusBanner />
+    </div>
     <nav className="md:hidden flex items-center justify-around border-t dark:border-gray-700 py-3 fixed bottom-0 z-50 inset-x-0 bg-white dark:bg-gray-900">
       {mobileNavItems.map((item) => {
         const isActive = pathname === item.href;
@@ -179,5 +166,6 @@ export const MobileNav = () => {
         <span className="text-xs mt-1 font-interv">Theme</span>
       </button>
     </nav>
+    </>
   );
 };

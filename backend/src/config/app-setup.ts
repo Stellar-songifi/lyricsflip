@@ -1,6 +1,5 @@
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { AllExceptionsFilter } from '../filters/all-exceptions.filter';
-import { LoggingInterceptor } from '../interceptors/logging.interceptor';
 
 /**
  * Global HTTP pipeline shared by main.ts and the e2e tests, so tests
@@ -15,6 +14,5 @@ export function configureApp(app: INestApplication): INestApplication {
     }),
   );
   app.useGlobalFilters(new AllExceptionsFilter());
-  app.useGlobalInterceptors(new LoggingInterceptor());
   return app;
 }

@@ -1,7 +1,7 @@
 // src/achievement/entities/user-achievement.entity.ts
 import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, CreateDateColumn } from 'typeorm';
 import { Achievement } from './achievement.entity';
-import { User } from '../../user/entities/user.entity';
+import { User } from '../../user/user.entity';
 
 @Entity()
 export class UserAchievement {

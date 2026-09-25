@@ -1,7 +1,7 @@
 // src/practice/dto/create-practice-item.dto.ts
 import { IsString, IsEnum, IsObject, IsArray, IsOptional, IsBoolean } from 'class-validator';
 import { Difficulty } from '../enums/difficulty.enum';
-import { Genre } from '../enums/genre.enum';
+import { Genre } from '../../songs/enums/genre.enum';
 import { ItemType } from '../enums/item-type.enum';
 
 export class CreatePracticeItemDto {

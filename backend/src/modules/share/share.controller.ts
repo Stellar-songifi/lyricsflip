@@ -4,7 +4,7 @@ import { ThrottlerGuard } from '@nestjs/throttler';
 import { ShareService } from './share.service';
 import { CreateShareDto } from './dto/create-share.dto';
 import { PlatformType } from './enums/platform-type.enum';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { JwtAuthGuard } from '../../auth/guard/jwt-auth.guard';
 
 @ApiTags('shares')
 @Controller('shares')

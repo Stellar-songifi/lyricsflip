@@ -3,7 +3,6 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ProgressionController } from './controllers/progression.controller';
 import { ProgressionService } from './services/progression.service';
-import { ProgressionGateway } from './gateways/progression.gateway';
 import { PlayerStats } from './entities/player-stats.entity';
 import { PlayerLevel } from './entities/player-level.entity';
 import { PlayerSkill } from './entities/player-skill.entity';
@@ -13,7 +12,7 @@ import { PlayerSkill } from './entities/player-skill.entity';
     TypeOrmModule.forFeature([PlayerStats, PlayerLevel, PlayerSkill]),
   ],
   controllers: [ProgressionController],
-  providers: [ProgressionService, ProgressionGateway],
+  providers: [ProgressionService],
   exports: [ProgressionService],
 })
 export class ProgressionModule {}

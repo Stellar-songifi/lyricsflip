@@ -1,36 +1,13 @@
 # NOTIFICATION API
+# Real-time pushes: socket.io namespace /notifications, connect with auth: { token }.
 
 @baseUrl = http://localhost:3000
 
-# Notification Endpoints
+### Current user's notifications
+GET {{baseUrl}}/notifications?unread=true
 
-# Template CRUD Operations
-# These are common operations that might not be implemented in your controller yet
+### Mark one notification as read
+PATCH {{baseUrl}}/notifications/:id/read
 
-### findAll (Template)
-GET {{baseUrl}}/notification
-
-### findOne (Template)
-GET {{baseUrl}}/notification/:id
-
-### create (Template)
-POST {{baseUrl}}/notification
-Content-Type: application/json
-
-{
-  "name": "notification name",
-  "description": "notification description"
-}
-
-### update (Template)
-PATCH {{baseUrl}}/notification/:id
-Content-Type: application/json
-
-{
-  "name": "updated notification name",
-  "description": "updated notification description"
-}
-
-### remove (Template)
-DELETE {{baseUrl}}/notification/:id
-
+### Mark all as read
+POST {{baseUrl}}/notifications/mark-read

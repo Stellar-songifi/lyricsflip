@@ -6,7 +6,7 @@ import { PracticeItem } from '../entities/practice-item.entity';
 import { CreatePracticeItemDto } from '../dto/create-practice-item.dto';
 import { UpdatePracticeItemDto } from '../dto/update-practice-item.dto';
 import { Difficulty } from '../enums/difficulty.enum';
-import { Genre } from '../enums/genre.enum';
+import { Genre } from '../../songs/enums/genre.enum';
 
 @Injectable()
 export class PracticeItemService {

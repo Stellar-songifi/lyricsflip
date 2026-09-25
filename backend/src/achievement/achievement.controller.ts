@@ -2,7 +2,7 @@
 import { Controller, Get, Post, Body, Param, UseGuards } from '@nestjs/common';
 import { AchievementService } from './achievement.service';
 import { CreateAchievementDto } from './dto/create-achievement.dto';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { JwtAuthGuard } from '../auth/guard/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 
 @Controller('achievements')
@@ -16,7 +16,7 @@ export class AchievementController {
   }
 
   @Get('user')
-  getUserAchievements(@CurrentUser() userId: string) {
+  getUserAchievements(@CurrentUser('sub') userId: string) {
     return this.achievementService.getUserAchievements(userId);
   }
 

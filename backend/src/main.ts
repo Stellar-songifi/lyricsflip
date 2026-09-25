@@ -4,14 +4,13 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { swaggerConfig, swaggerCustomOptions } from './utility/Swagger';
 import { SocketIOAdapter } from './config/socket-io.config';
 import { Logger } from '@nestjs/common';
-import { CustomLoggerService } from './logger/custom-logger.service';
+import { AppLogger } from './logger/app-logger.service';
 import { configureApp } from './config/app-setup';
 import { ConfigService } from '@nestjs/config';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule, {
-    logger: new CustomLoggerService(),
-  });
+  const app = await NestFactory.create(AppModule, { bufferLogs: true });
+  app.useLogger(app.get(AppLogger));
 
   const config = app.get(ConfigService);
   const logger = new Logger('Main');

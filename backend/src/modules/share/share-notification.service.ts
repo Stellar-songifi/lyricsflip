@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
 import { Share } from './entities/share.entity';
-import { NotificationService } from '../notification/notification.service';
+import { NotificationService } from '../../notification/providers/notification.service';
 import { ActivityService } from '../activity/activity.service';
 
 @Injectable()

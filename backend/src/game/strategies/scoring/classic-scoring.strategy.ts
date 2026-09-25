@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { ScoringStrategy } from '../strategies/scoring/scoring-strategy.interface';
+import { ScoringStrategy } from './scoring-strategy.interface';
 
 @Injectable()
 export class ClassicScoringStrategy implements ScoringStrategy {

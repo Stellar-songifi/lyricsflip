@@ -3,6 +3,7 @@ import { RoomService } from './room.service';
 import { Repository } from 'typeorm';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Room } from './entities/room.entity';
+import { PlayerRoom } from './entities/player-room.entity';
 import { NotFoundException } from '@nestjs/common';
 
 const mockRoomRepository = () => ({
@@ -40,6 +41,10 @@ describe('RoomService', () => {
           provide: getRepositoryToken(Room),
           useValue: mockRoomRepository(),
         },
+        {
+          provide: getRepositoryToken(PlayerRoom),
+          useValue: { count: jest.fn().mockResolvedValue(3), find: jest.fn() },
+        },
       ],
     }).compile();
 
@@ -66,9 +71,13 @@ describe('RoomService', () => {
     expect(repository.save).toHaveBeenCalled();
   });
 
-  it('should return all rooms', async () => {
-    await expect(service.findAll()).resolves.toEqual([]);
-    expect(repository.find).toHaveBeenCalled();
+  it('should return active rooms, paginated', async () => {
+    await expect(service.findAll(10, 2)).resolves.toEqual([]);
+    expect(repository.find).toHaveBeenCalledWith({
+      where: { isActive: true },
+      skip: 10,
+      take: 10,
+    });
   });
 
   it('should return a room by id', async () => {
@@ -78,7 +87,7 @@ describe('RoomService', () => {
       description: 'Test Room Description',
       code: 'RANDOM',
     });
-    expect(repository.findOne).toHaveBeenCalledWith({ where: { id: '1' } });
+    expect(repository.findOne).toHaveBeenCalledWith({ where: { id: '1', isActive: true } });
   });
 
   it('should throw an error if room not found', async () => {
@@ -98,8 +107,12 @@ describe('RoomService', () => {
     expect(repository.save).toHaveBeenCalled();
   });
 
-  it('should remove a room', async () => {
-    await expect(service.remove('1')).resolves.toBeTruthy();
-    expect(repository.remove).toHaveBeenCalled();
+  it('should soft-delete a room', async () => {
+    await expect(service.remove('1')).resolves.toHaveProperty('isActive', false);
+    expect(repository.remove).not.toHaveBeenCalled();
+  });
+
+  it('should count active players', async () => {
+    await expect(service.getCurrentPlayerCount('1')).resolves.toBe(3);
   });
 });

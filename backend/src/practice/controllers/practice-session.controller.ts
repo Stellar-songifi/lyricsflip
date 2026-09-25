@@ -1,7 +1,7 @@
 // src/practice/controllers/practice-session.controller.ts
 import { Controller, Get, Post, Body, Param, UseGuards, Request } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
-import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
+import { JwtAuthGuard } from '../../auth/guard/jwt-auth.guard';
 import { PracticeSessionService } from '../services/practice-session.service';
 import { CreateSessionDto } from '../dto/create-session.dto';
 
@@ -19,7 +19,7 @@ export class PracticeSessionController {
 
   @Get()
   findAll(@Request() req) {
-    return this.sessionService.getUserSessions(req.user.id);
+    return this.sessionService.getUserSessions(req.user.sub);
   }
 
   @Get(':id')

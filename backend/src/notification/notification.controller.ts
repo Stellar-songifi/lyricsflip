@@ -1,46 +1,33 @@
-import { Controller, Get, Post } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { Controller, Get, Param, ParseBoolPipe, ParseUUIDPipe, Patch, Post, Query, DefaultValuePipe } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiQuery } from '@nestjs/swagger';
 import { NotificationService } from './providers/notification.service';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
 
-// Controller for managing notifications.
-@ApiTags('notification')
-@Controller('notification')
+@ApiTags('notifications')
+@Controller('notifications')
 export class NotificationController {
   constructor(private readonly notificationService: NotificationService) {}
 
-  // Retrieve all notifications.
   @Get()
-  @ApiOperation({ 
-    summary: 'Get notifications', 
-    description: 'Retrieve all user notifications' 
-  })
-  @ApiResponse({ 
-    status: 200, 
-    description: 'Notifications successfully retrieved' 
-  })
-  @ApiResponse({ 
-    status: 500, 
-    description: 'Internal server error occurred' 
-  })
-  getNotifications() {
-    return this.notificationService.getNotifications();
+  @ApiOperation({ summary: "Get the current user's notifications" })
+  @ApiQuery({ name: 'unread', required: false, type: Boolean })
+  @ApiResponse({ status: 200, description: 'Notifications successfully retrieved' })
+  getNotifications(
+    @CurrentUser('sub') userId: string,
+    @Query('unread', new DefaultValuePipe(false), ParseBoolPipe) unread: boolean,
+  ) {
+    return this.notificationService.findForUser(userId, unread);
   }
 
-  // Mark all notifications as read.
+  @Patch(':id/read')
+  @ApiOperation({ summary: 'Mark one notification as read' })
+  markRead(@CurrentUser('sub') userId: string, @Param('id', ParseUUIDPipe) id: string) {
+    return this.notificationService.markRead(userId, id);
+  }
+
   @Post('mark-read')
-  @ApiOperation({ 
-    summary: 'Mark notifications as read', 
-    description: 'Mark all user notifications as read' 
-  })
-  @ApiResponse({ 
-    status: 200, 
-    description: 'Notifications successfully marked as read' 
-  })
-  @ApiResponse({ 
-    status: 500, 
-    description: 'Internal server error occurred' 
-  })
-  markNotificationsRead() {
-    return this.notificationService.markNotificationsRead();
+  @ApiOperation({ summary: "Mark all of the current user's notifications as read" })
+  markAllRead(@CurrentUser('sub') userId: string) {
+    return this.notificationService.markAllRead(userId);
   }
 }

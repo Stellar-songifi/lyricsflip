@@ -3,7 +3,7 @@ import { MusicEducationService } from './music-theory-lesson.service';
 import { Artist } from './artists/entities/artist.entity';
 import { GenreHistory } from './genre-history/entities/genre-history.entity';
 import { Quiz } from './quiz/entities/quiz.entity';
-import { UserProgress } from './user-progress/entities/user-progress.entity';
+import { LessonProgress } from './lesson-progress/entities/lesson-progress.entity';
 import { MusicLesson } from './music-lessons/entities/music-theory-lesson.entity';
 import { MusicEducationController } from './music-theory-lesson.controller';
 import { TypeOrmModule } from '@nestjs/typeorm';
@@ -16,7 +16,7 @@ import { MusicLessonsService } from './music-lessons/providers/music-theory-less
       GenreHistory,
       MusicLesson,
       Quiz,
-      UserProgress,
+      LessonProgress,
     ]),
   ],
   controllers: [MusicEducationController],

@@ -3,7 +3,8 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Friend } from '../entities/friend.entity';
-import { NotificationService } from './notification.service';
+import { NotificationService } from '../../notification/providers/notification.service';
+import { NotificationType } from '../../notification/enums/notification-type.enum';
 
 @Injectable()
 export class FriendService {
@@ -22,10 +23,10 @@ export class FriendService {
 
     await this.friendRepository.save(request);
 
-    await this.notificationService.create({
+    await this.notificationService.sendToUser(receiverId, {
       type: NotificationType.FRIEND_REQUEST,
-      userId: receiverId,
-      data: { senderId },
+      message: 'You have a new friend request',
+      metadata: { senderId },
     });
 
     return request;

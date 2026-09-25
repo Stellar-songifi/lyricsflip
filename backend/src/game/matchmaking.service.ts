@@ -1,7 +1,6 @@
 // src/game/matchmaking.service.ts
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
 import { GameModeService } from './game-mode.service';
-import { GameSessionService } from './game-session.service';
 
 interface QueuedPlayer {
   id: string;
@@ -11,16 +10,24 @@ interface QueuedPlayer {
 }
 
 @Injectable()
-export class MatchmakingService {
+export class MatchmakingService implements OnModuleDestroy {
+  private readonly logger = new Logger(MatchmakingService.name);
   private playerQueue: QueuedPlayer[] = [];
   private matchmakingInterval: NodeJS.Timeout;
 
-  constructor(
-    private readonly gameModeService: GameModeService,
-    private readonly gameSessionService: GameSessionService,
-  ) {
+  constructor(private readonly gameModeService: GameModeService) {
     // Run matchmaking process every 5 seconds
     this.matchmakingInterval = setInterval(() => this.processMatchmaking(), 5000);
+  }
+
+  onModuleDestroy() {
+    clearInterval(this.matchmakingInterval);
+  }
+
+  private startMatch(modeId: string, playerIds: string[]): void {
+    this.gameModeService
+      .startSession(modeId, playerIds)
+      .catch((error) => this.logger.error(`Failed to start ${modeId} match: ${error.message}`));
   }
 
   queuePlayer(playerId: string, preferredMode: string, skill: number): void {
@@ -60,7 +67,7 @@ export class MatchmakingService {
     };
   }
 
-  private processMatchmaking(): void {
+  processMatchmaking(): void {
     // Process each game mode
     for (const mode of this.gameModeService.getAllModes()) {
       // Get players who prefer this mode
@@ -80,7 +87,7 @@ export class MatchmakingService {
         const playerIds = matchPlayers.map(p => p.id);
         
         // Start a game session
-        this.gameSessionService.startGameSession(mode.id, playerIds);
+        this.startMatch(mode.id, playerIds);
         
         // Remove these players from the queue
         this.playerQueue = this.playerQueue.filter(p => !playerIds.includes(p.id));
@@ -104,7 +111,7 @@ export class MatchmakingService {
           const playerIds = matchPlayers.map(p => p.id);
           
           // Start a game session
-          this.gameSessionService.startGameSession(mode.id, playerIds);
+          this.startMatch(mode.id, playerIds);
           
           // Remove these players from the queue
           this.playerQueue = this.playerQueue.filter(p => !playerIds.includes(p.id));

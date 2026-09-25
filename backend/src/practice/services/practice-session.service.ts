@@ -3,10 +3,10 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { PracticeSession } from '../entities/practice-session.entity';
-import { User } from '../../users/entities/user.entity';
+import { User } from '../../user/user.entity';
 import { PracticeItemService } from './practice-item.service';
 import { CreateSessionDto } from '../dto/create-session.dto';
-import { UserProgressService } from './user-progress.service';
+import { PracticeProgressService } from './practice-progress.service';
 
 @Injectable()
 export class PracticeSessionService {
@@ -14,7 +14,7 @@ export class PracticeSessionService {
     @InjectRepository(PracticeSession)
     private sessionRepository: Repository<PracticeSession>,
     private practiceItemService: PracticeItemService,
-    private userProgressService: UserProgressService,
+    private practiceProgressService: PracticeProgressService,
   ) {}
 
   async createSession(user: User, createSessionDto: CreateSessionDto): Promise<PracticeSession> {
@@ -65,7 +65,7 @@ export class PracticeSessionService {
     const savedSession = await this.sessionRepository.save(session);
     
     // Update user progress
-    await this.userProgressService.updateProgressAfterSession(savedSession);
+    await this.practiceProgressService.updateProgressAfterSession(savedSession);
     
     return savedSession;
   }

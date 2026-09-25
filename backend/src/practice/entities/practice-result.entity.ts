@@ -1,6 +1,6 @@
 // src/practice/entities/practice-result.entity.ts
 import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, CreateDateColumn } from 'typeorm';
-import { User } from '../../users/entities/user.entity';
+import { User } from '../../user/user.entity';
 import { PracticeSession } from './practice-session.entity';
 import { PracticeItem } from './practice-item.entity';
 
@@ -9,7 +9,7 @@ export class PracticeResult {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @ManyToOne(() => User, user => user.practiceResults)
+  @ManyToOne(() => User)
   user: User;
 
   @ManyToOne(() => PracticeSession, session => session.results)

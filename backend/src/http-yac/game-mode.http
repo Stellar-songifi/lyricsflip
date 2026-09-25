@@ -1,49 +1,63 @@
-# GAME-MODE API
+# GAME MODES API
+# Real-time play: socket.io namespace /game, connect with auth: { token }.
 
 @baseUrl = http://localhost:3000
 
-# Game-mode Endpoints
+### Built-in modes
+GET {{baseUrl}}/game-modes
 
-### getAllGameModes
-GET {{baseUrl}}/game-mode
+### One mode, its stats and leaderboard
+GET {{baseUrl}}/game-modes/classic
+GET {{baseUrl}}/game-modes/classic/stats
+GET {{baseUrl}}/game-modes/classic/leaderboard
 
-### createGameMode
-POST {{baseUrl}}/game-mode
+### Player-created modes
+GET {{baseUrl}}/game-modes/custom
+
+### Create a custom mode
+POST {{baseUrl}}/game-modes/custom
 Content-Type: application/json
 
 {
-  // Game-mode data
-  "name": "game-mode name",
-  "description": "game-mode description"
+  "name": "Speed round",
+  "rules": {
+    "timeLimit": 60,
+    "pointSystem": { "correct": 10 },
+    "powerUpsAllowed": [],
+    "minimumPlayers": 2,
+    "specialConditions": []
+  },
+  "isPublic": true
 }
 
-# Template CRUD Operations
-# These are common operations that might not be implemented in your controller yet
+### Upvote a custom mode
+POST {{baseUrl}}/game-modes/custom/:id/upvote
 
-### findAll (Template)
-GET {{baseUrl}}/game-mode
-
-### findOne (Template)
-GET {{baseUrl}}/game-mode/:id
-
-### create (Template)
-POST {{baseUrl}}/game-mode
+### Join matchmaking
+POST {{baseUrl}}/game-modes/queue
 Content-Type: application/json
 
 {
-  "name": "game-mode name",
-  "description": "game-mode description"
+  "modeId": "classic",
+  "skill": 1000
 }
 
-### update (Template)
-PATCH {{baseUrl}}/game-mode/:id
+### Queue status / leave queue
+GET {{baseUrl}}/game-modes/queue/status
+DELETE {{baseUrl}}/game-modes/queue
+
+### Start a session directly
+POST {{baseUrl}}/game-modes/sessions
 Content-Type: application/json
 
 {
-  "name": "updated game-mode name",
-  "description": "updated game-mode description"
+  "modeId": "classic",
+  "playerIds": ["player-1", "player-2"]
 }
 
-### remove (Template)
-DELETE {{baseUrl}}/game-mode/:id
+### Active sessions / end a session
+GET {{baseUrl}}/game-modes/sessions/active
+POST {{baseUrl}}/game-modes/sessions/:id/end
 
+### Player stats
+GET {{baseUrl}}/game-modes/players/:id/stats

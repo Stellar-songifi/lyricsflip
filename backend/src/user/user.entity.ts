@@ -5,8 +5,10 @@ import {
   Column,
   CreateDateColumn,
   UpdateDateColumn,
+  OneToMany,
 } from 'typeorm';
 import { UserRole } from '../common/enums/role.enum';
+import { Referral } from '../referral/entities/referral.entity';
 
 @Entity('users')
 export class User {
@@ -62,4 +64,26 @@ export class User {
 
   @Column({ default: 0 })
   points: number;
+
+  // Wallet login (LF-082). Stellar G... public key.
+  @Column({ type: 'varchar', length: 56, unique: true, nullable: true })
+  stellarAddress: string | null;
+
+  // Referral Attributes
+  @Column({ nullable: true })
+  referralCode: string;
+
+  @OneToMany(() => Referral, (referral) => referral.referrer)
+  referralsGiven: Referral[];
+
+  @OneToMany(() => Referral, (referral) => referral.referee)
+  referralsReceived: Referral[];
+
+  @Column({ type: 'jsonb', default: {} })
+  referralStats: {
+    totalReferrals: number;
+    successfulReferrals: number;
+    pendingReferrals: number;
+    totalRewardsEarned: number;
+  };
 }

@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Param, Body, UseGuards } from '@nestjs/common';
+import { Controller, Post, Get, Param, Body, UseGuards, ParseUUIDPipe } from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
@@ -8,7 +8,8 @@ import {
 } from '@nestjs/swagger';
 import { AnswerThrottle } from '../common/throttler/throttle-limits';
 import { GameSessionService } from './providers/game-session.service';
-import { AccessTokenGuard } from 'src/auth/guard/access-token/access-token.guard';
+import { AccessTokenGuard } from '../auth/guard/access-token/access-token.guard';
+import { CreateGameSessionDto } from './dto/create-game-session.dto';
 
 // Controller for managing game sessions.
 @ApiTags('game-session') // Groups endpoints under the 'game-session' tag in Swagger
@@ -31,8 +32,15 @@ export class GameSessionController {
     status: 500,
     description: 'Internal server error.',
   })
-  startGameSession() {
-    return this.gameSessionService.startGameSession();
+  startGameSession(@Body() dto: CreateGameSessionDto) {
+    return this.gameSessionService.start(dto);
+  }
+
+  // List sessions that are still in progress.
+  @Get('active')
+  @ApiOperation({ summary: 'List in-progress game sessions' })
+  getActiveSessions() {
+    return this.gameSessionService.getActiveSessions();
   }
 
   // Submit a guess for an ongoing game session.
@@ -88,7 +96,7 @@ export class GameSessionController {
     status: 404,
     description: 'Game session not found.',
   })
-  getSessionDetails() {
-    return this.gameSessionService.getSessionDetails();
+  getSessionDetails(@Param('id', ParseUUIDPipe) id: string) {
+    return this.gameSessionService.findOne(id);
   }
 }

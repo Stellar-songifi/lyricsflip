@@ -1,221 +1,141 @@
-import {
-  DefaultValuePipe,
-  Injectable,
-  NotFoundException,
-  ParseIntPipe,
-  Query,
-} from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Like, Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
+import { Song } from './entities/song.entity';
+import { Tag } from './entities/tag.entity';
 import { CreateSongDto } from './dto/create-song.dto';
 import { UpdateSongDto } from './dto/update-song.dto';
-import { Song } from './entities/song.entity';
-import { RedisService } from 'src/redis/redis.service';
-import { Difficulty } from 'src/difficulty/entities/difficulty.entity';
-import { SongService } from 'src/song/providers/song.service';
+import { QuerySongsDto } from './dto/query-songs.dto';
+import { Genre } from './enums/genre.enum';
+
+export interface PaginatedSongs {
+  data: Song[];
+  total: number;
+  page: number;
+  limit: number;
+}
 
 @Injectable()
 export class SongsService {
   constructor(
     @InjectRepository(Song)
-    private songsRepository: Repository<Song>,
-    private readonly songService: SongService,
-    // injecting the redis sercvice
-    private redisService: RedisService,
-    private readonly difficultyRepository: Repository<Difficulty>,
+    private readonly songRepository: Repository<Song>,
+    @InjectRepository(Tag)
+    private readonly tagRepository: Repository<Tag>,
   ) {}
 
-  async create(createSongDto: CreateSongDto) {
-    const song = this.songsRepository.create(createSongDto);
-    const savedSong = await this.songsRepository.save(song);
-    await this.redisService.del('songs:all');
-    return savedSong;
+  async create(dto: CreateSongDto): Promise<Song> {
+    const { tags, ...fields } = dto;
+    const song = this.songRepository.create({
+      ...fields,
+      tags: await this.resolveTags(tags),
+    });
+    return this.songRepository.save(song);
   }
 
-  async findAll() {
-    const songs = await this.songsRepository.find();
-    return songs;
-  }
-  async getAllSongs(
-    searchQuery?: string,
-    filters?: { difficultyId?: string },
-    sortOptions?: { field?: string; order?: 'ASC' | 'DESC' },
-    pagination?: { page: number; limit: number },
-  ): Promise<Song[]> {
-    // Destructure pagination parameters with default values
-    const { page = 1, limit = 20 } = pagination || {};
+  async findAll(query: QuerySongsDto = {}): Promise<PaginatedSongs> {
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 20;
 
-    // Build a unique cache key using all parameters
-    const cacheKey = `songs:all:difficulty:${filters?.difficultyId || 'all'}:q:${searchQuery || 'all'}:sort:${sortOptions?.field || 'none'}:${sortOptions?.order || 'none'}:limit:${limit}:page:${page}`;
+    const qb = this.songRepository
+      .createQueryBuilder('song')
+      .leftJoinAndSelect('song.tags', 'tag');
 
-    // Check for cached results
-    const cachedSongs = await this.redisService.get(cacheKey);
-    if (cachedSongs) {
-      return JSON.parse(cachedSongs);
+    if (query.genre) {
+      qb.andWhere('song.genre = :genre', { genre: query.genre });
+    }
+    if (query.difficulty) {
+      qb.andWhere('song.difficulty = :difficulty', { difficulty: query.difficulty });
+    }
+    if (query.q) {
+      qb.andWhere('(song.title ILIKE :q OR song.artist ILIKE :q)', { q: `%${query.q}%` });
+    }
+    if (query.tag) {
+      // Filter through a subquery so the joined `tags` still lists every tag.
+      qb.andWhere(
+        'song.id IN (SELECT st."songsId" FROM song_tags st JOIN tags t ON t.id = st."tagsId" WHERE t.name = :tag)',
+        { tag: query.tag },
+      );
     }
 
-    // Calculate offset for pagination
-    const offset = (page - 1) * limit;
+    qb.orderBy(`song.${query.sortBy ?? 'createdAt'}`, query.sortOrder ?? 'DESC')
+      .skip((page - 1) * limit)
+      .take(limit);
 
-    // Build query options for TypeORM
-    const queryOptions: any = {
-      skip: offset,
-      take: limit,
-      where: {},
-    };
-
-    // Apply filtering if provided
-    if (filters?.difficultyId) {
-      queryOptions.where.difficultyId = filters.difficultyId;
-    }
-
-    // Apply search (example: searching by title)
-    if (searchQuery) {
-      queryOptions.where.title = Like(`%${searchQuery}%`);
-    }
-
-    // Apply sorting if provided
-    if (sortOptions?.field) {
-      queryOptions.order = { [sortOptions.field]: sortOptions.order || 'ASC' };
-    }
-
-    // Execute the query to get songs
-    const songs = await this.songsRepository.find(queryOptions);
-
-    // Cache the results for 1 hour (3600 seconds)
-    await this.redisService.set(cacheKey, JSON.stringify(songs), 3600);
-
-    return songs;
+    const [data, total] = await qb.getManyAndCount();
+    return { data, total, page, limit };
   }
 
-  async findOne(id: string) {
-    const cacheKey = `song:${id}`;
-
-    const cachedSong = await this.redisService.get(cacheKey);
-    if (cachedSong) {
-      return JSON.parse(cachedSong);
-    }
-
-    const song = await this.songsRepository.findOne({ where: { id } });
+  async findOne(id: string): Promise<Song> {
+    const song = await this.songRepository.findOne({ where: { id } });
     if (!song) {
       throw new NotFoundException(`Song with ID ${id} not found`);
     }
-
-    await this.redisService.set(cacheKey, JSON.stringify(song), 3600);
-
     return song;
   }
 
-  async update(id: string, updateSongDto: UpdateSongDto) {
+  async findByOnChainCardId(cardId: string): Promise<Song> {
+    const song = await this.songRepository.findOne({ where: { onChainCardId: cardId } });
+    if (!song) {
+      throw new NotFoundException(`Song for on-chain card ${cardId} not found`);
+    }
+    return song;
+  }
+
+  findByGenre(genre: Genre): Promise<Song[]> {
+    return this.songRepository.find({ where: { genre } });
+  }
+
+  async update(id: string, dto: UpdateSongDto): Promise<Song> {
     const song = await this.findOne(id);
-    Object.assign(song, updateSongDto);
-    const updatedSong = await this.songsRepository.save(song);
-
-    // Invalidate caches
-    await this.redisService.del(`song:${id}`);
-    await this.redisService.del('songs:all');
-
-    return updatedSong;
+    const { tags, ...fields } = dto;
+    Object.assign(song, fields);
+    if (tags) {
+      song.tags = await this.resolveTags(tags);
+    }
+    return this.songRepository.save(song);
   }
 
-  async remove(id: string) {
+  async remove(id: string): Promise<void> {
     const song = await this.findOne(id);
-    await this.songsRepository.remove(song);
-
-    await this.redisService.del(`song:${id}`);
-    await this.redisService.del('songs:all');
-
-    return { message: `Song with ID ${id} deleted successfully` };
+    await this.songRepository.remove(song);
   }
 
-  async findByGenre(genre: string) {
-    const cacheKey = `songs:genre:${genre}`;
-
-    const cachedSongs = await this.redisService.get(cacheKey);
-    if (cachedSongs) {
-      return JSON.parse(cachedSongs);
-    }
-
-    const songs = await this.songsRepository.find({ where: { genre } });
-
-    await this.redisService.set(cacheKey, JSON.stringify(songs), 3600);
-
-    return songs;
-  }
-
-  async searchSongs(
-    searchQuery: string,
-    filters?: { difficultyId: string },
-    sort?: { field: string; order: 'ASC' | 'DESC' },
-  ) {
-    const cacheKey = `songs:search:${searchQuery}`;
-    const cachedResults = await this.redisService.get(cacheKey);
-    if (cachedResults) {
-      return JSON.parse(cachedResults);
-    }
-
-    const query = this.songsRepository.createQueryBuilder('songs');
-
-    if (filters?.difficultyId) {
-      query
-        .andWhere('song.difficultyId = :difficultyId', {
-          difficultyId: filters.difficultyId,
-        })
-        .getMany();
-    }
-
-    // Integrated search
-    if (searchQuery) {
-      query
-        .andWhere(
-          '(song.title ILIKE :searchQuery OR song.artist ILIKE :searchQuery)',
-          { searchQuery: `%${searchQuery}%` },
-        )
-        .getMany();
-    }
-
-    if (sort?.field) {
-      query.orderBy(`song.${sort.field}`, sort.order || 'ASC').getMany();
-    }
-
-    await this.redisService.set(cacheKey, JSON.stringify(query), 1800);
-
-    return query;
-  }
-
-  async updatePlayCount(id: string) {
+  async incrementPlayCount(id: string): Promise<Song> {
     const song = await this.findOne(id);
+    await this.songRepository.increment({ id }, 'playCount', 1);
     song.playCount += 1;
-    const updatedSong = await this.songsRepository.save(song);
-
-    await this.redisService.set(
-      `song:${id}`,
-      JSON.stringify(updatedSong),
-      3600,
-    );
-
-    return updatedSong;
+    return song;
   }
 
-  async findByDifficulty(level: number) {
-    const difficulty = await this.difficultyRepository.findOne({
-      where: { value: level },
-    });
-
-    if (!difficulty) {
-      throw new NotFoundException(`Difficulty level ${level} not found`);
-    }
-
-    return this.songsRepository.find({
-      where: { difficultyId: difficulty.id },
-    });
-  }
-
-  async getRandomSong() {
-    return this.songsRepository
+  async getRandom(genre?: Genre): Promise<Song> {
+    const qb = this.songRepository
       .createQueryBuilder('song')
+      .leftJoinAndSelect('song.tags', 'tag')
       .orderBy('RANDOM()')
-      .take(1)
-      .getOne();
+      .take(1);
+    if (genre) {
+      qb.where('song.genre = :genre', { genre });
+    }
+    const song = await qb.getOne();
+    if (!song) {
+      throw new NotFoundException('No songs available');
+    }
+    return song;
+  }
+
+  /** Finds tags by name, creating any that don't exist yet. */
+  private async resolveTags(names?: string[]): Promise<Tag[]> {
+    const unique = [...new Set((names ?? []).map((n) => n.trim()).filter(Boolean))];
+    if (unique.length === 0) {
+      return [];
+    }
+    const existing = await this.tagRepository.find({ where: { name: In(unique) } });
+    const known = new Set(existing.map((t) => t.name));
+    const created = unique
+      .filter((name) => !known.has(name))
+      .map((name) => this.tagRepository.create({ name }));
+    const saved = created.length ? await this.tagRepository.save(created) : [];
+    return [...existing, ...saved];
   }
 }

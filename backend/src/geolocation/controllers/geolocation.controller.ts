@@ -5,7 +5,7 @@ import { RegionRestrictionsService } from '../services/region-restrictions.servi
 import { LocationAnalyticsService } from '../services/location-analytics.service';
 import { LocationReportingService } from '../services/location-reporting.service';
 import { LocationDto } from '../dtos/location.dto';
-import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
+import { JwtAuthGuard } from '../../auth/guard/jwt-auth.guard';
 import { RolesGuard } from '../../auth/guards/roles.guard';
 import { Roles } from '../../auth/decorators/roles.decorator';
 import { Request } from 'express';

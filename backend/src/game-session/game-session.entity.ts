@@ -1,48 +1,59 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToMany, CreateDateColumn, UpdateDateColumn } from "typeorm";
-import { Player } from "../player/player.entity";
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  ManyToMany,
+  ManyToOne,
+  CreateDateColumn,
+  UpdateDateColumn,
+} from 'typeorm';
+import { Player } from '../player/player.entity';
+import { Tournament } from '../tournament/tournament.entity';
+import { GameStatus } from './enums/game-status.enum';
 
 @Entity('game_sessions')
 export class GameSession {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ type: "timestamp", default: () => "CURRENT_TIMESTAMP" })
+  /** Id of the game mode that runs this session, e.g. `classic`. */
+  @Column({ type: 'varchar', nullable: true })
+  gameMode: string | null;
+
+  @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   startTime: Date;
 
-  @Column({ type: "timestamp", nullable: true })
-  endTime: Date;
+  @Column({ type: 'timestamp', nullable: true })
+  endTime: Date | null;
 
-  @Column({ type: "enum", enum: ["active", "completed", "canceled"], default: "active" })
-  status: string;
+  @Column({ type: 'enum', enum: GameStatus, default: GameStatus.IN_PROGRESS })
+  status: GameStatus;
 
-  @Column({ type: "int", default: 4 })
+  @Column({ type: 'int', default: 4 })
   maxPlayers: number;
 
-  @Column({ type: "decimal", nullable: true })
-  score: number;
+  @Column({ type: 'decimal', nullable: true })
+  score: number | null;
 
-  @Column({ type: "varchar", nullable: true })
-  location: string;
+  @Column({ type: 'varchar', nullable: true })
+  location: string | null;
 
-  @Column({ type: "json", nullable: true })
-  metadata: Record<string, any>;
+  /** Free-form data, e.g. player ids and per-player results. */
+  @Column({ type: 'json', nullable: true })
+  metadata: Record<string, any> | null;
+
+  @Column({ nullable: true })
+  description: string;
+
+  @ManyToMany(() => Player, (player) => player.gameSessions, { cascade: true })
+  players: Player[];
+
+  @ManyToOne(() => Tournament, (tournament) => tournament.matches, { nullable: true })
+  tournament: Tournament | null;
 
   @CreateDateColumn()
   createdAt: Date;
 
   @UpdateDateColumn()
   updatedAt: Date;
-
-  @Column()
-  description: string;
-
-  @ManyToMany(() => Player, player => player.gameSessions, { cascade: true })
-  players: Player[];
-<<<<<<< HEAD
-  playerId: string;
-  questions: any;
-  answers: any;
 }
-=======
-}
->>>>>>> ce6a694f98c6bc94b0eb412b497295e662976e5b

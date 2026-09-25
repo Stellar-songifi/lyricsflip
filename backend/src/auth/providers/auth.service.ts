@@ -31,19 +31,16 @@ export class AuthService {
   }
 
   // Forgot Password
-  public async forgotPassword(email: string): Promise<void> {
-    const user = await this.userService.findUserByEmail(email);
-    if (!user) {
-      throw new Error('User not found'); // Or use NestJS Exception
-    }
-
-    const resetToken = await this.passwordResetProvider.generateResetToken(user.id);
-    await this.passwordResetProvider.sendResetEmail(email, resetToken);
+  public async forgotPassword(email: string): Promise<{ message: string }> {
+    await this.passwordResetProvider.requestReset(email);
+    // Same answer whether or not the account exists.
+    return { message: 'If that email is registered, a reset link is on its way.' };
   }
 
   // Reset Password
-  public async resetPassword(token: string, newPassword: string): Promise<void> {
+  public async resetPassword(token: string, newPassword: string): Promise<{ message: string }> {
     await this.passwordResetProvider.resetPassword(token, newPassword);
+    return { message: 'Password updated.' };
   }
 
   

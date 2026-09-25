@@ -1,7 +1,7 @@
 // src/practice/controllers/practice-result.controller.ts
 import { Controller, Get, Post, Body, Param, UseGuards, Request } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
-import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
+import { JwtAuthGuard } from '../../auth/guard/jwt-auth.guard';
 import { PracticeResultService } from '../services/practice-result.service';
 import { SubmitResultDto } from '../dto/submit-result.dto';
 
@@ -29,7 +29,7 @@ export class PracticeResultController {
 
   @Get()
   findAll(@Request() req) {
-    return this.resultService.getUserResults(req.user.id);
+    return this.resultService.getUserResults(req.user.sub);
   }
 
   @Get(':id')

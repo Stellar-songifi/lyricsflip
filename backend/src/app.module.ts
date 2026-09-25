@@ -1,10 +1,9 @@
-import { Module } from '@nestjs/common';
+import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
 import { UserModule } from './user/user.module';
 import { GameSessionModule } from './game-session/game-session.module';
-import { SongModule } from './song/song.module';
 import { WagerModule } from './wager/wager.module';
 import { RewardModule } from './reward/reward.module';
 import { LeaderboardModule } from './leaderboard/leaderboard.module';
@@ -17,21 +16,22 @@ import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { ConfigModule } from './config/config.module';
 import { GlobalInterceptor } from './interceptors/global.interceptor';
 import { LoggerModule } from './logger/logger.module';
+import { RequestLoggerMiddleware } from './logger/request-logger.middleware';
 import { SongsModule } from './songs/songs.module';
 import { ScoringModule } from './scoring/scoring.module';
 import { ChatRoomModule } from './chat-room/chat-room.module';
 import { QuestionsModule } from './questions/questions.module';
+import { QuickGameModule } from './quick-game/quick-game.module';
 import { PowerUpModule } from './power-ups/power-up.module';
 import { TournamentService } from './tournament/tournament.service';
 import { TournamentModule } from './tournament/tournament.module';
-import { GameGateway } from './websocket-game comms/providers/gamegateway';
-import { GameModule } from './websocket-game comms/game.module';
+import { GameModule } from './game/game.module';
 import { AchievementModule } from './achievement/achievement.module';
 import { MusicTheoryLessonModule } from './music-education/music-theory-lesson.module';
-import { GameModeModule } from './game-mode/game-mode.module';
-import { SongGenreModule } from './song-genre/song-genre.module';
+import { RoomModule } from './room/room.module';
 import { SocialModule } from './social/social.module';
 import { CacheModule } from '@nestjs/cache-manager';
+import { EventEmitterModule } from '@nestjs/event-emitter';
 import * as redisStore from 'cache-manager-redis-store';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { Redis } from 'ioredis';
@@ -49,7 +49,6 @@ import { HealthModule } from './health/health.module';
     AuthModule,
     UserModule,
     GameSessionModule,
-    SongModule,
     WagerModule,
     RewardModule,
     LeaderboardModule,
@@ -60,6 +59,7 @@ import { HealthModule } from './health/health.module';
     ConfigModule,
     GameModule,
     PaginationModule,
+    EventEmitterModule.forRoot(),
     // Global limit for general reads; /auth/* and answer submission apply
     // stricter per-route limits (see common/throttler/throttle-limits.ts).
     // Redis-backed storage keeps counts consistent across instances.
@@ -75,9 +75,15 @@ import { HealthModule } from './health/health.module';
       type: 'postgres',
       url: process.env.DATABASE_URL,
       autoLoadEntities: true,
-      synchronize: process.env.NODE_ENV === 'development',
+      synchronize:
+        process.env.DB_SYNCHRONIZE !== undefined
+          ? process.env.DB_SYNCHRONIZE === 'true'
+          : process.env.NODE_ENV === 'development',
+      migrations: [__dirname + '/migrations/*{.ts,.js}'],
+      migrationsRun: process.env.DB_MIGRATIONS_RUN !== 'false',
     }),
     QuestionsModule,
+    QuickGameModule,
     CacheModule.register({
       store: redisStore,
       socket: {
@@ -94,8 +100,7 @@ import { HealthModule } from './health/health.module';
     AchievementModule,
     SocialModule,
     MusicTheoryLessonModule,
-    GameModeModule,
-    SongGenreModule,
+    RoomModule,
     ReferralModule,
     StateRecoveryModule,
     GameInsightsModule,
@@ -118,7 +123,10 @@ import { HealthModule } from './health/health.module';
       useClass: GlobalInterceptor,
     },
     TournamentService,
-    GameGateway,
   ],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer.apply(RequestLoggerMiddleware).forRoutes('*');
+  }
+}

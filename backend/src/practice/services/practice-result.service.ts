@@ -6,7 +6,7 @@ import { Repository } from 'typeorm';
 import { PracticeResult } from '../entities/practice-result.entity';
 import { PracticeSession } from '../entities/practice-session.entity';
 import { PracticeItem } from '../entities/practice-item.entity';
-import { User } from '../../users/entities/user.entity';
+import { User } from '../../user/user.entity';
 import { SubmitResultDto } from '../dto/submit-result.dto';
 import { FeedbackService } from './feedback.service';
 

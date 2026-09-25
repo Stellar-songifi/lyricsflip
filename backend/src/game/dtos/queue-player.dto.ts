@@ -3,7 +3,7 @@ import { IsString, IsOptional, IsNumber } from 'class-validator';
 
 export class QueuePlayerDto {
   @IsString()
-  preferredMode: string;
+  modeId: string;
   
   @IsOptional()
   @IsNumber()

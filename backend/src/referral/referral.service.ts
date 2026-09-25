@@ -8,7 +8,7 @@ import { Repository } from 'typeorm';
 import { CreateReferralDto } from './dto/create-referral.dto';
 import { ClaimReferralDto } from './dto/claim-referral.dto';
 import { Referral, ReferralStatus } from './entities/referral.entity';
-import { User } from '../user/entities/user.entity';
+import { User } from '../user/user.entity';
 import { nanoid } from 'nanoid';
 
 @Injectable()

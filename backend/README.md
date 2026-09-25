@@ -4,22 +4,40 @@ NestJS API and WebSocket server for **LyricsFlip**, a lyrics-guessing game with 
 
 ## Module map
 
-| Area | Modules (`src/`) |
-| --- | --- |
-| Auth & users | `auth` (JWT access/refresh, global `AccessTokenGuard`, `@Public()`), `user`, `player` |
-| Content | `song`, `songs`, `song-genre`, `questions`, `music-education` |
-| Gameplay | `game-session`, `game-mode`, `websocket-game comms` (Socket.IO gateway), `scoring`, `power-ups`, `state-recovery` |
-| Competition | `leaderboard`, `tournament`, `achievement`, `wager`, `reward`, `referral` |
-| Social | `social`, `chat-room`, `notification` |
-| On-chain | `indexer` (polls Soroban RPC for contract events) |
-| Platform | `config`, `logger`, `health`, `common` (guards, throttler, pagination), `filters`, `interceptors` |
+Each concern has exactly one module. Entities are owned by the module listed
+here; other modules import that module (or its entity) instead of redefining it.
+
+| Concern | Module | Owns | HTTP | WebSocket namespace |
+| --- | --- | --- | --- | --- |
+| Auth | `auth/` | JWT issue/verify, `AccessTokenGuard` (global), `JwtAuthGuard`, `WsAuthenticator`, `@CurrentUser()` | `/auth` | — |
+| Users | `user/` | `User` (`users`, incl. `stellarAddress` for wallet login) | `/user` | — |
+| Players | `player/` | `Player` (`players`), `PlayerStatus` | — | — |
+| Songs | `songs/` | `Song` (`songs`, mirrors the contract `Card`), `Tag`, `UserGenrePreference`, `Genre` enum | `/songs`, `/songs/genres` | — |
+| Rooms | `room/` | `Room` (`rooms`), `PlayerRoom`; room CRUD, join/leave, player presence | `/rooms` | `/rooms` |
+| Game | `game/` | Built-in game modes, scoring strategies, matchmaking, stats, `CustomGameMode` | `/game-modes` | `/game` |
+| Game sessions | `game-session/` | `GameSession` (`game_sessions`) for every mode, tournaments and insights | `/game-session` | — |
+| Notifications | `notification/` | `Notification` (`notifications`); also pushes achievement and progression events | `/notifications` | `/notifications` |
+| Chain indexer | `indexer/` | Soroban event indexing | — | `/indexer` |
+| Lesson progress | `music-education/` | `LessonProgress` (`lesson_progress`) | `/lessons/progress` | — |
+| Practice progress | `practice/` | `PracticeProgress` (`practice_progress`) | `/practice/progress` | — |
+| Health | `health/` | Postgres, Redis and Stellar RPC checks | `/health` | — |
+
+Rules of thumb:
+
+- One WebSocket namespace per concern. Server-to-user pushes go through
+  `/notifications`, which joins each authenticated socket to a `user:<id>` room.
+  Emit an `EventEmitter2` event and handle it in `NotificationGateway` rather than
+  adding a new gateway.
+- The only genre enum is `songs/enums/genre.enum.ts`. It must match the contract's
+  `Genre` and the frontend's `GENRE_VALUES`.
+- `src/entity-metadata.spec.ts` fails if two `@Entity` classes map to the same table.
 
 Cross-cutting HTTP behaviour is configured once in `src/config/app-setup.ts`:
 
 - a global `ValidationPipe` (`whitelist`, `forbidNonWhitelisted`, `transform`) — unknown fields are rejected with `400`;
 - `AllExceptionsFilter`, so every HTTP error looks like
   `{ statusCode, error, message, path, timestamp, requestId }` (send `x-request-id` to correlate logs);
-- `LoggingInterceptor` for request logging and timing.
+- request logging is handled by `RequestLoggerMiddleware` (see [Logging](#logging)).
 
 ## Prerequisites
 
@@ -30,13 +48,16 @@ Cross-cutting HTTP behaviour is configured once in `src/config/app-setup.ts`:
 
 ## Environment variables
 
-Create `backend/.env`:
+Copy `.env.example` to `backend/.env` (or `.env.development`):
 
 | Variable | Required | Default | Description |
 | --- | --- | --- | --- |
-| `NODE_ENV` | no | `development` | `development` enables TypeORM `synchronize` and Swagger |
+| `NODE_ENV` | no | `development` | `development` enables TypeORM `synchronize` (unless `DB_SYNCHRONIZE` is set) and Swagger |
+| `LOG_LEVEL` | no | `info` | `error`, `warn`, `info`, `debug` or `verbose` |
 | `PORT` | no | `3000` | HTTP/WebSocket port |
 | `DATABASE_URL` | **yes** | — | e.g. `postgres://postgres:postgres@localhost:5432/lyricsflip` |
+| `DB_SYNCHRONIZE` | no | — | Overrides TypeORM `synchronize` |
+| `DB_MIGRATIONS_RUN` | no | `true` | Run pending migrations on startup |
 | `JWT_SECRET` | **yes** | — | Access-token signing secret |
 | `JWT_REFRESH_SECRET` | yes | — | Refresh-token signing secret |
 | `JWT_ACCESS_TOKEN_TTL` / `JWT_REFRESH_TOKEN_TTL` | no | — | Token lifetimes (seconds) |
@@ -46,8 +67,10 @@ Create `backend/.env`:
 | `REDIS_URL` | no | `redis://127.0.0.1:6379` | Throttler storage and health check |
 | `REDIS_HOST` / `REDIS_PORT` | no | `localhost` / `6379` | Cache store |
 | `RATE_LIMIT_TTL` / `RATE_LIMIT_LIMIT` | no | `60` / `10` | Default rate limit |
-| `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `EMAIL_FROM` | no | — | Outgoing email |
-| `APP_URL` | no | — | Public URL used in emails/links |
+| `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASS` | no | `localhost` / `1025` | Outgoing email (Mailpit in docker compose) |
+| `MAIL_FROM` | no | `LyricsFlip <no-reply@lyricsflip.local>` | Sender address |
+| `PASSWORD_RESET_TTL_MINUTES` | no | `15` | Password-reset link lifetime |
+| `APP_URL` | no | `http://localhost:3000` | Public URL used in emails/links |
 
 ## Running locally
 
@@ -66,7 +89,16 @@ npm run start:dev       # http://localhost:3000
 
 ### Docker
 
-A full `docker compose` setup for the API, Postgres and Redis is tracked in LF-100. Until it lands, run Postgres and Redis in containers as shown above and the API with `npm run start:dev`.
+From the repository root:
+
+```bash
+docker compose up                     # Postgres 16, Redis 7, Mailpit and the API on http://localhost:4000
+docker compose --profile soroban up   # also start stellar/quickstart for a local Soroban network
+```
+
+The schema is applied on startup (`DB_SYNCHRONIZE`, plus any migrations in `src/migrations`).
+Emails sent by the API, such as password reset links, show up in Mailpit at http://localhost:8025.
+Copy `.env.example` to `.env.development` to run the backend outside Docker.
 
 ## Migrations
 
@@ -102,3 +134,10 @@ npm run test:e2e  # e2e tests (test/*.e2e-spec.ts) — no live database required
 | `npm run build` | Compile to `dist/` |
 | `npm run start:prod` | Run the compiled build |
 | `npm run lint` / `npm run format` | ESLint / Prettier |
+
+## Logging
+
+There is one logger, `AppLogger` (`src/logger`). Use Nest's `new Logger(MyService.name)` in services;
+it routes through `AppLogger`. Production writes JSON lines; other environments write readable lines.
+Every HTTP request gets an `x-request-id` and exactly one access log line. Known secret fields
+(passwords, tokens, authorization headers, JWTs) are redacted. Set `LOG_LEVEL` to `error`, `warn`, `info`, `debug` or `verbose`.

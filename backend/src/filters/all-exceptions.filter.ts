@@ -60,8 +60,12 @@ export class AllExceptionsFilter implements ExceptionFilter {
       );
     }
 
+    // Prefer the id RequestLoggerMiddleware already assigned so the error
+    // body matches the access log line.
     const requestId =
-      (request.headers['x-request-id'] as string | undefined) ?? randomUUID();
+      (response.getHeader('x-request-id') as string | undefined) ??
+      (request.headers['x-request-id'] as string | undefined) ??
+      randomUUID();
 
     const payload: ErrorResponseBody = {
       statusCode,

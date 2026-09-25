@@ -4,6 +4,7 @@ import {
   Column,
   ManyToMany,
   OneToMany,
+  JoinTable,
 } from 'typeorm';
 import { User } from '../user/user.entity';
 import { GameSession } from '../game-session/game-session.entity';
@@ -26,8 +27,9 @@ export class Tournament {
   rules: Record<string, any>;
 
   @ManyToMany(() => User, { eager: true })
+  @JoinTable()
   participants: User[];
 
-  @OneToMany(() => GameSession, (gameSession) => gameSession)
+  @OneToMany(() => GameSession, (gameSession) => gameSession.tournament)
   matches: GameSession[];
 }

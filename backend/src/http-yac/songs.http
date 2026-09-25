@@ -2,86 +2,67 @@
 
 @baseUrl = http://localhost:3000
 
-# Song Endpoints
+### List songs (filter, search, sort, paginate)
+GET {{baseUrl}}/songs?genre=Pop&q=love&sortBy=year&sortOrder=ASC&page=1&limit=20
 
-### getSongs
-GET {{baseUrl}}/songs
+### Random song
+GET {{baseUrl}}/songs/random?genre=Rock
 
-### getSongs
-GET {{baseUrl}}/songs
+### Songs by genre
+GET {{baseUrl}}/songs/genre/HipHop
 
-### unnamed2
-GET {{baseUrl}}/songs/search
+### Song for an on-chain card
+GET {{baseUrl}}/songs/card/1
 
-### unnamed3
-GET {{baseUrl}}/songs/genre/:genre
-
-### unnamed4
-GET {{baseUrl}}/songs/random
-
-### unnamed5
+### Song by id
 GET {{baseUrl}}/songs/:id
 
-### getSongs
+### Create song
 POST {{baseUrl}}/songs
 Content-Type: application/json
 
 {
-  // Song data
-  "name": "song name",
-  "description": "song description"
+  "genre": "Afrobeat",
+  "artist": "Demo Artist",
+  "title": "Demo Song",
+  "year": 2020,
+  "lyrics": "a short original lyric line",
+  "difficulty": "easy",
+  "tags": ["dance"],
+  "source": "Original demo lyrics written for LyricsFlip (CC0)",
+  "license": "CC0-1.0"
 }
 
-### unnamed7
+### Update song
+PATCH {{baseUrl}}/songs/:id
+Content-Type: application/json
+
+{
+  "onChainCardId": "1"
+}
+
+### Delete song
+DELETE {{baseUrl}}/songs/:id
+
+### Increment play count
 POST {{baseUrl}}/songs/:id/play
+
+# Genres
+
+### Contract genres
+GET {{baseUrl}}/songs/genres
+
+### Current user's genre preferences
+GET {{baseUrl}}/songs/genres/preferences
+
+### Record a round played in a genre
+POST {{baseUrl}}/songs/genres/Pop/plays
 Content-Type: application/json
 
 {
-  // Song data
-  "name": "song name",
-  "description": "song description"
+  "score": 80,
+  "enjoymentRating": 4
 }
 
-### unnamed8
-PATCH {{baseUrl}}/songs/:id
-Content-Type: application/json
-
-{
-  // Song data
-  "id": "uuid-goes-here",
-  "name": "updated song name"
-}
-
-### unnamed9
-DELETE {{baseUrl}}/songs/:id
-
-# Template CRUD Operations
-# These are common operations that might not be implemented in your controller yet
-
-### findAll (Template)
-GET {{baseUrl}}/songs
-
-### findOne (Template)
-GET {{baseUrl}}/songs/:id
-
-### create (Template)
-POST {{baseUrl}}/songs
-Content-Type: application/json
-
-{
-  "name": "song name",
-  "description": "song description"
-}
-
-### update (Template)
-PATCH {{baseUrl}}/songs/:id
-Content-Type: application/json
-
-{
-  "name": "updated song name",
-  "description": "updated song description"
-}
-
-### remove (Template)
-DELETE {{baseUrl}}/songs/:id
-
+### Recommended songs for the current user
+GET {{baseUrl}}/songs/recommended

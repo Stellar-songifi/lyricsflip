@@ -4,16 +4,19 @@ import { Repository } from 'typeorm';
 import { CreateRoomDto } from './dto/create-room.dto';
 import { UpdateRoomDto } from './dto/update-room.dto';
 import { Room } from './entities/room.entity';
+import { PlayerRoom } from './entities/player-room.entity';
 
 @Injectable()
 export class RoomService {
   constructor(
     @InjectRepository(Room)
     private roomRepository: Repository<Room>,
+    @InjectRepository(PlayerRoom)
+    private playerRoomRepository: Repository<PlayerRoom>,
   ) {}
 
   private generateRoomCode(): string {
-    return Math.random().toString(36).substring(2, 8).toUpperCase();
+    return Math.random().toString(36).substring(2, 8).toUpperCase().padEnd(6, '0');
   }
 
   create(createRoomDto: CreateRoomDto) {
@@ -24,17 +27,16 @@ export class RoomService {
     return this.roomRepository.save(room);
   }
 
-  public async getAll(limit: number, page: number): Promise<Room[]> {
-    const skip = (page - 1) * limit;
-
+  findAll(limit = 20, page = 1): Promise<Room[]> {
     return this.roomRepository.find({
-      skip,
+      where: { isActive: true },
+      skip: (page - 1) * limit,
       take: limit,
     });
   }
 
-  async findOne(id: string) {
-    const room = await this.roomRepository.findOne({ where: { id } });
+  async findOne(id: string): Promise<Room> {
+    const room = await this.roomRepository.findOne({ where: { id, isActive: true } });
     if (!room) {
       throw new NotFoundException(`Room with ID ${id} not found`);
     }
@@ -49,6 +51,18 @@ export class RoomService {
 
   async remove(id: string) {
     const room = await this.findOne(id);
-    return this.roomRepository.remove(room);
+    room.isActive = false;
+    return this.roomRepository.save(room);
+  }
+
+  getCurrentPlayerCount(roomId: string): Promise<number> {
+    return this.playerRoomRepository.count({ where: { roomId, isActive: true } });
+  }
+
+  getActivePlayersInRoom(roomId: string): Promise<PlayerRoom[]> {
+    return this.playerRoomRepository.find({
+      where: { roomId, isActive: true },
+      relations: ['player'],
+    });
   }
 }

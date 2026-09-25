@@ -1,6 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { RoomController } from './room.controller';
 import { RoomService } from './room.service';
+import { RoomMembershipService } from './room-membership.service';
+import { PlayerPresenceService } from './player-presence.service';
 import { CreateRoomDto } from './dto/create-room.dto';
 import { UpdateRoomDto } from './dto/update-room.dto';
 import { NotFoundException } from '@nestjs/common';
@@ -41,7 +43,11 @@ describe('RoomController', () => {
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [RoomController],
-      providers: [{ provide: RoomService, useValue: mockRoomService }],
+      providers: [
+        { provide: RoomService, useValue: mockRoomService },
+        { provide: RoomMembershipService, useValue: { joinRoom: jest.fn(), leaveRoom: jest.fn() } },
+        { provide: PlayerPresenceService, useValue: {} },
+      ],
     }).compile();
 
     controller = module.get<RoomController>(RoomController);
@@ -67,8 +73,8 @@ describe('RoomController', () => {
   });
 
   it('should return all rooms', async () => {
-    await expect(controller.findAll()).resolves.toEqual([]);
-    expect(service.findAll).toHaveBeenCalled();
+    await expect(controller.findAll(20, 1)).resolves.toEqual([]);
+    expect(service.findAll).toHaveBeenCalledWith(20, 1);
   });
 
   it('should return a room by id', async () => {

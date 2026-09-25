@@ -1,5 +1,5 @@
-import { GameMode } from './game-mode.interface';
-import { GameResult } from './game-result.interface';
+import { GameMode } from '../interfaces/game-mode.interface';
+import { GameResult } from '../interfaces/game-result.interface';
 import { ScoringStrategy } from '../strategies/scoring/scoring-strategy.interface';
 import { Injectable } from '@nestjs/common';
 
@@ -19,13 +19,12 @@ export abstract class BaseGameMode implements GameMode {
 
   abstract initialize(): void;
 
-  startGame(players: string[]): string {
+  /** Starts tracking a session; `gameSessionId` is the persisted `GameSession` id. */
+  startGame(gameSessionId: string, players: string[]): void {
     if (players.length < this.minPlayers || players.length > this.maxPlayers) {
       throw new Error(`Player count must be between ${this.minPlayers} and ${this.maxPlayers}`);
     }
 
-    const gameSessionId = `${this.id}-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
-    
     this.activeSessions.set(gameSessionId, {
       id: gameSessionId,
       players,
@@ -37,8 +36,6 @@ export abstract class BaseGameMode implements GameMode {
       status: 'active',
       timeLimit: this.timeLimit,
     });
-
-    return gameSessionId;
   }
 
   protected abstract initializePlayerStats(): any;
@@ -53,9 +50,10 @@ export abstract class BaseGameMode implements GameMode {
     session.endTime = new Date();
 
     // Calculate final scores and rankings
-    const playerResults = Object.keys(session.playerStats).map(playerId => ({
+    const playerResults: GameResult['players'] = Object.keys(session.playerStats).map(playerId => ({
       id: playerId,
       score: this.calculateScore(gameSessionId, playerId),
+      rank: 0,
     }));
 
     // Sort by score descending to determine ranks
@@ -82,6 +80,7 @@ export abstract class BaseGameMode implements GameMode {
       winner: playerResults[0].id,
     };
 
+    this.activeSessions.delete(gameSessionId);
     return result;
   }
 

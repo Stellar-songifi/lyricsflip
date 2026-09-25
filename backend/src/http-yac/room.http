@@ -1,47 +1,59 @@
-# ROOM API
+# ROOMS API
+# Membership events: socket.io namespace /rooms, connect with query { playerId }.
 
 @baseUrl = http://localhost:3000
 
-# Room Endpoints
+### List active rooms
+GET {{baseUrl}}/rooms?limit=20&page=1
 
-### findAll
-GET {{baseUrl}}/rooms
-
-### findById
-GET {{baseUrl}}/rooms/:id
-
-### getPlayerCount
-GET {{baseUrl}}/rooms/:id/player-count
-
-### create
+### Create a room
 POST {{baseUrl}}/rooms
 Content-Type: application/json
 
 {
-  // Room data
-  "name": "room name",
-  "description": "room description"
+  "name": "Lobby",
+  "description": "Main lobby",
+  "capacity": 10
 }
 
-### update
-PUT {{baseUrl}}/rooms/:id
+### Get / update / close a room
+GET {{baseUrl}}/rooms/:id
+
+PATCH {{baseUrl}}/rooms/:id
 Content-Type: application/json
 
 {
-  // Room data
-  "id": "uuid-goes-here",
-  "name": "updated room name"
+  "name": "Renamed lobby"
 }
 
-### delete
 DELETE {{baseUrl}}/rooms/:id
 
-# Template CRUD Operations
-# These are common operations that might not be implemented in your controller yet
+### Players in a room and count
+GET {{baseUrl}}/rooms/:id/players
+GET {{baseUrl}}/rooms/:id/player-count
 
-### findOne (Template)
-GET {{baseUrl}}/rooms/:id
+### Join / leave
+POST {{baseUrl}}/rooms/:id/join
+Content-Type: application/json
 
-### remove (Template)
-DELETE {{baseUrl}}/rooms/:id
+{
+  "playerId": "uuid"
+}
 
+POST {{baseUrl}}/rooms/:id/leave
+Content-Type: application/json
+
+{
+  "playerId": "uuid"
+}
+
+### Player presence
+GET {{baseUrl}}/rooms/players/:playerId/current
+GET {{baseUrl}}/rooms/players/:playerId/history
+
+PUT {{baseUrl}}/rooms/players/:playerId/status
+Content-Type: application/json
+
+{
+  "status": "online"
+}

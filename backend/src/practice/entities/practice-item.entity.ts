@@ -1,7 +1,7 @@
 // src/practice/entities/practice-item.entity.ts
 import { Entity, Column, PrimaryGeneratedColumn, ManyToMany, JoinTable } from 'typeorm';
 import { Difficulty } from '../enums/difficulty.enum';
-import { Genre } from '../enums/genre.enum';
+import { Genre } from '../../songs/enums/genre.enum';
 import { ItemType } from '../enums/item-type.enum';
 
 @Entity()

@@ -1,4 +1,12 @@
-import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import {
+  Entity,
+  Column,
+  PrimaryGeneratedColumn,
+  OneToMany,
+  CreateDateColumn,
+  UpdateDateColumn,
+} from 'typeorm';
+import { PlayerRoom } from './player-room.entity';
 
 @Entity('rooms')
 export class Room {
@@ -11,8 +19,19 @@ export class Room {
   @Column('text')
   description: string;
 
-  @Column()
+  /** Short join code shared with other players. */
+  @Column({ unique: true })
   code: string;
+
+  @Column({ default: 10 })
+  capacity: number;
+
+  /** Rooms are soft-deleted so membership history keeps its room. */
+  @Column({ default: true })
+  isActive: boolean;
+
+  @OneToMany(() => PlayerRoom, (playerRoom) => playerRoom.room)
+  playerRooms: PlayerRoom[];
 
   @CreateDateColumn()
   createdAt: Date;

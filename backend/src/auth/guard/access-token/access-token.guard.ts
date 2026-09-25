@@ -8,8 +8,8 @@ import {
 import { ConfigType } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { Request } from 'express';
-import jwtConfig from 'src/auth/authConfig/jwt.config';
-import { REQUEST_USER_KEY } from 'src/auth/constant/auth-constant';
+import jwtConfig from '../../authConfig/jwt.config';
+import { REQUEST_USER_KEY } from '../../constant/auth-constant';
 import { IS_PUBLIC_KEY } from '../../decorators/public.decorator';
 import { Reflector } from '@nestjs/core';
 

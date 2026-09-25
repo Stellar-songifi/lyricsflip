@@ -1,3 +1,5 @@
+import { GameResult } from './game-result.interface';
+
 export interface GameMode {
     id: string;
     name: string;
@@ -8,7 +10,7 @@ export interface GameMode {
     scoringStrategy: string;
     timeLimit?: number; // in seconds, optional for endless mode
     initialize(): void;
-    startGame(players: string[]): string; // returns game session id
+    startGame(gameSessionId: string, players: string[]): void;
     endGame(gameSessionId: string): GameResult;
     calculateScore(gameSessionId: string, playerId: string): number;
   }

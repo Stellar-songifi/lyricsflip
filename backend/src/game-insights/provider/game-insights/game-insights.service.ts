@@ -1,28 +1,27 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { GameSession } from 'src/game-session/game-session.entity';
-import { PlayerPerformance } from 'src/game-insights/PlayerPerformance';
-import { UserBehavior } from 'src/game-insights/UserBehavior';
-import { CreateGameSessionDto } from 'src/game-insights/DTO/CreateGameSessionDto';
-import { CreatePlayerPerformanceDto } from 'src/game-insights/DTO/CreatePlayerPerformanceDto';
-import { CreateUserBehaviorDto } from 'src/game-insights/DTO/CreateUserBehaviorDto';
+import { GameSessionService } from '../../../game-session/providers/game-session.service';
+import { PlayerPerformance } from '../../PlayerPerformance';
+import { UserBehavior } from '../../UserBehavior';
+import { CreateGameSessionDto } from '../../DTO/CreateGameSessionDto';
+import { CreatePlayerPerformanceDto } from '../../DTO/CreatePlayerPerformanceDto';
+import { CreateUserBehaviorDto } from '../../DTO/CreateUserBehaviorDto';
 
 @Injectable()
 export class GameInsightsService {
   constructor(
-    @InjectRepository(GameSession)
-    private gameSessionRepo: Repository<GameSession>,
-    
+    private readonly gameSessionService: GameSessionService,
+
     @InjectRepository(PlayerPerformance)
     private playerPerformanceRepo: Repository<PlayerPerformance>,
-    
+
     @InjectRepository(UserBehavior)
     private userBehaviorRepo: Repository<UserBehavior>,
   ) {}
 
   async trackGameSession(data: CreateGameSessionDto) {
-    return await this.gameSessionRepo.save(data);
+    return this.gameSessionService.record(data);
   }
 
   async trackPlayerPerformance(data: CreatePlayerPerformanceDto) {

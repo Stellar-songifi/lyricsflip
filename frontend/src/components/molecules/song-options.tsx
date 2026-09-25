@@ -28,11 +28,11 @@ export function SongOptions({
           'text-left p-4 rounded-lg transition-all duration-200 ';
 
         if (isCorrect) {
-          buttonClasses += 'bg-green-100 border-2 border-green-500';
+          buttonClasses += 'bg-green-100 dark:bg-green-900 border-2 border-green-500';
         } else if (isSelected) {
-          buttonClasses += 'bg-red-100 border-2 border-red-500';
+          buttonClasses += 'bg-red-100 dark:bg-red-900 border-2 border-red-500';
         } else {
-          buttonClasses += 'bg-purple-50 border border-purple-100 hover:border-purple-300';
+          buttonClasses += 'bg-purple-50 dark:bg-gray-700 border border-purple-100 dark:border-gray-600 hover:border-purple-300 dark:hover:border-purple-500';
         }
 
         return (
@@ -42,8 +42,8 @@ export function SongOptions({
             className={buttonClasses}
             disabled={selectedOption !== null}
           >
-            <h3 className="font-medium text-gray-900">{option.title}</h3>
-            <p className="text-sm text-gray-600">{option.artist}</p>
+            <h3 className="font-medium text-gray-900 dark:text-gray-100">{option.title}</h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400">{option.artist}</p>
           </button>
         );
       })}

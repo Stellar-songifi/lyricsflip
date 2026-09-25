@@ -2,8 +2,8 @@
 import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../auth/guard/jwt-auth.guard';
-import { RolesGuard } from '../../auth/guards/roles.guard';
-import { Roles } from '../../auth/decorators/roles.decorator';
+import { RolesGuard } from '../../common/guards/roles.guard';
+import { Roles } from '../../common/decorators/roles.decorator';
 import { PracticeItemService } from '../services/practice-item.service';
 import { CreatePracticeItemDto } from '../dto/create-practice-item.dto';
 import { UpdatePracticeItemDto } from '../dto/update-practice-item.dto';

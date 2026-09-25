@@ -1,7 +1,7 @@
 // src/coupons/entities/coupon-usage.entity.ts
 import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
 import { Coupon } from './coupon.entity';
-import { User } from '../../users/entities/user.entity';
+import { User } from '../../user/user.entity';
 import { Order } from '../../orders/entities/order.entity';
 
 @Entity()

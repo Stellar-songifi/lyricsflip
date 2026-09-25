@@ -4,7 +4,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Coupon, CouponStatus } from '../entities/coupon.entity';
 import { CouponUsage } from '../entities/coupon-usage.entity';
-import { User } from '../../users/entities/user.entity';
+import { User } from '../../user/user.entity';
 import { CartItem } from '../../cart/entities/cart-item.entity';
 
 interface ValidationResult {

@@ -4,7 +4,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Between } from 'typeorm';
 import { Coupon } from '../entities/coupon.entity';
 import { CouponUsage } from '../entities/coupon-usage.entity';
-import { User } from '../../users/entities/user.entity';
+import { User } from '../../user/user.entity';
 import { Order } from '../../orders/entities/order.entity';
 
 @Injectable()

@@ -39,6 +39,7 @@ const DEFAULT_ROUND_SECONDS = 300;
 export default function SinglePlayerGame() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const roundId = searchParams?.get('roundId') ?? null;
   const roundId = searchParams.get('roundId');
   const { account, systemCalls } = useStellar();
 

@@ -15,7 +15,7 @@ export const GameResultModal = () => {
   const [error, setError] = useState<string | null>(null);
   const [roundData, setRoundData] = useState<any>(null);
 
-  const roundId = searchParams.get('roundId');
+  const roundId = searchParams?.get('roundId') ?? null;
 
   useEffect(() => {
     const fetchRoundData = async () => {

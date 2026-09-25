@@ -1,4 +1,9 @@
 'use client';
+
+import { Button } from '@/components/atoms/button';
+import { GENRE_VALUES, type Genre } from '@/lib/stellar/types';
+import { useStellar } from '@/lib/stellar/hooks/useStellar';
+import { ArrowLeft } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { ArrowLeft } from 'lucide-react';
@@ -11,7 +16,7 @@ export default function MultiplayerLobbyPage() {
   const router = useRouter();
   const { systemCalls, account, connect } = useStellar();
   const [genre, setGenre] = useState<Genre>(GENRE_VALUES[0]);
-  const [roundId, setRoundId] = useState<string>('');
+  const [roundId, setRoundId] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [errorState, setError] = useState<string | null>(null);
 
@@ -20,6 +25,7 @@ export default function MultiplayerLobbyPage() {
       await connect();
       return;
     }
+
     if (!systemCalls) {
       setError('System calls not initialized');
       return;
@@ -27,6 +33,7 @@ export default function MultiplayerLobbyPage() {
 
     setIsLoading(true);
     setError(null);
+
     try {
       const id = await systemCalls.createRound(genre);
       router.push(`/multiplayer/${id}`);
@@ -42,10 +49,15 @@ export default function MultiplayerLobbyPage() {
       setError('Round ID must be a number');
       return;
     }
+
     router.push(`/multiplayer/${roundId.trim()}`);
   };
 
   return (
+    <div className="container mx-auto px-4 py-8">
+      <button
+        onClick={() => router.push('/')}
+        className="flex items-center text-gray-600 mb-4"
     <div className="container mx-auto px-4 py-8 mt-16 md:mt-24">
       <button
         onClick={() => router.push('/')}
@@ -54,6 +66,8 @@ export default function MultiplayerLobbyPage() {
         <ArrowLeft className="h-4 w-4 mr-2" />
         Back
       </button>
+
+      <h1 className="text-3xl font-bold mb-8">Multiplayer Game</h1>
       <h1 className="text-2xl sm:text-3xl font-bold mb-8">Multiplayer Game</h1>
 
       <div className="max-w-md mx-auto space-y-8">
@@ -71,6 +85,7 @@ export default function MultiplayerLobbyPage() {
               </option>
             ))}
           </select>
+          <Button onClick={handleCreateRound} disabled={isLoading} className="w-full">
           <Button
             onClick={handleCreateRound}
             disabled={isLoading}
@@ -95,6 +110,7 @@ export default function MultiplayerLobbyPage() {
             placeholder="Enter Round ID"
             className="w-full px-4 py-3 border rounded mb-4 min-h-[44px] text-sm"
           />
+          <Button onClick={handleJoinRound} disabled={!roundId} className="w-full">
           <Button
             onClick={handleJoinRound}
             disabled={!roundId}
@@ -105,9 +121,7 @@ export default function MultiplayerLobbyPage() {
         </div>
       </div>
 
-      {errorState && (
-        <p className="text-red-500 mt-4 text-center">{errorState}</p>
-      )}
+      {errorState && <p className="text-red-500 mt-4 text-center">{errorState}</p>}
     </div>
   );
 }

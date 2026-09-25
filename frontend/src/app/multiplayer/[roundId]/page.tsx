@@ -1,4 +1,35 @@
 'use client';
+
+import { Button } from '@/components/atoms/button';
+import { useStellar } from '@/lib/stellar/hooks/useStellar';
+import { ArrowLeft } from 'lucide-react';
+import { useParams, useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
+
+export default function MultiplayerRoundPage() {
+  const router = useRouter();
+  const params = useParams<{ roundId?: string | string[] }>();
+  const rawRoundId = Array.isArray(params?.roundId)
+    ? params.roundId[0]
+    : params?.roundId;
+  const roundId = rawRoundId && /^\d+$/.test(rawRoundId) ? BigInt(rawRoundId) : null;
+
+  const { systemCalls, account, connect } = useStellar();
+  const [status, setStatus] = useState('Loading round...');
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!roundId || !systemCalls) {
+      if (roundId === null) {
+        setError('That invite link is not valid.');
+      } else {
+        setStatus('Waiting for contract connection...');
+      }
+      return;
+    }
+
+    let ignore = false;
+
 import { useParams, useRouter } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
 import { LyricCard } from '@/components/organisms/LyricCard';
@@ -67,43 +98,29 @@ export default function MultiplayerRoundPage() {
       return;
     }
     const run = async () => {
-      const loaded = await loadRound();
-      if (!loaded || !account) return;
-      const { roundData, roundPlayers } = loaded;
-      if (roundData.is_cancelled || roundData.is_completed) {
-        setError('This round is no longer open.');
-        return;
-      }
-      if (roundData.is_started || roundPlayers.includes(account.address))
-        return;
       try {
-        setIsBusy(true);
-        await systemCalls.joinRound(roundId);
-        await loadRound();
+        setError(null);
+        const round = await systemCalls.getRound(roundId);
+        if (!ignore) {
+          setStatus(`Round loaded: ${round.round_id.toString()}`);
+        }
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to join round');
-      } finally {
-        setIsBusy(false);
+        if (!ignore) {
+          setError(err instanceof Error ? err.message : 'Failed to load round');
+        }
       }
     };
-    run();
-  }, [systemCalls, roundId, account, loadRound]);
 
-  const handleReady = async () => {
-    if (!systemCalls || roundId === null) return;
-    setIsBusy(true);
-    setError(null);
-    try {
-      await systemCalls.startRound(roundId);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to mark ready');
-    } finally {
-      setIsBusy(false);
-    }
-  };
+    run();
+    return () => {
+      ignore = true;
+    };
+  }, [roundId, systemCalls]);
 
   const handleBack = () => router.push('/multiplayer');
 
+  return (
+    <div className="container mx-auto px-4 py-8">
   const shell = (content: React.ReactNode) => (
     <div className="container mx-auto px-4 py-8 mt-16 md:mt-20">
       <button
@@ -113,18 +130,15 @@ export default function MultiplayerRoundPage() {
         <ArrowLeft className="h-4 w-4 mr-2" />
         Back
       </button>
-      {content}
-    </div>
-  );
 
-  if (error && !round) {
-    return shell(<p className="text-red-500">{error}</p>);
-  }
+      <h1 className="text-3xl font-bold mb-4">Multiplayer Round</h1>
+      <p className="text-gray-600 mb-4">Round ID: {rawRoundId ?? 'unknown'}</p>
+      <p>{status}</p>
 
-  if (isLoading || !round) {
-    return shell(<p>Loading round…</p>);
-  }
-
+      {!account && (
+        <Button onClick={() => connect()} className="mt-4">
+          Connect wallet
+        </Button>
   if (!account) {
     return shell(
       <div className="max-w-md mx-auto text-center">
@@ -220,6 +234,8 @@ export default function MultiplayerRoundPage() {
           onSelect={(_, index) => selectSong(index)}
         />
       )}
-    </>,
+
+      {error && <p className="text-red-500 mt-4">{error}</p>}
+    </div>
   );
 }

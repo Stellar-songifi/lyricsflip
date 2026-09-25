@@ -6,6 +6,7 @@ import BadgeModal from '@/components/organisms/newbadgemodal';
 import { useCardTimer, CARD_TIMEOUT_SECONDS } from '@/features/game/hooks/useCardTimer';
 import { fireConfetti } from '@/lib/confetti';
 import { useStellar } from '@/lib/stellar/hooks/useStellar';
+import { getGenreDisplayName } from '@/lib/stellar/genres';
 import { useSearchParams } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -265,6 +266,9 @@ export default function SinglePlayerGame() {
   // ── Render: loading ───────────────────────────────────────────────────────
   if (isLoading) {
     return (
+      <div className="container mt-20 mx-auto h-fit w-full mb-24 md:mb-12 p-4 lg:p-0 md:mt-24 lg:mt-32">
+        <p>{txStatus || 'Loading game...'}</p>
+      </div>
       <main
         className="container mt-4 mx-auto h-fit w-full mb-20 lg:mb-12 p-4 lg:p-0 md:mt-24 lg:mt-32"
         aria-label="Loading game"
@@ -279,6 +283,8 @@ export default function SinglePlayerGame() {
   // ── Render: error ─────────────────────────────────────────────────────────
   if (error || !round) {
     return (
+      <div className="container mt-20 mx-auto h-fit w-full mb-24 md:mb-12 p-4 lg:p-0 md:mt-24 lg:mt-32">
+        <p>{error || 'No round found'}</p>
       <main
         className="container mt-4 mx-auto h-fit w-full mb-20 lg:mb-12 p-4 lg:p-0 md:mt-24 lg:mt-32"
         aria-label="Game error"
@@ -296,6 +302,32 @@ export default function SinglePlayerGame() {
 
   // ── Render: game ──────────────────────────────────────────────────────────
   return (
+    <div className="container mt-20 mx-auto h-fit w-full mb-24 md:mb-12 p-4 lg:p-0 md:mt-24 lg:mt-32">
+      <div className="mb-6">
+        <button
+          onClick={handleBack}
+          className="flex items-center text-gray-600 mb-4"
+        >
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Back
+        </button>
+        <h1 className="text-2xl font-bold">Wager (Single Player)</h1>
+        <p className="text-gray-600 text-sm">
+          {`${getGenreDisplayName(round.genre)} Genre | Expert Difficulty`}
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-start-2 lg:col-span-1 order-1 lg:order-2">
+          <LyricCard
+            lyrics={[
+              {
+                text: question?.lyric || 'Loading...',
+                title: card?.title || '',
+                artist: card?.artist || '',
+              }
+            ]}
+            isFlipped={isCardFlipped}
     <>
       <main
         className="container mt-4 mx-auto h-fit w-full mb-20 lg:mb-12 p-4 lg:p-0 md:mt-24 lg:mt-32"

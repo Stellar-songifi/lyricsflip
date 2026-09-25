@@ -8,14 +8,14 @@ import { usePathname } from 'next/navigation';
 import { FiHome, FiCreditCard, FiGrid } from 'react-icons/fi';
 import { IoTrophyOutline } from 'react-icons/io5';
 import { useThemeStore } from '@/store/useThemeStore';
+import { useStellar } from '@/lib/stellar/hooks/useStellar';
 
-// Navigation items array
-const navItems = [
+// Navigation items array — profile href is dynamic (resolved in the component)
+const staticNavItems = [
   { href: '/', label: 'Home' },
   { href: '/wallet', label: 'Wallet' },
   { href: '/leaderboard', label: 'Leaderboard' },
   { href: '/notifications', label: 'Notifications' },
-  { href: '/profile', label: 'Profile' },
   { href: '/more', label: 'More' },
 ];
 const mobileNavItems = [
@@ -44,6 +44,17 @@ const mobileNavItems = [
 const Navbar = () => {
   const pathname = usePathname();
   const { theme, toggleTheme } = useThemeStore();
+  const { account } = useStellar();
+
+  // Build nav items with a dynamic profile link
+  const navItems = [
+    ...staticNavItems.slice(0, 4),
+    {
+      href: account?.address ? `/profile/${account.address}` : '/set-username',
+      label: 'Profile',
+    },
+    staticNavItems[staticNavItems.length - 1],
+  ];
 
   return (
     <div>

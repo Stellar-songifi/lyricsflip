@@ -215,22 +215,27 @@ impl LyricsFlip {
 
     // ---- Views ----
 
+    /// Returns the round.
     pub fn get_round(env: Env, round_id: u64) -> Round {
         Self::read_round(&env, round_id)
     }
 
+    /// Returns the round cards.
     pub fn get_round_cards(env: Env, round_id: u64) -> Vec<u64> {
         Self::read_round_cards(&env, round_id)
     }
 
+    /// Returns the round players.
     pub fn get_round_players(env: Env, round_id: u64) -> Vec<Address> {
         Self::read_round_players(&env, round_id)
     }
 
+    /// Returns the players round count.
     pub fn get_players_round_count(env: Env, round_id: u64) -> u32 {
         Self::read_round_players(&env, round_id).len()
     }
 
+    /// Returns the round scores.
     pub fn get_round_scores(env: Env, round_id: u64) -> Map<Address, u64> {
         let players = Self::read_round_players(&env, round_id);
         let mut scores = Self::read_round_scores(&env, round_id);
@@ -244,6 +249,7 @@ impl LyricsFlip {
         scores
     }
 
+    /// Finalizes a round.
     pub fn finalize_round(env: Env, caller: Address, round_id: u64) {
         caller.require_auth();
         let round = Self::read_round(&env, round_id);
@@ -323,6 +329,7 @@ impl LyricsFlip {
         Self::index_len(&env, &Index::All) as u64
     }
 
+    /// Returns the round count.
     pub fn get_round_count(env: Env) -> u64 {
         bump_instance(&env);
         env.storage()
@@ -331,6 +338,7 @@ impl LyricsFlip {
             .unwrap_or(0)
     }
 
+    /// Returns the genre card count.
     pub fn get_genre_card_count(env: Env, genre: Genre) -> u32 {
         Self::index_len(&env, &Index::Genre(genre))
     }
@@ -365,6 +373,7 @@ impl LyricsFlip {
         open.slice(start..end)
     }
 
+    /// Returns the max players.
     pub fn get_max_players(env: Env) -> u32 {
         env.storage()
             .instance()
@@ -372,10 +381,12 @@ impl LyricsFlip {
             .unwrap_or(DEFAULT_MAX_PLAYERS)
     }
 
+    /// Returns the nft contract.
     pub fn get_nft_contract(env: Env) -> Option<Address> {
         env.storage().instance().get(&DataKey::NftContract)
     }
 
+    /// Returns whether milestone claimed.
     pub fn is_milestone_claimed(env: Env, player: Address, milestone: Milestone) -> bool {
         env.storage()
             .persistent()
@@ -383,6 +394,7 @@ impl LyricsFlip {
             .unwrap_or(false)
     }
 
+    /// Returns the cards per round.
     pub fn get_cards_per_round(env: Env) -> u32 {
         bump_instance(&env);
         env.storage()
@@ -391,6 +403,7 @@ impl LyricsFlip {
             .unwrap_or(0)
     }
 
+    /// Returns the card.
     pub fn get_card(env: Env, card_id: u64) -> Card {
         let card: Card = env
             .storage()
@@ -401,18 +414,22 @@ impl LyricsFlip {
         card
     }
 
+    /// Returns the cards of genre.
     pub fn get_cards_of_genre(env: Env, genre: Genre, seed: u64) -> Vec<Card> {
         Self::draw_cards(&env, &Index::Genre(genre), seed, Error::EmptyGenreCards)
     }
 
+    /// Returns the cards of artist.
     pub fn get_cards_of_artist(env: Env, artist: String, seed: u64) -> Vec<Card> {
         Self::draw_cards(&env, &Index::Artist(artist), seed, Error::ArtistCardsIsZero)
     }
 
+    /// Returns the cards of a year.
     pub fn get_cards_of_a_year(env: Env, year: u64, seed: u64) -> Vec<Card> {
         Self::draw_cards(&env, &Index::Year(year), seed, Error::EmptyYearCards)
     }
 
+    /// Returns the player stat.
     pub fn get_player_stat(env: Env, player: Address) -> PlayerStats {
         let stats: PlayerStats = env
             .storage()
@@ -430,6 +447,7 @@ impl LyricsFlip {
         stats
     }
 
+    /// Returns whether admin.
     pub fn is_admin(env: Env, role: Role, address: Address) -> bool {
         let Role::Admin = role;
         bump_instance(&env);
@@ -441,6 +459,7 @@ impl LyricsFlip {
 
     // ---- Mutations ----
 
+    /// Creates a round.
     pub fn create_round(env: Env, caller: Address, genre: Option<Genre>, seed: u64) -> u64 {
         caller.require_auth();
         let genre = match genre {
@@ -517,6 +536,7 @@ impl LyricsFlip {
         round_id
     }
 
+    /// Starts round.
     pub fn start_round(env: Env, caller: Address, round_id: u64) {
         caller.require_auth();
         let mut round = Self::read_round(&env, round_id);
@@ -596,6 +616,7 @@ impl LyricsFlip {
         }
     }
 
+    /// Joins round.
     pub fn join_round(env: Env, caller: Address, round_id: u64) {
         caller.require_auth();
         let round = Self::read_round(&env, round_id);
@@ -711,6 +732,7 @@ impl LyricsFlip {
         .publish(&env);
     }
 
+    /// Advances to the next card.
     pub fn next_card(env: Env, round_id: u64) -> Card {
         let mut round = Self::read_round(&env, round_id);
         if !round.is_started {
@@ -750,6 +772,7 @@ impl LyricsFlip {
         card
     }
 
+    /// Sets the cards per round.
     pub fn set_cards_per_round(env: Env, caller: Address, value: u32) {
         caller.require_auth();
         Self::assert_admin(&env, &caller);
@@ -873,14 +896,17 @@ impl LyricsFlip {
         .publish(&env);
     }
 
+    /// Returns the current owner.
     pub fn owner(env: Env) -> Address {
         env.storage().instance().get(&DataKey::Owner).unwrap()
     }
 
+    /// Returns the pending owner.
     pub fn pending_owner(env: Env) -> Option<Address> {
         env.storage().instance().get(&DataKey::PendingOwner)
     }
 
+    /// Returns the contract version.
     pub fn version() -> u32 {
         VERSION
     }
@@ -928,6 +954,7 @@ impl LyricsFlip {
         env.deployer().update_current_contract_wasm(new_wasm_hash);
     }
 
+    /// Submits a round answer.
     pub fn submit_answer(env: Env, caller: Address, round_id: u64, answer: Answer) -> bool {
         caller.require_auth();
         if !Self::is_round_player(&env, round_id, &caller) {
@@ -1037,12 +1064,14 @@ impl LyricsFlip {
         is_answer_correct
     }
 
+    /// Builds a question card.
     pub fn build_question_card(
         env: Env,
         card: Card,
         seed: u64,
         kind: QuestionKind,
     ) -> QuestionCard {
+    /// Sets the max players.
     pub fn set_max_players(env: Env, caller: Address, value: u32) {
         caller.require_auth();
         Self::assert_owner(&env, &caller);
@@ -1052,6 +1081,7 @@ impl LyricsFlip {
         env.storage().instance().set(&DataKey::MaxPlayers, &value);
     }
 
+    /// Sets the nft contract.
     pub fn set_nft_contract(env: Env, caller: Address, nft_contract: Address) {
         caller.require_auth();
         Self::assert_owner(&env, &caller);
@@ -1097,6 +1127,7 @@ impl LyricsFlip {
         token_id
     }
 
+    /// Builds a question card.
     pub fn build_question_card(
         env: Env,
         card: Card,
@@ -1800,3 +1831,4 @@ impl LyricsFlip {
         result
     }
 }
+

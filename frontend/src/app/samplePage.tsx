@@ -54,24 +54,24 @@ export default function SamplePage() {
         <GameCard
           type="quick"
           title="Quick Game"
-          description="Quisque ipsum dolor sit amet, consectetur adipiscing elit. Nunc vulputate libero et velit interdum, ac aliquet odio mattis."
+          description="Jump straight in — no setup required. Guess lyrics across all genres and beat the clock."
           onClick={() => openModal('game')}
         />
         <GameCard
           type="wager-single"
           title="Wager (Single Player)"
-          description="Quisque ipsum dolor sit amet, consectetur adipiscing elit. Nunc vulputate libero et velit interdum, ac aliquet odio mattis."
+          description="Choose your genre, set a wager, and race solo to identify as many lyrics as possible."
           onClick={handleOpenSettingsModal}
         />
         <GameCard
           type="wager-multi"
           title="Wager (Multi Player)"
-          description="Quisque ipsum dolor sit amet, consectetur adipiscing elit. Nunc vulputate libero et velit interdum, ac aliquet odio mattis."
+          description="Create a round, invite friends, and compete head-to-head. Winner takes the pot."
         />
         <GameCard
           type="challenge"
           title="Join a Challenge"
-          description="Quisque ipsum dolor sit amet, consectetur adipiscing elit. Nunc vulputate libero et velit interdum, ac aliquet odio mattis."
+          description="Accept a challenge from a friend and go head-to-head to prove who knows more lyrics."
         />
       </div>
 

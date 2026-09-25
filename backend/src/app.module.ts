@@ -13,7 +13,7 @@ import { ConfigService } from '@nestjs/config';
 import { AccessTokenGuard } from './auth/guard/access-token/access-token.guard';
 import { CustomThrottlerGuard } from './auth/guard/throttler.guard';
 import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
-import { ConfigModule } from './config/config.module';
+import { AppConfigModule } from './config/config.module';
 import { GlobalInterceptor } from './interceptors/global.interceptor';
 import { LoggerModule } from './logger/logger.module';
 import { RequestLoggerMiddleware } from './logger/request-logger.middleware';
@@ -56,16 +56,26 @@ import { HealthModule } from './health/health.module';
     AdminModule,
     PlayerModule,
     LoggerModule,
-    ConfigModule,
+    AppConfigModule,
     GameModule,
     PaginationModule,
     EventEmitterModule.forRoot(),
     // Global limit for general reads; /auth/* and answer submission apply
     // stricter per-route limits (see common/throttler/throttle-limits.ts).
-    // Redis-backed storage keeps counts consistent across instances.
+    // Redis-backed storage keeps counts consistent across instances. Window
+    // and limit come from configuration.ts (RATE_LIMIT_TTL/RATE_LIMIT_LIMIT),
+    // falling back to DEFAULT_THROTTLE's values when unset.
     ThrottlerModule.forRootAsync({
-      useFactory: () => ({
-        throttlers: [{ name: 'default', ...DEFAULT_THROTTLE }],
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => ({
+        throttlers: [
+          {
+            name: 'default',
+            ttl: config.get<number>('rateLimit.ttl') ?? DEFAULT_THROTTLE.ttl,
+            limit:
+              config.get<number>('rateLimit.limit') ?? DEFAULT_THROTTLE.limit,
+          },
+        ],
         storage: new RedisThrottlerStorage(
           new Redis(process.env.REDIS_URL ?? 'redis://127.0.0.1:6379'),
         ),
@@ -75,10 +85,11 @@ import { HealthModule } from './health/health.module';
       type: 'postgres',
       url: process.env.DATABASE_URL,
       autoLoadEntities: true,
-      synchronize:
-        process.env.DB_SYNCHRONIZE !== undefined
-          ? process.env.DB_SYNCHRONIZE === 'true'
-          : process.env.NODE_ENV === 'development',
+      // Schema changes go through migrations (see `database/data-source.ts`
+      // and `npm run migration:*`) in every environment, staging and
+      // production included — `synchronize` is unsafe outside a scratch DB
+      // and doesn't version schema changes.
+      synchronize: false,
       migrations: [__dirname + '/migrations/*{.ts,.js}'],
       migrationsRun: process.env.DB_MIGRATIONS_RUN !== 'false',
     }),

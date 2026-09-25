@@ -168,6 +168,7 @@ pub struct LyricsFlipNFT;
 
 #[contractimpl]
 impl LyricsFlipNFT {
+    /// Initializes the contract state.
     pub fn __constructor(
         env: Env,
         owner: Address,
@@ -193,6 +194,7 @@ impl LyricsFlipNFT {
         bump_instance(&env);
     }
 
+    /// Mints a new token.
     pub fn mint(env: Env, caller: Address, recipient: Address) -> u128 {
         caller.require_auth();
 
@@ -236,6 +238,7 @@ impl LyricsFlipNFT {
         token_id
     }
 
+    /// Returns the owner of a token.
     pub fn owner_of(env: Env, token_id: u128) -> Address {
         let owner: Address = env
             .storage()
@@ -246,6 +249,7 @@ impl LyricsFlipNFT {
         owner
     }
 
+    /// Executes balance.
     pub fn balance(env: Env, owner: Address) -> u32 {
         env.storage()
             .persistent()
@@ -253,6 +257,7 @@ impl LyricsFlipNFT {
             .unwrap_or(0)
     }
 
+    /// Transfers a token.
     pub fn transfer(env: Env, from: Address, to: Address, token_id: u128) {
         from.require_auth();
         Self::do_transfer(&env, &from, &to, token_id);
@@ -327,6 +332,7 @@ impl LyricsFlipNFT {
         .publish(&env);
     }
 
+    /// Returns the approved.
     pub fn get_approved(env: Env, token_id: u128) -> Option<Address> {
         env.storage()
             .persistent()
@@ -335,6 +341,7 @@ impl LyricsFlipNFT {
             .map(|a| a.approved)
     }
 
+    /// Returns whether approved for all.
     pub fn is_approved_for_all(env: Env, owner: Address, operator: Address) -> bool {
         env.storage()
             .persistent()
@@ -342,16 +349,19 @@ impl LyricsFlipNFT {
             .is_some_and(|live_until| live_until >= env.ledger().sequence())
     }
 
+    /// Executes token name.
     pub fn token_name(env: Env) -> String {
         bump_instance(&env);
         env.storage().instance().get(&DataKey::TokenName).unwrap()
     }
 
+    /// Executes token symbol.
     pub fn token_symbol(env: Env) -> String {
         bump_instance(&env);
         env.storage().instance().get(&DataKey::TokenSymbol).unwrap()
     }
 
+    /// Executes base uri.
     pub fn base_uri(env: Env) -> String {
         bump_instance(&env);
         env.storage().instance().get(&DataKey::BaseUri).unwrap()
@@ -381,6 +391,7 @@ impl LyricsFlipNFT {
         String::from_bytes(&env, &buf[..len])
     }
 
+    /// Executes token count.
     pub fn token_count(env: Env) -> u128 {
         bump_instance(&env);
         env.storage()
@@ -389,24 +400,29 @@ impl LyricsFlipNFT {
             .unwrap_or(0)
     }
 
+    /// Returns the current owner.
     pub fn owner(env: Env) -> Address {
         env.storage().instance().get(&DataKey::Owner).unwrap()
     }
 
+    /// Executes minter.
     pub fn minter(env: Env) -> Address {
         env.storage().instance().get(&DataKey::Minter).unwrap()
     }
 
+    /// Returns the pending owner.
     pub fn pending_owner(env: Env) -> Option<Address> {
         env.storage().instance().get(&DataKey::PendingOwner)
     }
 
+    /// Returns the contract version.
     pub fn version() -> u32 {
         VERSION
     }
 
     // ---- Owner-only administration ----
 
+    /// Sets the base uri.
     pub fn set_base_uri(env: Env, caller: Address, base_uri: String) {
         Self::assert_owner(&env, &caller);
         Self::assert_base_uri_len(&env, &base_uri);
@@ -440,6 +456,7 @@ impl LyricsFlipNFT {
         .publish(&env);
     }
 
+    /// Accepts ownership.
     pub fn accept_ownership(env: Env, caller: Address) {
         caller.require_auth();
         if Self::pending_owner(env.clone()) != Some(caller.clone()) {
@@ -508,3 +525,4 @@ impl LyricsFlipNFT {
         }
     }
 }
+

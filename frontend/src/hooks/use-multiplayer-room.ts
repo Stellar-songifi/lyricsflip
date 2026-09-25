@@ -27,7 +27,7 @@ const mockRoomData: RoomData = {
   id: '',
   name: 'Wager (Multi Player)',
   description:
-    'Oorem ipsum dolor sit amet, consectetur adipiscing elit. Nunc vulputate libero et velit interdum,',
+    'Create a round, invite friends, and compete head-to-head. Winner takes the pot.',
   timeLeft: '59:00',
   potWin: '10,000 STRK',
   scores: 456,

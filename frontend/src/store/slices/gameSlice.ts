@@ -136,13 +136,13 @@ export const createGameSlice: StateCreator<
 
     tickTimer: () => {
       set((state) => {
-        if (state.game.isTimerRunning && state.game.timeLeft > 0) {
-          state.game.timeLeft -= 1;
+        if (state.game.isTimerRunning) {
+          // Clamp to 0 — never show a negative time value.
+          state.game.timeLeft = Math.max(0, state.game.timeLeft - 1);
           if (state.game.timeLeft <= 0) {
             state.game.isTimerRunning = false;
             state.game.isPlaying = false; // Auto-end game
             state.game.lastPlayed = new Date();
-            // Add any other end-game logic here
           }
         }
       });

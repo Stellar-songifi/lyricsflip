@@ -1,33 +1,74 @@
-import {
-  IsUUID,
-  IsInt,
-  IsNumber,
-  IsISO8601,
-  IsNotEmpty,
-} from 'class-validator';
+import { IsIn, IsOptional, IsPositive, IsString } from 'class-validator';
+import { Type } from 'class-transformer';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
-export class LeaderboardDto {
-  @IsUUID()
-  @IsNotEmpty()
-  id: string;
+export type LeaderboardPeriod = 'all' | 'weekly' | 'daily';
 
-  @IsUUID()
-  @IsNotEmpty()
-  playerId: string;
+export const LEADERBOARD_PERIODS: readonly LeaderboardPeriod[] = [
+  'all',
+  'weekly',
+  'daily',
+];
 
-  @IsInt()
-  @IsNotEmpty()
+export class LeaderboardQueryDto {
+  @ApiPropertyOptional({ enum: LEADERBOARD_PERIODS, default: 'all' })
+  @IsOptional()
+  @IsIn(LEADERBOARD_PERIODS)
+  period?: LeaderboardPeriod = 'all';
+
+  @ApiPropertyOptional({
+    description: 'Filter to a single genre; omit for all genres',
+  })
+  @IsOptional()
+  @IsString()
+  genre?: string;
+
+  @ApiPropertyOptional({ default: 1 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsPositive()
+  page?: number = 1;
+
+  @ApiPropertyOptional({ default: 20 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsPositive()
+  limit?: number = 20;
+}
+
+export class LeaderboardEntryDto {
+  @ApiProperty()
   rank: number;
 
-  @IsNumber()
-  @IsNotEmpty()
-  score: number;
+  @ApiProperty()
+  address: string;
 
-  @IsISO8601()
-  @IsNotEmpty()
-  createdAt: string;
+  @ApiProperty()
+  username: string;
 
-  @IsISO8601()
-  @IsNotEmpty()
-  updatedAt: string;
+  @ApiProperty()
+  roundsWon: number;
+
+  @ApiProperty({ description: 'roundsWon / roundsPlayed, in [0, 1]' })
+  winRate: number;
+
+  @ApiProperty()
+  maxStreak: number;
+}
+
+export class PaginatedLeaderboardDto {
+  @ApiProperty({ type: [LeaderboardEntryDto] })
+  data: LeaderboardEntryDto[];
+
+  @ApiProperty()
+  page: number;
+
+  @ApiProperty()
+  limit: number;
+
+  @ApiProperty()
+  total: number;
+
+  @ApiProperty()
+  totalPages: number;
 }

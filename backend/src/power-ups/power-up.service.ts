@@ -11,7 +11,7 @@ import { PowerUpPurchase } from './entities/power-up-purchase.entity';
 import { CreatePowerUpDto } from './dtos/create-power-up.dto';
 import { UpdatePowerUpDto } from './dtos/update-power-up.dto';
 import { PurchasePowerUpDto } from './dtos/purchase-power-up.dto';
-import { User } from 'src/user/user.entity';
+import { User } from '@app/user/user.entity';
 
 @Injectable()
 export class PowerUpService {

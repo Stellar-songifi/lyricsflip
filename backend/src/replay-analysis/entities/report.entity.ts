@@ -1,4 +1,17 @@
 // src/replay-analysis/entities/report.entity.ts
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  ManyToOne,
+  ManyToMany,
+  JoinTable,
+  CreateDateColumn,
+  UpdateDateColumn,
+} from 'typeorm';
+import { Replay } from './replay.entity';
+import { Anomaly } from './anomaly.entity';
+
 @Entity('reports')
 export class Report {
   @PrimaryGeneratedColumn('uuid')
@@ -7,13 +20,13 @@ export class Report {
   @Column()
   replayId: string;
 
-  @ManyToOne(() => Replay, replay => replay.reports)
+  @ManyToOne(() => Replay, (replay) => replay.reports)
   replay: Replay;
 
   @Column()
   playerId: string;
 
-  @ManyToMany(() => Anomaly, anomaly => anomaly.reports)
+  @ManyToMany(() => Anomaly, (anomaly) => anomaly.reports)
   @JoinTable()
   anomalies: Anomaly[];
 

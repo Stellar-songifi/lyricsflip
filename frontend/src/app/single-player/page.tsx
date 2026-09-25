@@ -1,9 +1,10 @@
 "use client";
 import { SongOptions } from '@/components/molecules/song-options';
 import { StatisticsPanel } from '@/components/molecules/statistics-panel';
-import GameResultPopup from '@/components/organisms/GameResultPopup';
 import { LyricCard } from '@/components/organisms/LyricCard';
 import BadgeModal from '@/components/organisms/newbadgemodal';
+import { useCardTimer, CARD_TIMEOUT_SECONDS } from '@/features/game/hooks/useCardTimer';
+import { fireConfetti } from '@/lib/confetti';
 import { useStellar } from '@/lib/stellar/hooks/useStellar';
 import { useSearchParams } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
@@ -23,7 +24,6 @@ interface SongOption {
   artist: string;
 }
 
-/** Map a `Milestone` discriminant to a human-readable badge name. */
 const MILESTONE_NAMES: Record<Milestone, string> = {
   [MILESTONES.FirstWin]: 'First Win',
   [MILESTONES.Streak5]: 'Streak Master',
@@ -35,6 +35,8 @@ export default function SinglePlayerGame() {
   const searchParams = useSearchParams();
   const roundId = searchParams.get('roundId');
   const { account, systemCalls } = useStellar();
+
+  // ── Round state ───────────────────────────────────────────────────────────
   const [round, setRound] = useState<Round | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -48,13 +50,49 @@ export default function SinglePlayerGame() {
   const [correctOption, setCorrectOption] = useState<SongOption | null>(null);
   const [isCardFlipped, setIsCardFlipped] = useState(false);
   const [score, setScore] = useState(0);
-  const [timeLeft, setTimeLeft] = useState(300); // 5-minute round timer
+
+  // Round-level countdown (5-min) displayed in StatisticsPanel
+  const [roundTimeLeft, setRoundTimeLeft] = useState(300);
 
   // Badge modal state (Issue #476)
   const [isBadgeModalOpen, setIsBadgeModalOpen] = useState(false);
   const [earnedBadgeName, setEarnedBadgeName] = useState<string>('');
   const statusRef = useRef<HTMLParagraphElement>(null);
 
+  // ── Per-card 15-second timer (Issue #472) ────────────────────────────────
+  /**
+   * The card timer is active while:
+   *   - a card is loaded
+   *   - no answer has been selected yet
+   *   - the card isn't already flipped
+   */
+  const cardTimerActive =
+    isGameStarted && question !== null && selectedOption === null && !isCardFlipped;
+
+  const handleCardTimeout = useCallback(() => {
+    // Time ran out – flip the card to reveal the answer and count as a miss
+    if (card) {
+      setCorrectOption({ title: card.title, artist: card.artist });
+    }
+    setIsCardFlipped(true);
+    // selectedOption stays null → the wrong-answer highlight is skipped,
+    // but the correct answer is revealed (same UX as a miss)
+    setAnsweredCount((prev) => prev + 1);
+  }, [card]);
+
+  const { timeLeft: cardTimeLeft, reset: resetCardTimer } = useCardTimer({
+    isActive: cardTimerActive,
+    onTimeout: handleCardTimeout,
+  });
+
+  // Reset per-card timer when a new card loads
+  useEffect(() => {
+    if (question !== null) {
+      resetCardTimer();
+    }
+  }, [question, resetCardTimer]);
+
+  // ── Contract data fetching ────────────────────────────────────────────────
   const loadNextCard = useCallback(async () => {
     if (!systemCalls || !roundId) return;
     const id = BigInt(roundId);
@@ -106,58 +144,42 @@ export default function SinglePlayerGame() {
     fetchRoundData();
   }, [roundId, systemCalls, loadNextCard]);
 
-  // Round-level countdown timer (separate from the per-card 15 s timer)
+  // Round-level timer (5 min)
   useEffect(() => {
-    if (isGameStarted && timeLeft > 0) {
-      const timer = setInterval(() => {
-        setTimeLeft((prev) => prev - 1);
-      }, 1000);
+    if (isGameStarted && roundTimeLeft > 0) {
+      const timer = setInterval(() => setRoundTimeLeft((p) => p - 1), 1000);
       return () => clearInterval(timer);
     }
-  }, [isGameStarted, timeLeft]);
+  }, [isGameStarted, roundTimeLeft]);
 
-  // ── Check for milestone NFT after round completes ────────────────────────
-
+  // ── Milestone / badge check ───────────────────────────────────────────────
   const checkMilestoneAndShowBadge = useCallback(
     async (finalScore: number, total: number) => {
       if (!systemCalls || !account?.address) return;
-
       try {
-        // Fetch the player's on-chain stats to detect milestone crossings.
         const stats = await systemCalls.getPlayerStat(account.address);
-
         let milestone: Milestone | null = null;
-
-        // FirstWin: rounds_won just reached 1
-        if (stats.rounds_won === BigInt(1)) {
-          milestone = MILESTONES.FirstWin;
-        }
-        // Streak5: current_streak just hit 5
-        else if (stats.current_streak === BigInt(5)) {
-          milestone = MILESTONES.Streak5;
-        }
-        // TenWins: rounds_won just crossed 10
-        else if (stats.rounds_won === BigInt(10)) {
-          milestone = MILESTONES.TenWins;
-        }
+        if (stats.rounds_won === BigInt(1)) milestone = MILESTONES.FirstWin;
+        else if (stats.current_streak === BigInt(5)) milestone = MILESTONES.Streak5;
+        else if (stats.rounds_won === BigInt(10)) milestone = MILESTONES.TenWins;
 
         if (milestone !== null) {
-          // Attempt to claim the reward NFT; ignore if already claimed.
           try {
             await systemCalls.claimReward(milestone);
           } catch {
-            // May already be claimed; badge modal still shows
+            // Already claimed or contract error; still show the modal
           }
           setEarnedBadgeName(MILESTONE_NAMES[milestone]);
           setIsBadgeModalOpen(true);
         }
       } catch {
-        // Non-critical: badge check failure shouldn't break the game flow
+        // Non-critical
       }
     },
     [account?.address, systemCalls],
   );
 
+  // ── Game options ──────────────────────────────────────────────────────────
   const options: SongOption[] = question
     ? [
         question.option_one,
@@ -169,6 +191,7 @@ export default function SinglePlayerGame() {
 
   const isRoundFinished = totalCards > 0 && answeredCount >= totalCards;
 
+  // ── Answer handler ────────────────────────────────────────────────────────
   const handleSongSelect = async (option: SongOption) => {
     if (!round || !card || !systemCalls || selectedOption) return;
 
@@ -181,12 +204,18 @@ export default function SinglePlayerGame() {
       );
       const newScore = isCorrect ? score + 1 : score;
       setCorrectOption(isCorrect ? option : { title: card.title, artist: card.artist });
-      if (isCorrect) setScore(newScore);
+
+      if (isCorrect) {
+        setScore(newScore);
+        // Fire confetti (respects prefers-reduced-motion internally)
+        fireConfetti().catch(() => {/* non-critical */});
+      }
+
       const newAnswered = answeredCount + 1;
       setAnsweredCount(newAnswered);
       setIsCardFlipped(true);
 
-      // When the last card is answered, check for milestone NFTs
+      // Check for milestone NFTs when the last card is answered
       if (newAnswered >= totalCards) {
         await checkMilestoneAndShowBadge(newScore, totalCards);
       }
@@ -207,10 +236,9 @@ export default function SinglePlayerGame() {
     }
   };
 
-  const handleBack = () => {
-    router.push('/');
-  };
+  const handleBack = () => router.push('/');
 
+  // ── Render: loading ───────────────────────────────────────────────────────
   if (isLoading) {
     return (
       <main
@@ -224,6 +252,7 @@ export default function SinglePlayerGame() {
     );
   }
 
+  // ── Render: error ─────────────────────────────────────────────────────────
   if (error || !round) {
     return (
       <main
@@ -241,13 +270,14 @@ export default function SinglePlayerGame() {
     );
   }
 
+  // ── Render: game ──────────────────────────────────────────────────────────
   return (
     <>
       <main
         className="container mt-4 mx-auto h-fit w-full mb-20 lg:mb-12 p-4 lg:p-0 md:mt-24 lg:mt-32"
         aria-label="Single player game"
       >
-        {/* Skip-to-content link */}
+        {/* Skip-to-content */}
         <a
           href="#game-options"
           className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-purple-600 focus:text-white focus:rounded"
@@ -255,6 +285,7 @@ export default function SinglePlayerGame() {
           Skip to answer options
         </a>
 
+        {/* Header */}
         <div className="mb-6">
           <button
             onClick={handleBack}
@@ -271,16 +302,38 @@ export default function SinglePlayerGame() {
         </div>
 
         {txStatus && (
-          <p
-            ref={statusRef}
-            role="status"
-            aria-live="polite"
-            className="mt-2 text-sm text-gray-600"
-          >
+          <p ref={statusRef} role="status" aria-live="polite" className="mt-2 text-sm text-gray-600">
             {txStatus}
           </p>
         )}
 
+        {/* ── Per-card 15-second timer bar (Issue #472) ─────────────────────── */}
+        <div
+          className="w-full bg-gray-200 rounded-full h-2 mb-4"
+          role="progressbar"
+          aria-valuemin={0}
+          aria-valuemax={CARD_TIMEOUT_SECONDS}
+          aria-valuenow={cardTimeLeft}
+          aria-label={`Card timer: ${cardTimeLeft} seconds remaining`}
+        >
+          <div
+            className={[
+              'h-2 rounded-full transition-all',
+              // Colour shifts to red in the final 5 seconds
+              cardTimeLeft <= 5 ? 'bg-red-500' : 'bg-purple-500',
+              // Don't animate width when reduced-motion is preferred
+              'motion-safe:transition-[width] motion-safe:duration-1000 motion-safe:ease-linear',
+            ].join(' ')}
+            style={{ width: `${(cardTimeLeft / CARD_TIMEOUT_SECONDS) * 100}%` }}
+          />
+        </div>
+        <p className="text-sm text-gray-600 mb-4" aria-live="polite" aria-atomic="true">
+          {selectedOption || isCardFlipped
+            ? ''
+            : `${cardTimeLeft}s to answer`}
+        </p>
+
+        {/* Game grid */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-start-2 lg:col-span-1 order-1 lg:order-2">
             <LyricCard
@@ -296,13 +349,14 @@ export default function SinglePlayerGame() {
           </div>
           <div className="lg:col-start-3 lg:col-span-1 order-2 lg:order-3">
             <StatisticsPanel
-              time={`${timeLeft}`}
+              time={`${roundTimeLeft}`}
               potWin={`${round.wager_amount.toString()} STRK`}
               scores={`${score} / ${totalCards}`}
             />
           </div>
         </div>
 
+        {/* Answer options */}
         <div id="game-options">
           <SongOptions
             options={options}
@@ -312,6 +366,7 @@ export default function SinglePlayerGame() {
           />
         </div>
 
+        {/* Navigation after flip */}
         {isCardFlipped && (
           <div className="mt-6 flex justify-center" role="region" aria-label="Round navigation">
             {isRoundFinished ? (
@@ -332,7 +387,7 @@ export default function SinglePlayerGame() {
         )}
       </main>
 
-      {/* Badge modal – shown after a milestone is reached (Issue #476) */}
+      {/* Badge modal (Issue #476) */}
       <BadgeModal
         isOpen={isBadgeModalOpen}
         onClose={() => setIsBadgeModalOpen(false)}

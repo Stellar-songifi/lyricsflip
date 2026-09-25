@@ -16,7 +16,7 @@
 
 
 import { Injectable } from '@nestjs/common';
-import { RedisService } from 'src/redis/redis.service';
+import { RedisService } from '@app/redis/redis.service';
 import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { LeaderboardEntry } from '../leaderboard-entry.entity';

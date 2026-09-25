@@ -18,7 +18,7 @@ interface SongOption {
 export default function SinglePlayerGame() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const roundId = searchParams.get('roundId');
+  const roundId = searchParams?.get('roundId') ?? null;
   const { systemCalls } = useStellar();
   const [round, setRound] = useState<Round | null>(null);
   const [isLoading, setIsLoading] = useState(true);

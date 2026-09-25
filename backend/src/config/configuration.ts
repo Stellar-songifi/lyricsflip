@@ -7,10 +7,16 @@ export default () => ({
     ttl: parseInt(process.env.RATE_LIMIT_TTL, 10) || 60_000,
     limit: parseInt(process.env.RATE_LIMIT_LIMIT, 10) || 60,
   },
+  env: process.env.NODE_ENV,
   nodeEnv: process.env.NODE_ENV,
   port: parseInt(process.env.PORT, 10),
   database: {
     url: process.env.DATABASE_URL,
+    synchronize:
+      process.env.DB_SYNCHRONIZE !== undefined
+        ? process.env.DB_SYNCHRONIZE === 'true'
+        : process.env.NODE_ENV === 'development',
+    migrationsRun: process.env.DB_MIGRATIONS_RUN !== 'false',
   },
   jwt: {
     secret: process.env.JWT_SECRET,

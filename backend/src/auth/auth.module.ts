@@ -7,7 +7,6 @@ import { SignInProvider } from './providers/sign-in.provider';
 import { BcryptProvider } from './providers/bcrypt-provider';
 import { GenerateTokensProvider } from './providers/generate-tokens-provider';
 import { HashingProvider } from './providers/hashing-provider';
-// import { createRoutesFromChildren } from 'react-router-dom';
 import { ConfigModule } from '@nestjs/config';
 import jwtConfig from './authConfig/jwt.config';
 import { JwtModule } from '@nestjs/jwt';
@@ -34,7 +33,6 @@ import { WalletAuthProvider } from './providers/wallet-auth.provider';
     AccessTokenGuard,
     WsJwtAuthGuard,
     WsRolesGuard,
-    Reflector, 
     Reflector,
     GenerateTokensProvider,
     WsAuthenticator,

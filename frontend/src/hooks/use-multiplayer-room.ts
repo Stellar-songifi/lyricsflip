@@ -61,7 +61,7 @@ class MockWebSocket {
   readyState = 1; // WebSocket.OPEN
 type RoomSocket = Socket<ServerToClientEvents, ClientToServerEvents>;
 
-const WS_URL = process.env.NEXT_PUBLIC_WS_URL || 'http://localhost:3000';
+const WS_URL = process.env.NEXT_PUBLIC_WS_URL || 'http://localhost:4000';
 
 export function useMultiplayerRoom({
   roomId,
@@ -89,7 +89,6 @@ export function useMultiplayerRoom({
       setRoomData((prev) => (prev ? fn(prev) : prev));
 
     ws.onclose = () => {
-      console.log('WebSocket connection closed');
       setIsConnected(false);
     };
 
@@ -105,7 +104,6 @@ export function useMultiplayerRoom({
     // This ensures we have data even if the WebSocket fails
     const fallbackTimer = setTimeout(() => {
       if (!roomData) {
-        console.log('Fallback: Setting mock room data directly');
         setIsConnected(true);
         setRoomData({ ...mockRoomData, id: roomId });
       }

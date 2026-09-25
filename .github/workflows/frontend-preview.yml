@@ -1,0 +1,68 @@
+# LF-111: deploy a Vercel preview of frontend/ for every PR that touches it
+# and post the URL on the PR. Preview builds talk to the testnet contracts
+# recorded in deployments/testnet.json.
+#
+# Required secrets (from `vercel link` in frontend/):
+#   VERCEL_TOKEN, VERCEL_ORG_ID, VERCEL_PROJECT_ID
+name: Frontend Preview
+
+on:
+  pull_request:
+    paths:
+      - 'frontend/**'
+      - 'deployments/**'
+      - '.github/workflows/frontend-preview.yml'
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: frontend-preview-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  preview:
+    # Secrets are unavailable to fork PRs, so skip instead of failing.
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    env:
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - run: npm install --global vercel@latest
+      - name: Deploy preview
+        id: deploy
+        shell: bash
+        run: |
+          GAME_ID=$(jq -r .lyricsflip deployments/testnet.json)
+          NFT_ID=$(jq -r .lyricsflipNft deployments/testnet.json)
+          vercel pull --yes --environment=preview --token="${{ secrets.VERCEL_TOKEN }}"
+          vercel build --token="${{ secrets.VERCEL_TOKEN }}" \
+            --build-env NEXT_PUBLIC_STELLAR_RPC_URL=https://soroban-testnet.stellar.org \
+            --build-env "NEXT_PUBLIC_STELLAR_NETWORK_PASSPHRASE=Test SDF Network ; September 2015" \
+            --build-env NEXT_PUBLIC_LYRICSFLIP_CONTRACT_ID="$GAME_ID" \
+            --build-env NEXT_PUBLIC_LYRICSFLIP_NFT_CONTRACT_ID="$NFT_ID"
+          url=$(vercel deploy --prebuilt --token="${{ secrets.VERCEL_TOKEN }}")
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+      - name: Comment preview URL
+        uses: actions/github-script@v7
+        env:
+          PREVIEW_URL: ${{ steps.deploy.outputs.url }}
+        with:
+          script: |
+            const marker = '<!-- frontend-preview -->';
+            const body = `${marker}\n🔍 **Frontend preview:** ${process.env.PREVIEW_URL}\n\nCommit: ${context.payload.pull_request.head.sha.slice(0, 7)} · network: testnet`;
+            const { owner, repo } = context.repo;
+            const issue_number = context.issue.number;
+            const comments = await github.paginate(github.rest.issues.listComments, { owner, repo, issue_number });
+            const existing = comments.find(c => c.body?.includes(marker));
+            if (existing) {
+              await github.rest.issues.updateComment({ owner, repo, comment_id: existing.id, body });
+            } else {
+              await github.rest.issues.createComment({ owner, repo, issue_number, body });
+            }

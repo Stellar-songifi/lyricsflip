@@ -1,0 +1,101 @@
+# LF-110: deploy (first run) or upgrade (later runs) the contracts on testnet
+# when a `contracts-v*` tag is pushed, then commit the IDs to
+# deployments/testnet.json so the frontend picks them up as defaults.
+#
+# Required secrets:
+#   STELLAR_TESTNET_SECRET_KEY  secret key (S...) of the funded owner identity
+name: Contracts Deploy (testnet)
+
+on:
+  push:
+    tags:
+      - 'contracts-v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: contracts-deploy-testnet
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      NETWORK: testnet
+      DEPLOYMENT_FILE: deployments/testnet.json
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - name: Check out the tagged commit
+        if: startsWith(github.ref, 'refs/tags/')
+        run: git checkout "${{ github.sha }}" -- onchain
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32v1-none
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: onchain
+      - name: Install Stellar CLI
+        run: cargo install stellar-cli --locked
+      - name: Import deployer identity
+        env:
+          STELLAR_SECRET_KEY: ${{ secrets.STELLAR_TESTNET_SECRET_KEY }}
+        run: |
+          echo "$STELLAR_SECRET_KEY" | stellar keys add deployer --secret-key
+          echo "OWNER=$(stellar keys address deployer)" >> "$GITHUB_ENV"
+      - name: Build contracts
+        working-directory: onchain
+        run: cargo build --target wasm32v1-none --release
+      - name: Deploy or upgrade
+        shell: bash
+        run: |
+          set -euo pipefail
+          WASM_DIR=onchain/target/wasm32v1-none/release
+          GAME_ID=$(jq -r '.lyricsflip // ""' "$DEPLOYMENT_FILE")
+          NFT_ID=$(jq -r '.lyricsflipNft // ""' "$DEPLOYMENT_FILE")
+
+          if [[ -z "$GAME_ID" || -z "$NFT_ID" ]]; then
+            echo "No existing deployment; deploying fresh contracts"
+            GAME_ID=$(stellar contract deploy --wasm "$WASM_DIR/lyricsflip.wasm" \
+              --source deployer --network "$NETWORK" -- --owner "$OWNER")
+            NFT_ID=$(stellar contract deploy --wasm "$WASM_DIR/lyricsflip_nft.wasm" \
+              --source deployer --network "$NETWORK" -- \
+              --owner "$OWNER" --minter "$GAME_ID" \
+              --token_name "LyricsFlip" --token_symbol "LFLIP" \
+              --base_uri "https://lyricsflip.xyz/nft/")
+            stellar contract invoke --id "$GAME_ID" --source deployer --network "$NETWORK" \
+              -- set_cards_per_round --caller "$OWNER" --value 5
+          else
+            echo "Upgrading existing contracts in place (LF-021)"
+            for pair in "lyricsflip:$GAME_ID" "lyricsflip_nft:$NFT_ID"; do
+              name=${pair%%:*}; id=${pair#*:}
+              hash=$(stellar contract upload --wasm "$WASM_DIR/$name.wasm" \
+                --source deployer --network "$NETWORK")
+              stellar contract invoke --id "$id" --source deployer --network "$NETWORK" \
+                -- upgrade --caller "$OWNER" --new_wasm_hash "$hash"
+            done
+          fi
+
+          jq --arg game "$GAME_ID" --arg nft "$NFT_ID" \
+             --arg tag "${GITHUB_REF_NAME}" --arg commit "${GITHUB_SHA}" \
+             --arg at "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+             '.lyricsflip = $game | .lyricsflipNft = $nft | .tag = $tag | .commit = $commit | .deployedAt = $at' \
+             "$DEPLOYMENT_FILE" > tmp.json && mv tmp.json "$DEPLOYMENT_FILE"
+
+          {
+            echo "### Testnet deployment"
+            echo "- lyricsflip: \`$GAME_ID\`"
+            echo "- lyricsflip-nft: \`$NFT_ID\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Commit deployment record
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898299+github-actions[bot]@users.noreply.github.com"
+          git add "$DEPLOYMENT_FILE"
+          git diff --cached --quiet && exit 0
+          git commit -m "chore(deployments): record testnet contracts for ${GITHUB_REF_NAME}"
+          git push origin HEAD:main

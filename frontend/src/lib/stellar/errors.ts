@@ -73,3 +73,29 @@ export function describeContractError(
   const code = getContractErrorCode(error);
   return code === undefined ? undefined : table[code];
 }
+
+/** True when the user dismissed or declined the signature request in their wallet. */
+export function isUserRejection(error: unknown): boolean {
+  const text = error instanceof Error ? error.message : String(error);
+  return /reject|declin|denied|cancel/i.test(text);
+}
+
+/**
+ * Turns an SDK/wallet error into a message fit for the UI: a known contract
+ * error code maps to its friendly message, a declined signature says so, and
+ * anything else falls back to the original message.
+ */
+export function parseContractError(
+  error: unknown,
+  table: Record<number, ContractErrorInfo> = LYRICSFLIP_ERRORS,
+): { code?: number; message: string } {
+  const code = getContractErrorCode(error);
+  if (code !== undefined) {
+    return { code, message: table[code]?.message ?? `Contract error #${code}.` };
+  }
+  if (isUserRejection(error)) {
+    return { message: 'You rejected the signature request.' };
+  }
+  const text = error instanceof Error ? error.message : String(error);
+  return { message: text || 'Something went wrong.' };
+}

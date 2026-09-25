@@ -20,13 +20,6 @@ export default function Home() {
     // Add handlers for other game types as needed
   };
 
-  // Debug: Log initialization status
-  console.log('Stellar initialization:', {
-    isLoading,
-    hasSystemCalls: !!systemCalls,
-    hasAccount: !!account,
-    error: error?.message
-  });
 
   // Show loading state while Stellar is initializing
   if (isLoading) {

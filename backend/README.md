@@ -1,30 +1,6 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# LyricsFlip Backend
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
-
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://coveralls.io/github/nestjs/nest?branch=master" target="_blank"><img src="https://coveralls.io/repos/github/nestjs/nest/badge.svg?branch=master#9" alt="Coverage" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
-
-## Description
-
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+NestJS API and WebSocket server for **LyricsFlip**, a lyrics-guessing game with on-chain wagers and rewards on Stellar/Soroban. It handles auth, players, songs and questions, game sessions (single-player and real-time multiplayer), scoring, leaderboards, and indexing of contract events.
 
 ## Module map
 
@@ -44,6 +20,7 @@ here; other modules import that module (or its entity) instead of redefining it.
 | Chain indexer | `indexer/` | Soroban event indexing | — | `/indexer` |
 | Lesson progress | `music-education/` | `LessonProgress` (`lesson_progress`) | `/lessons/progress` | — |
 | Practice progress | `practice/` | `PracticeProgress` (`practice_progress`) | `/practice/progress` | — |
+| Health | `health/` | Postgres, Redis and Stellar RPC checks | `/health` | — |
 
 Rules of thumb:
 
@@ -55,79 +32,61 @@ Rules of thumb:
   `Genre` and the frontend's `GENRE_VALUES`.
 - `src/entity-metadata.spec.ts` fails if two `@Entity` classes map to the same table.
 
-## Project setup
+Cross-cutting HTTP behaviour is configured once in `src/config/app-setup.ts`:
+
+- a global `ValidationPipe` (`whitelist`, `forbidNonWhitelisted`, `transform`) — unknown fields are rejected with `400`;
+- `AllExceptionsFilter`, so every HTTP error looks like
+  `{ statusCode, error, message, path, timestamp, requestId }` (send `x-request-id` to correlate logs);
+- request logging is handled by `RequestLoggerMiddleware` (see [Logging](#logging)).
+
+## Prerequisites
+
+- Node.js 20+
+- PostgreSQL 14+
+- Redis 6+
+- (optional) a Soroban RPC endpoint, e.g. `https://soroban-testnet.stellar.org`
+
+## Environment variables
+
+Copy `.env.example` to `backend/.env` (or `.env.development`):
+
+| Variable | Required | Default | Description |
+| --- | --- | --- | --- |
+| `NODE_ENV` | no | `development` | Enables Swagger; schema changes always go through migrations, in every environment |
+| `LOG_LEVEL` | no | `info` | `error`, `warn`, `info`, `debug` or `verbose` |
+| `PORT` | no | `3000` | HTTP/WebSocket port |
+| `DATABASE_URL` | **yes** | — | e.g. `postgres://postgres:postgres@localhost:5432/lyricsflip` |
+| `DB_MIGRATIONS_RUN` | no | `true` | Run pending migrations on startup |
+| `JWT_SECRET` | **yes** | — | Access-token signing secret |
+| `JWT_REFRESH_SECRET` | yes | — | Refresh-token signing secret |
+| `JWT_ACCESS_TOKEN_TTL` / `JWT_REFRESH_TOKEN_TTL` | no | — | Token lifetimes (seconds) |
+| `JWT_TOKEN_AUDIENCE` / `JWT_TOKEN_ISSUER` | no | — | JWT `aud` / `iss` claims |
+| `STELLAR_NETWORK` | **yes** | — | `testnet`, `futurenet` or `mainnet` |
+| `SOROBAN_RPC_URL` | no | — | Soroban RPC used by the indexer and `/health` |
+| `REDIS_URL` | no | `redis://127.0.0.1:6379` | Throttler storage and health check |
+| `REDIS_HOST` / `REDIS_PORT` | no | `localhost` / `6379` | Cache store |
+| `RATE_LIMIT_TTL` / `RATE_LIMIT_LIMIT` | no | `60` / `10` | Default rate limit |
+| `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASS` | no | `localhost` / `1025` | Outgoing email (Mailpit in docker compose) |
+| `MAIL_FROM` | no | `LyricsFlip <no-reply@lyricsflip.local>` | Sender address |
+| `PASSWORD_RESET_TTL_MINUTES` | no | `15` | Password-reset link lifetime |
+| `APP_URL` | no | `http://localhost:3000` | Public URL used in emails/links |
+
+## Running locally
 
 ```bash
-$ npm install
+cd backend
+npm install
+
+# start dependencies (or use your own Postgres/Redis)
+docker run -d --name lf-postgres -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=lyricsflip -p 5432:5432 postgres:16
+docker run -d --name lf-redis -p 6379:6379 redis:7
+
+npm run migration:run   # apply migrations
+npm run seed            # optional: seed songs
+npm run start:dev       # http://localhost:3000
 ```
 
-## Compile and run the project
-
-```bash
-# development
-$ npm run start
-
-# watch mode
-$ npm run start:dev
-
-# production mode
-$ npm run start:prod
-```
-
-## Run tests
-
-```bash
-# unit tests
-$ npm run test
-
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
-```
-
-## Deployment
-
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
-
-```bash
-$ npm install -g mau
-$ mau deploy
-```
-
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
-
-## Resources
-
-Check out a few resources that may come in handy when working with NestJS:
-
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
-
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
-
-## Local development with Docker
+### Docker
 
 From the repository root:
 
@@ -136,9 +95,48 @@ docker compose up                     # Postgres 16, Redis 7, Mailpit and the AP
 docker compose --profile soroban up   # also start stellar/quickstart for a local Soroban network
 ```
 
-The schema is applied on startup (`DB_SYNCHRONIZE`, plus any migrations in `src/migrations`).
+The schema is applied on startup by running any pending migrations in `src/migrations` (set `DB_MIGRATIONS_RUN=false` to disable).
 Emails sent by the API, such as password reset links, show up in Mailpit at http://localhost:8025.
 Copy `.env.example` to `.env.development` to run the backend outside Docker.
+
+## Migrations
+
+Migrations live in `src/migrations` and use the data source in `src/database/data-source.ts` — the
+same directory `app.module.ts` runs on startup (`DB_MIGRATIONS_RUN`), so the CLI and the running
+app share one migration history. `synchronize` is always off; schema changes go through a migration
+in every environment.
+
+```bash
+npm run migration:run              # apply pending migrations
+npm run migration:revert           # roll back the last migration
+npm run migration:show             # list applied/pending migrations
+npm run migration:generate -- src/migrations/DescriptiveName   # generate one from entity changes
+```
+
+## API docs and health
+
+- Swagger UI: `http://localhost:3000/api/docs` (disabled when `NODE_ENV=production`)
+- Health: `GET /health` (public) — reports `database`, `redis` and `stellarRpc`; returns `200` when all are up and `503` otherwise.
+
+## WebSocket protocol
+
+Real-time multiplayer uses Socket.IO on the same port. Events, payloads and error codes are documented in [`docs/realtime-protocol.md`](../docs/realtime-protocol.md).
+
+## Tests
+
+```bash
+npm test          # unit tests (src/**/*.spec.ts)
+npm run test:cov  # unit tests with coverage (enforces the Jest coverage threshold)
+npm run test:e2e  # e2e tests (test/*.e2e-spec.ts) — no live database required
+```
+
+## Useful scripts
+
+| Script | Purpose |
+| --- | --- |
+| `npm run build` | Compile to `dist/` |
+| `npm run start:prod` | Run the compiled build |
+| `npm run lint` / `npm run format` | ESLint / Prettier |
 
 ## Logging
 

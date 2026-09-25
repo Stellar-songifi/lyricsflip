@@ -1,4 +1,15 @@
 // src/replay-analysis/entities/replay.entity.ts
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  OneToMany,
+} from 'typeorm';
+import { Pattern } from './pattern.entity';
+import { Anomaly } from './anomaly.entity';
+import { Report } from './report.entity';
+
 @Entity('replays')
 export class Replay {
   @PrimaryGeneratedColumn('uuid')
@@ -37,12 +48,12 @@ export class Replay {
   @Column({ nullable: true })
   analyzedAt?: Date;
 
-  @OneToMany(() => Pattern, pattern => pattern.replay)
+  @OneToMany(() => Pattern, (pattern) => pattern.replay)
   patterns: Pattern[];
 
-  @OneToMany(() => Anomaly, anomaly => anomaly.replay)
+  @OneToMany(() => Anomaly, (anomaly) => anomaly.replay)
   anomalies: Anomaly[];
 
-  @OneToMany(() => Report, report => report.replay)
+  @OneToMany(() => Report, (report) => report.replay)
   reports: Report[];
 }

@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { GameSession } from 'src/game-session/game-session.entity';
+import { GameSession } from '@app/game-session/game-session.entity';
 import { Player } from '../player/player.entity';
 
 @Injectable()

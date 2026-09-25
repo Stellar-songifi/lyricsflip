@@ -142,7 +142,7 @@ export default function SinglePlayerGame() {
 
   if (isLoading) {
     return (
-      <div className="container mt-4 mx-auto h-fit w-full mb-20 lg:mb-12 p-4 lg:p-0 md:mt-24 lg:mt-32">
+      <div className="container mt-20 mx-auto h-fit w-full mb-24 md:mb-12 p-4 lg:p-0 md:mt-24 lg:mt-32">
         <p>{txStatus || 'Loading game...'}</p>
       </div>
     );
@@ -150,7 +150,7 @@ export default function SinglePlayerGame() {
 
   if (error || !round) {
     return (
-      <div className="container mt-4 mx-auto h-fit w-full mb-20 lg:mb-12 p-4 lg:p-0 md:mt-24 lg:mt-32">
+      <div className="container mt-20 mx-auto h-fit w-full mb-24 md:mb-12 p-4 lg:p-0 md:mt-24 lg:mt-32">
         <p>{error || 'No round found'}</p>
         <button
           onClick={handleBack}
@@ -163,7 +163,7 @@ export default function SinglePlayerGame() {
   }
 
   return (
-    <div className="container mt-4 mx-auto h-fit w-full mb-20 lg:mb-12 p-4 lg:p-0 md:mt-24 lg:mt-32">
+    <div className="container mt-20 mx-auto h-fit w-full mb-24 md:mb-12 p-4 lg:p-0 md:mt-24 lg:mt-32">
       <div className="mb-6">
         <button
           onClick={handleBack}

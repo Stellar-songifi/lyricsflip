@@ -25,7 +25,7 @@ export function SongOptions({
         const isCorrect = correctOption?.title === option.title;
 
         let buttonClasses =
-          'text-left p-4 rounded-lg transition-all duration-200 ';
+          'text-left p-4 rounded-lg transition-all duration-200 min-h-[44px] w-full ';
 
         if (isCorrect) {
           buttonClasses += 'bg-green-100 border-2 border-green-500';

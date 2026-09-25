@@ -55,7 +55,10 @@ export default function RootLayout({
           }>
             <DynamicStellarProvider>
               <Navbar />
-              {children}
+              {/* pb-20 on mobile so the fixed MobileNav bar never overlaps content; md:pb-0 restores normal flow on desktop */}
+              <main className="pb-20 md:pb-0">
+                {children}
+              </main>
               <MobileNav />
             </DynamicStellarProvider>
           </Suspense>

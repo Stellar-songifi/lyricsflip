@@ -34,7 +34,7 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
       - run: cargo build --target wasm32v1-none --release
         working-directory: onchain
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: contracts-wasm
           path: onchain/target/wasm32v1-none/release/*.wasm

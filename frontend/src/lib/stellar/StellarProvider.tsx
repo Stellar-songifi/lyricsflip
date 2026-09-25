@@ -16,6 +16,7 @@ import { HanaModule } from '@creit.tech/stellar-wallets-kit/modules/hana';
 import { createConfig, type StellarConfig } from './stellarConfig';
 import { createSystemCalls, type SystemCalls } from './client';
 import type { StellarAccount } from './types';
+import { ConfigErrorScreen } from '@/components/organisms/ConfigErrorScreen';
 
 export interface StellarSetupResult {
   systemCalls: SystemCalls;
@@ -142,6 +143,15 @@ export const StellarProvider = ({ children }: { children: React.ReactNode }) => 
     connect,
     disconnect,
   };
+
+  // Show a clear "App is not configured" screen when the game contract ID is
+  // missing — the app is completely non-functional without it.
+  const criticalWarnings = warnings.filter((w) =>
+    w.includes('NEXT_PUBLIC_LYRICSFLIP_CONTRACT_ID'),
+  );
+  if (!isLoading && criticalWarnings.length > 0) {
+    return <ConfigErrorScreen issues={criticalWarnings} />;
+  }
 
   return <StellarContext.Provider value={contextValue}>{children}</StellarContext.Provider>;
 };

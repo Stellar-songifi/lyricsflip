@@ -4,6 +4,7 @@ import { StatisticsPanel } from '@/components/molecules/statistics-panel';
 import GameResultPopup from '@/components/organisms/GameResultPopup';
 import { LyricCard } from '@/components/organisms/LyricCard';
 import { useStellar } from '@/lib/stellar/hooks/useStellar';
+import { getGenreDisplayName } from '@/lib/stellar/genres';
 import { useSearchParams } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -174,7 +175,7 @@ export default function SinglePlayerGame() {
         </button>
         <h1 className="text-2xl font-bold">Wager (Single Player)</h1>
         <p className="text-gray-600 text-sm">
-          {`${round.genre.toString()} Genre | Expert Difficulty`}
+          {`${getGenreDisplayName(round.genre)} Genre | Expert Difficulty`}
         </p>
       </div>
 

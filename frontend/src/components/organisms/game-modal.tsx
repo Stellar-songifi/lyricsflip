@@ -5,6 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useModalStore } from '@/store/modal-store';
 import { Info } from 'lucide-react';
 import { Modal } from './modal';
+import { GENRE_OPTIONS } from '@/lib/stellar/genres';
 
 export function GameModal() {
   const { isOpen, closeModal, modalType } = useModalStore();
@@ -31,10 +32,11 @@ export function GameModal() {
               <SelectValue placeholder="Select genre" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="pop">Pop</SelectItem>
-              <SelectItem value="rock">Rock</SelectItem>
-              <SelectItem value="hiphop">Hip Hop</SelectItem>
-              <SelectItem value="rnb">R&B</SelectItem>
+              {GENRE_OPTIONS.map(({ value, label }) => (
+                <SelectItem key={value} value={value}>
+                  {label}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>

@@ -7,6 +7,7 @@ import localFont from 'next/font/local';
 import './globals.css';
 import dynamic from 'next/dynamic';
 import { Suspense } from 'react';
+import { Toaster } from 'sonner';
 
 const inter = Inter({
   variable: '--font-geist-sans',
@@ -58,6 +59,7 @@ export default function RootLayout({
               <MobileNav />
             </DynamicStellarProvider>
           </Suspense>
+          <Toaster richColors position="top-center" />
         </ClientProvider>
       </body>
     </html>

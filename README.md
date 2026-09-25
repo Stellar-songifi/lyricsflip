@@ -433,7 +433,7 @@ npm run dev        # http://localhost:3000
 ```bash
 cd backend
 npm install
-# create backend/.env (see variables below). Use a port other than 3000 so it doesn't clash with Next.js.
+cp .env.example .env.development   # fill in the values (see variables below); use a port other than 3000 so it doesn't clash with Next.js
 npm run start:dev  # Swagger at http://localhost:<PORT>/api/docs
 ```
 
@@ -453,17 +453,29 @@ npm run start:dev  # Swagger at http://localhost:<PORT>/api/docs
 | `NEXT_PUBLIC_LYRICSFLIP_NFT_CONTRACT_ID` | — | Deployed NFT contract ID (`C…`) |
 | `NEXT_PUBLIC_API_URL` | `http://localhost:3000/api` | Backend base URL |
 
-### Backend (`backend/.env`)
+### Backend (`backend/.env`, see `backend/.env.example`)
 
 | Variable | Required | Description |
 |---|---|---|
 | `NODE_ENV` | no | `development` / `production` / `test` / `staging` |
-| `PORT` | no | HTTP port (default 3000) |
+| `PORT` | no | HTTP port (default 4000) |
 | `DATABASE_URL` | yes | Postgres connection string |
-| `JWT_SECRET` | yes | Secret used to sign JWTs |
+| `JWT_SECRET` | yes | Secret used to sign access/refresh JWTs |
+| `JWT_REFRESH_SECRET` | no | Secret used by the legacy `/auth/refresh` flow |
+| `JWT_TOKEN_AUDIENCE`, `JWT_TOKEN_ISSUER` | no | JWT `aud`/`iss` claims |
+| `JWT_ACCESS_TOKEN_TTL`, `JWT_REFRESH_TOKEN_TTL` | no | Token lifetimes, in seconds |
 | `STELLAR_NETWORK` | yes | `testnet` / `futurenet` / `mainnet` |
+| `SOROBAN_RPC_URL` / `STELLAR_RPC_URL` | no | Soroban RPC endpoint used by the event indexer and `/health` |
+| `LYRICSFLIP_CONTRACT_ID` | no | Deployed game contract ID the indexer watches |
 | `REDIS_HOST`, `REDIS_PORT` | no | Redis (defaults `localhost:6379`) |
-| `RATE_LIMIT_TTL`, `RATE_LIMIT_LIMIT` | no | Throttling window and limit |
+| `REDIS_URL` | no | Redis connection URL (cache/throttler storage) |
+| `RATE_LIMIT_TTL`, `RATE_LIMIT_LIMIT` | no | Global throttling window (ms) and limit |
+| `CORS_ORIGINS` | no | Comma-separated allowed origins, or `*` |
+| `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASS`, `MAIL_FROM` | no | Outgoing email (password reset) |
+| `APP_URL` | no | Public base URL, used to build shareable links |
+| `ANALYTICS_API_KEY` | no | Shared secret for the `x-analytics-key` header |
+| `DB_SYNCHRONIZE`, `DB_MIGRATIONS_RUN` | no | TypeORM schema sync / auto-run migrations on boot |
+| `PASSWORD_RESET_TTL_MINUTES`, `LOG_LEVEL` | no | Password reset token lifetime, logger verbosity |
 
 ---
 

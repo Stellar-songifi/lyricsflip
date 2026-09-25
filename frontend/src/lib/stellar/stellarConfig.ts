@@ -2,6 +2,12 @@
 // Stellar equivalent (Torii URL, Relay URL, burner master address/private
 // key, account class hash) are dropped; Soroban contract IDs replace the
 // Dojo world manifest (`manifest_dev.json`).
+//
+// Contract IDs default to `deployments/testnet.json`, which the
+// `contracts-deploy` workflow updates on every `contracts-v*` tag (LF-110).
+// Env vars still take precedence for local or custom deployments.
+
+import testnetDeployment from '../../../../deployments/testnet.json';
 
 const getEnvVar = (name: string, defaultValue = ''): string => {
   if (typeof window !== 'undefined') {
@@ -34,6 +40,12 @@ export const createConfig = (): StellarConfig => ({
     'NEXT_PUBLIC_STELLAR_NETWORK_PASSPHRASE',
     'Test SDF Network ; September 2015',
   ),
-  lyricsflipContractId: getEnvVar('NEXT_PUBLIC_LYRICSFLIP_CONTRACT_ID'),
-  lyricsflipNftContractId: getEnvVar('NEXT_PUBLIC_LYRICSFLIP_NFT_CONTRACT_ID'),
+  lyricsflipContractId: getEnvVar(
+    'NEXT_PUBLIC_LYRICSFLIP_CONTRACT_ID',
+    testnetDeployment.lyricsflip,
+  ),
+  lyricsflipNftContractId: getEnvVar(
+    'NEXT_PUBLIC_LYRICSFLIP_NFT_CONTRACT_ID',
+    testnetDeployment.lyricsflipNft,
+  ),
 });

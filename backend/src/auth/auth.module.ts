@@ -19,6 +19,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { PasswordResetToken } from './entities/password-reset-token.entity';
 import { MailModule } from '../mail/mail.module';
 import { WsAuthenticator } from './providers/ws-authenticator.provider';
+import { WalletAuthProvider } from './providers/wallet-auth.provider';
 
 @Module({
   controllers: [AuthController],
@@ -34,8 +35,10 @@ import { WsAuthenticator } from './providers/ws-authenticator.provider';
     WsJwtAuthGuard,
     WsRolesGuard,
     Reflector, 
+    Reflector,
     GenerateTokensProvider,
     WsAuthenticator,
+    WalletAuthProvider,
   ],
   imports: [
     forwardRef(() => UserModule),

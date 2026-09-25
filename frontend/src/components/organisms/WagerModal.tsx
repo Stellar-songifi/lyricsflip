@@ -108,13 +108,8 @@ export function WagerModal() {
       }
 
       try {
-        console.log('Attempting createRound with genre:', {
-          genre: genreInfo.variant,
-          account: account?.address,
-        });
 
         const result = await setup.systemCalls.createRound(genreInfo.variant);
-        console.log('Round created, round id:', result);
 
         // Start game in store
         startGame({

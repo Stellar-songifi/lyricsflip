@@ -2,6 +2,7 @@
 
 import { AdminCards } from "@/components/organisms/AdminCards";
 import { AdminConfig } from "@/components/organisms/AdminConfig";
+import { AdminRoles } from "@/components/organisms/AdminRoles";
 import { useStellar } from "@/lib/stellar/hooks/useStellar";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -67,6 +68,7 @@ export default function AdminPage() {
       <h1 className="text-2xl font-bold mb-4">Admin Dashboard</h1>
       <AdminConfig />
       <AdminCards />
+      <AdminRoles />
     </main>
   );
 }

@@ -85,10 +85,11 @@ import { HealthModule } from './health/health.module';
       type: 'postgres',
       url: process.env.DATABASE_URL,
       autoLoadEntities: true,
-      synchronize:
-        process.env.DB_SYNCHRONIZE !== undefined
-          ? process.env.DB_SYNCHRONIZE === 'true'
-          : process.env.NODE_ENV === 'development',
+      // Schema changes go through migrations (see `database/data-source.ts`
+      // and `npm run migration:*`) in every environment, staging and
+      // production included — `synchronize` is unsafe outside a scratch DB
+      // and doesn't version schema changes.
+      synchronize: false,
       migrations: [__dirname + '/migrations/*{.ts,.js}'],
       migrationsRun: process.env.DB_MIGRATIONS_RUN !== 'false',
     }),

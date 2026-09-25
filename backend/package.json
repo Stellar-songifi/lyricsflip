@@ -37,7 +37,7 @@
     "@nestjs/websockets": "^11.0.10",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.1",
-    "nodemailer": "^6.10.1",
+    "nodemailer": "^10.0.10",
     "ioredis": "^5.4.1",
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",

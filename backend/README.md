@@ -126,3 +126,23 @@ Nest is an MIT-licensed open source project. It can grow thanks to the sponsors 
 ## License
 
 Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+
+## Local development with Docker
+
+From the repository root:
+
+```bash
+docker compose up                     # Postgres 16, Redis 7, Mailpit and the API on http://localhost:4000
+docker compose --profile soroban up   # also start stellar/quickstart for a local Soroban network
+```
+
+The schema is applied on startup (`DB_SYNCHRONIZE`, plus any migrations in `src/migrations`).
+Emails sent by the API, such as password reset links, show up in Mailpit at http://localhost:8025.
+Copy `.env.example` to `.env.development` to run the backend outside Docker.
+
+## Logging
+
+There is one logger, `AppLogger` (`src/logger`). Use Nest's `new Logger(MyService.name)` in services;
+it routes through `AppLogger`. Production writes JSON lines; other environments write readable lines.
+Every HTTP request gets an `x-request-id` and exactly one access log line. Known secret fields
+(passwords, tokens, authorization headers, JWTs) are redacted. Set `LOG_LEVEL` to `error`, `warn`, `info`, `debug` or `verbose`.

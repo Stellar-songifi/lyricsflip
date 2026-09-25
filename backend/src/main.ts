@@ -4,14 +4,12 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { swaggerConfig, swaggerCustomOptions } from './utility/Swagger';
 import { SocketIOAdapter } from './config/socket-io.config';
 import { Logger, ValidationPipe } from '@nestjs/common';
-import { CustomLoggerService } from './logger/custom-logger.service';
-import { LoggingInterceptor } from './interceptors/logging.interceptor';
+import { AppLogger } from './logger/app-logger.service';
 import { ConfigService } from '@nestjs/config';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule, {
-    logger: new CustomLoggerService(),
-  });
+  const app = await NestFactory.create(AppModule, { bufferLogs: true });
+  app.useLogger(app.get(AppLogger));
 
   const config = app.get(ConfigService);
   const logger = new Logger('Main');
@@ -31,8 +29,6 @@ async function bootstrap() {
   });
 
   app.useWebSocketAdapter(new SocketIOAdapter(app, config));
-
-  app.useGlobalInterceptors(new LoggingInterceptor());
 
   if (process.env.NODE_ENV !== 'production') {
     const document = SwaggerModule.createDocument(app, swaggerConfig);

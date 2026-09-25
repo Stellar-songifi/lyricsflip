@@ -1,4 +1,4 @@
-import { forwardRef, Inject, Injectable } from '@nestjs/common';
+import { forwardRef, Inject, Injectable, Logger } from '@nestjs/common';
 import { AuthService } from './../../auth/providers/auth.service';
 import { FindOneUserByEmailProvider } from './find-one-user-by-email.provider';
 import { User } from '../user.entity';
@@ -6,14 +6,11 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { CreateUserProvider } from './create-user.services';
 import { UserDTO } from '../dtos/create-user.dto';
-import { CustomLoggerService } from '../../logger/custom-logger.service';
-import { v4 as uuidv4 } from 'uuid';
-
-const requestId = uuidv4();
-
 // Service responsible for handling user operations.
 @Injectable()
 export class UserService {
+  private readonly logger = new Logger(UserService.name);
+
   constructor(
     @Inject(forwardRef(() => AuthService))
     private readonly authService: AuthService,
@@ -28,12 +25,7 @@ export class UserService {
 
     //Inject create user provider
     private readonly createUserProvider: CreateUserProvider,
-
-    // ✅ Inject CustomLoggerService
-    private logger: CustomLoggerService,
-  ) {
-    this.logger.setContext('UserService'); // Set logging context
-  }
+  ) {}
 
   public async getAll(limit: number, page: number): Promise<User[]> {
     const skip = (page - 1) * limit;
@@ -45,26 +37,13 @@ export class UserService {
   }
 
   async createUser(userData: any) {
-    this.logger.log(
-      `Creating new user: ${JSON.stringify({
-        userData,
-        timestamp: new Date(),
-        requestId: uuidv4(),
-      })}`,
-    );
+    // Never log userData itself: it carries the plaintext password.
+    this.logger.log(`Creating new user: ${userData?.email ?? 'unknown'}`);
 
     try {
       // User creation logic
     } catch (error) {
-      this.logger.error(
-        `Failed to create user: ${JSON.stringify({
-          error: error.message,
-          stack: error.stack,
-          userData,
-          timestamp: new Date(),
-        })}`,
-        'UserService',
-      );
+      this.logger.error(`Failed to create user: ${error.message}`, error.stack);
       throw error;
     }
   }

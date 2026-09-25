@@ -1,0 +1,85 @@
+# Local development stack: Postgres, Redis, Mailpit, the backend API and
+# (optionally) a local Soroban network.
+#
+#   docker compose up                      # API on http://localhost:4000
+#   docker compose --profile soroban up    # also start stellar/quickstart
+#
+# Mailpit's web UI (for password-reset emails) is on http://localhost:8025.
+
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: lyricsflip
+      POSTGRES_PASSWORD: lyricsflip
+      POSTGRES_DB: lyricsflip
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U lyricsflip -d lyricsflip']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7
+    ports:
+      - '6379:6379'
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  mailpit:
+    image: axllent/mailpit:latest
+    ports:
+      - '1025:1025' # SMTP
+      - '8025:8025' # Web UI
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    environment:
+      NODE_ENV: development
+      PORT: 4000
+      DATABASE_URL: postgres://lyricsflip:lyricsflip@postgres:5432/lyricsflip
+      DB_MIGRATIONS_RUN: 'true'
+      DB_SYNCHRONIZE: 'true'
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      JWT_SECRET: dev-only-jwt-secret
+      JWT_REFRESH_SECRET: dev-only-refresh-secret
+      JWT_TOKEN_AUDIENCE: localhost:4000
+      JWT_TOKEN_ISSUER: localhost:4000
+      JWT_ACCESS_TOKEN_TTL: 3600
+      LOG_LEVEL: debug
+      SMTP_HOST: mailpit
+      SMTP_PORT: 1025
+      SMTP_SECURE: 'false'
+      MAIL_FROM: 'LyricsFlip <no-reply@lyricsflip.local>'
+      APP_URL: http://localhost:3000
+      STELLAR_NETWORK: local
+      STELLAR_RPC_URL: http://soroban:8000/soroban/rpc
+    ports:
+      - '4000:4000'
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      mailpit:
+        condition: service_started
+
+  soroban:
+    image: stellar/quickstart:latest
+    profiles: ['soroban']
+    command: --local --enable-soroban-rpc
+    ports:
+      - '8000:8000'
+
+volumes:
+  postgres-data:

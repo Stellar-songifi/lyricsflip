@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
@@ -16,10 +16,12 @@ import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { ConfigModule } from './config/config.module';
 import { GlobalInterceptor } from './interceptors/global.interceptor';
 import { LoggerModule } from './logger/logger.module';
+import { RequestLoggerMiddleware } from './logger/request-logger.middleware';
 import { SongsModule } from './songs/songs.module';
 import { ScoringModule } from './scoring/scoring.module';
 import { ChatRoomModule } from './chat-room/chat-room.module';
 import { QuestionsModule } from './questions/questions.module';
+import { QuickGameModule } from './quick-game/quick-game.module';
 import { PowerUpModule } from './power-ups/power-up.module';
 import { TournamentService } from './tournament/tournament.service';
 import { TournamentModule } from './tournament/tournament.module';
@@ -72,9 +74,15 @@ import { IndexerModule } from './indexer/indexer.module';
       type: 'postgres',
       url: process.env.DATABASE_URL,
       autoLoadEntities: true,
-      synchronize: process.env.NODE_ENV === 'development',
+      synchronize:
+        process.env.DB_SYNCHRONIZE !== undefined
+          ? process.env.DB_SYNCHRONIZE === 'true'
+          : process.env.NODE_ENV === 'development',
+      migrations: [__dirname + '/migrations/*{.ts,.js}'],
+      migrationsRun: process.env.DB_MIGRATIONS_RUN !== 'false',
     }),
     QuestionsModule,
+    QuickGameModule,
     CacheModule.register({
       store: redisStore,
       socket: {
@@ -115,4 +123,8 @@ import { IndexerModule } from './indexer/indexer.module';
     TournamentService,
   ],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer.apply(RequestLoggerMiddleware).forRoutes('*');
+  }
+}

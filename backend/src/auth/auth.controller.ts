@@ -6,6 +6,8 @@ import {
   Post,
   UseInterceptors,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
+import { Public } from './decorators/public.decorator';
 import { ApiTags, ApiOperation, ApiResponse, ApiBody } from '@nestjs/swagger';
 import { AuthService } from './providers/auth.service';
 import { SignInDto } from './dtos/signIn.dto';
@@ -85,6 +87,8 @@ export class AuthController {
   }
 
   @Post('forgot-password')
+@Public()
+@Throttle({ default: { limit: 3, ttl: 60_000 } })
 @ApiOperation({ summary: 'Request password reset' })
 @ApiResponse({ status: 200, description: 'Reset email sent.' })
 @ApiBody({ type: ForgotPasswordDto })
@@ -93,6 +97,8 @@ async forgotPassword(@Body() forgotPasswordDto: ForgotPasswordDto) {
 }
 
 @Post('reset-password')
+@Public()
+@Throttle({ default: { limit: 5, ttl: 60_000 } })
 @ApiOperation({ summary: 'Reset password' })
 @ApiResponse({ status: 200, description: 'Password reset successful.' })
 @ApiBody({ type: ResetPasswordDto })

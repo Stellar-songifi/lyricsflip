@@ -1,9 +1,11 @@
 // controllers/friend.controller.ts
 import { Controller, Post, Get, Param, Body, UseGuards } from '@nestjs/common';
+import { ApiTags } from '@nestjs/swagger';
 import { FriendService } from '../services/friend.service';
 import { JwtAuthGuard } from '../../auth/guard/jwt-auth.guard';
 import { CurrentUser } from '../../auth/decorators/current-user.decorator';
 
+@ApiTags('friends')
 @Controller('friends')
 @UseGuards(JwtAuthGuard)
 export class FriendController {

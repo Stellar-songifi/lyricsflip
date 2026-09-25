@@ -1,8 +1,10 @@
 import { Controller, Post, Body, Get, UseGuards } from '@nestjs/common';
+import { ApiTags } from '@nestjs/swagger';
 import { PowerUpService } from './power-up.service';
 import { CreatePowerUpDto } from './dtos/create-power-up.dto';
 import { PurchasePowerUpDto } from './dtos/purchase-power-up.dto';
 
+@ApiTags('power-ups')
 @Controller('power-ups')
 export class PowerUpController {
   constructor(private readonly powerUpService: PowerUpService) {}

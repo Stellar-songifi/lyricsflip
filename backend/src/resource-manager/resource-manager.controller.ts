@@ -1,4 +1,5 @@
 import { Controller, Get, Post, Body, Param, Delete, Query, UseGuards } from '@nestjs/common';
+import { ApiTags } from '@nestjs/swagger';
 import { ResourceManagerService } from './resource-manager.service';
 import { ScalingManagerService } from './scaling-manager.service';
 import { AlertService } from './alert.service';
@@ -7,6 +8,7 @@ import { CreateScalingRuleDto, UpdateScalingRuleDto } from './dto/scaling-rule.d
 import { CreateAlertConfigDto, UpdateAlertConfigDto } from './dto/alert-config.dto';
 // import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
+@ApiTags('resource-manager')
 @Controller('resource-manager')
 export class ResourceManagerController {
   constructor(

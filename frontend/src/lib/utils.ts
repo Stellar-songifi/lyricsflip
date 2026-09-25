@@ -11,6 +11,33 @@ export const formatTime = (seconds: number): string => {
   return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
 };
 
+/** Code of the Stellar asset used for wagers (e.g. `XLM`). */
+export const WAGER_ASSET_CODE = process.env.NEXT_PUBLIC_WAGER_ASSET_CODE || 'XLM';
+
+/** Stellar assets use 7 decimal places. */
+export const STELLAR_DECIMALS = 7;
+
+/**
+ * Format an on-chain i128 amount (in the asset's smallest unit) as a
+ * human-readable decimal string with thousands separators.
+ */
+export const formatAmount = (
+  amount: bigint | number | string,
+  decimals: number = STELLAR_DECIMALS,
+): string => {
+  let value = BigInt(amount);
+  const negative = value < BigInt(0);
+  if (negative) value = -value;
+
+  const base = BigInt(10) ** BigInt(decimals);
+  const whole = (value / base).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  const fraction = decimals > 0
+    ? (value % base).toString().padStart(decimals, '0').replace(/0+$/, '')
+    : '';
+
+  return `${negative ? '-' : ''}${whole}${fraction ? `.${fraction}` : ''}`;
+};
+
 export const GENRE_LYRICS = {
   pop: [
     {

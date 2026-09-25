@@ -7,6 +7,7 @@ import { useStellar } from '@/lib/stellar/hooks/useStellar';
 import { useEffect, useState } from 'react';
 import { GENRE_MAPPING, GenreKey } from './WagerModal';
 import { WagerDetails } from '@/store';
+import { WAGER_ASSET_CODE } from '@/lib/utils';
 
 interface WagerSummaryContentProps extends WagerDetails {}
 
@@ -42,7 +43,7 @@ export function WagerSummaryContent({
         </div>
         <div className="flex justify-between">
           <span className="text-gray-500">Wager Amount:</span>
-          <span className="font-medium">{wagerAmount} STRK</span>
+          <span className="font-medium">{wagerAmount} {WAGER_ASSET_CODE}</span>
         </div>
         <div className="flex justify-between">
           <span className="text-gray-500">Potential Win:</span>
@@ -86,7 +87,7 @@ export function WagerSummaryModal() {
         duration: '10 mins',
         odds: '10',
         wagerAmount: '100',
-        potentialWin: '1000 STRK',
+        potentialWin: `1000 ${WAGER_ASSET_CODE}`,
       };
       setWagerDetails(round);
     } catch (err) {

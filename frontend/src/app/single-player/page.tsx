@@ -5,6 +5,7 @@ import { LyricCard } from '@/components/organisms/LyricCard';
 import BadgeModal from '@/components/organisms/newbadgemodal';
 import { useCardTimer, CARD_TIMEOUT_SECONDS } from '@/features/game/hooks/useCardTimer';
 import { fireConfetti } from '@/lib/confetti';
+import { formatAmount, WAGER_ASSET_CODE } from '@/lib/utils';
 import { useStellar } from '@/lib/stellar/hooks/useStellar';
 import { getGenreDisplayName } from '@/lib/stellar/genres';
 import { useSearchParams } from 'next/navigation';
@@ -407,7 +408,7 @@ export default function SinglePlayerGame() {
           <div className="lg:col-start-3 lg:col-span-1 order-2 lg:order-3">
             <StatisticsPanel
               time={`${roundTimeLeft}`}
-              potWin={`${round.wager_amount.toString()} STRK`}
+              potWin={`${formatAmount(round.wager_amount)} ${WAGER_ASSET_CODE}`}
               scores={`${score} / ${totalCards}`}
             />
           </div>

@@ -17,6 +17,8 @@ import { useRouter } from 'next/navigation';
 import { useStellar } from '@/lib/stellar/hooks/useStellar';
 import { GENRE_OPTIONS } from '@/lib/stellar/genres';
 import type { Genre } from '@/lib/stellar/types';
+import { useXlmBalance } from '@/lib/stellar/hooks/useXlmBalance';
+import { WAGER_ASSET_CODE } from '@/lib/utils';
 
 // Map form genre values (the Genre variant string itself) to contract Genre
 // enum variants and their display names. Built from the shared GENRE_OPTIONS
@@ -51,6 +53,7 @@ export function WagerModal() {
 
   // Initialize Stellar setup
   const { setup, account, isLoading, error } = useStellar();
+  const { formatted: walletBalance } = useXlmBalance();
 
   useEffect(() => {
     const oddsValue = parseFloat(wagerDetails.odds);
@@ -60,7 +63,7 @@ export function WagerModal() {
       const calculatedWin = wagerValue * oddsValue;
       setWagerDetails((prev) => ({
         ...prev,
-        potentialWin: `${isNaN(calculatedWin) ? 0 : calculatedWin} STRK`,
+        potentialWin: `${isNaN(calculatedWin) ? 0 : calculatedWin} ${WAGER_ASSET_CODE}`,
       }));
     }
   }, [wagerDetails.odds, wagerDetails.wagerAmount]);
@@ -252,7 +255,9 @@ export function WagerModal() {
       <div className="bg-[#F0F0F0] p-4 rounded-lg flex flex-col gap-3">
         <p className="text-xs font-medium">
           Wallet Balance:{' '}
-          <span className="text-[#9747FF]">18,678 STRK (5,678 USD)</span>
+          <span className="text-[#9747FF]">
+            {walletBalance ?? '—'} XLM
+          </span>
         </p>
         <div className="text-sm flex flex-col gap-2">
           <label className="text-sm font-medium" htmlFor="your-wager">
@@ -273,12 +278,12 @@ export function WagerModal() {
               className={`border-none shadow-none focus-visible:ring-0 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 ${formErrors.wagerAmount ? 'border-red-500' : ''}`}
               placeholder="Enter amount"
             />
-            <Select value={'STRK'}>
+            <Select value={WAGER_ASSET_CODE}>
               <SelectTrigger className="rounded-full w-full max-w-[66px] border-[#DBE2E8] text-[10px] font-light">
                 <SelectValue placeholder="Select currency" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="STRK">STRK</SelectItem>
+                <SelectItem value={WAGER_ASSET_CODE}>{WAGER_ASSET_CODE}</SelectItem>
               </SelectContent>
             </Select>
           </div>

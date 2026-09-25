@@ -8,6 +8,7 @@ import { Button } from '@/components/atoms/button';
 import { Modal } from './modal';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useStellar } from '@/lib/stellar/hooks/useStellar';
+import { WAGER_ASSET_CODE } from '@/lib/utils';
 
 interface GameResultPopupProps {
   isWin: boolean;
@@ -166,14 +167,14 @@ const GameResultPopup: React.FC<GameResultPopupProps> = ({
             <div className="flex justify-between items-center border-b py-[12px]">
               <span className="text-gray-600">Wager Amount</span>
               <span className="font-medium">
-                {roundData.wagerAmount} STRK
+                {roundData.wagerAmount} {WAGER_ASSET_CODE}
               </span>
             </div>
             {isWin && (
               <div className="flex justify-between items-center border-b py-[12px]">
                 <span className="text-gray-600">You Win</span>
                 <span className="font-medium text-[#9747FF]">
-                  {roundData.potentialWin} STRK
+                  {roundData.potentialWin} {WAGER_ASSET_CODE}
                 </span>
               </div>
             )}
@@ -189,12 +190,12 @@ const GameResultPopup: React.FC<GameResultPopupProps> = ({
             <div className="flex justify-between items-center border-b py-[12px]">
               <span className="text-gray-600">Prize Won</span>
               <span className="font-medium text-[#9747FF]">
-                {roundData.prize} STRK
+                {roundData.prize} {WAGER_ASSET_CODE}
               </span>
             </div>
             <div className="flex justify-between items-center border-b py-[12px]">
               <span className="text-gray-600">Wager Amount</span>
-              <span className="font-medium">{roundData.wagerAmount} STRK</span>
+              <span className="font-medium">{roundData.wagerAmount} {WAGER_ASSET_CODE}</span>
             </div>
             <div className="flex justify-between items-center border-b py-[12px]">
               <span className="text-gray-600">Second Place</span>

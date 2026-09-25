@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { StrKey } from "@stellar/stellar-sdk";
+import { Keypair } from "@stellar/stellar-sdk";
 import { Button } from "@/components/atoms/button";
 import { Input } from "@/components/atoms/input";
 import { useStellar } from "@/lib/stellar/hooks/useStellar";
@@ -31,7 +31,9 @@ export const AdminRoles = () => {
 
     const updateRole = async (isEnable: boolean) => {
         const recipient = address.trim();
-        if (!StrKey.isValidEd25519PublicKey(recipient)) {
+        try {
+            Keypair.fromPublicKey(recipient);
+        } catch {
             setError("Please enter a valid Stellar address (G...)");
             return;
         }

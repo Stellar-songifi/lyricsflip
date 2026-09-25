@@ -2,6 +2,7 @@ import { Copy, Lightbulb, X } from 'lucide-react';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import type { Round } from '@/lib/stellar/types';
+import { formatAmount, WAGER_ASSET_CODE } from '@/lib/utils';
 
 interface ChallengeInviteProps {
   round: Round;
@@ -61,7 +62,7 @@ export default function ChallengeInvite({
   const challengeData = {
     gameMode: `Wager (Multi Player) · ${round.genre}`,
     participants: players.length,
-    wagerAmount: round.wager_amount.toString(),
+    wagerAmount: `${formatAmount(round.wager_amount)} ${WAGER_ASSET_CODE}`,
   };
 
   return (

@@ -16,6 +16,9 @@ import { RefreshTokenDto } from './dtos/refresh-token.dto';
 import { ForgotPasswordDto } from './dtos/forgot-password.dto';
 import { ResetPasswordDto } from './dtos/reset-password.dto';
 import { AuthThrottle } from '../common/throttler/throttle-limits';
+import { WalletAuthProvider } from './providers/wallet-auth.provider';
+import { WalletChallengeRequestDto } from './dtos/wallet-challenge-request.dto';
+import { WalletVerifyDto } from './dtos/wallet-verify.dto';
 
 
 @ApiTags('auth') // Groups all endpoints under the 'auth' tag in Swagger
@@ -25,6 +28,7 @@ export class AuthController {
   constructor(
     // Injecting AuthService
     private readonly authService: AuthService,
+    private readonly walletAuthProvider: WalletAuthProvider,
   ) {}
 
   @Post('sign-in')
@@ -108,4 +112,31 @@ async resetPassword(@Body() resetPasswordDto: ResetPasswordDto) {
     resetPasswordDto.newPassword,
   );
 }
+
+  @Public() // Reachable before the caller has a token - that's the whole point.
+  @Post('challenge')
+  @ApiOperation({
+    summary: 'Request a wallet-auth challenge',
+    description:
+      'Returns a one-time nonce for the given Stellar address to sign with its wallet (e.g. StellarWalletsKit.signMessage).',
+  })
+  @ApiResponse({ status: 201, description: 'Challenge issued.' })
+  @ApiBody({ type: WalletChallengeRequestDto })
+  public async challenge(@Body() dto: WalletChallengeRequestDto) {
+    return this.walletAuthProvider.createChallenge(dto.address);
+  }
+
+  @Public()
+  @Post('verify')
+  @ApiOperation({
+    summary: 'Verify a signed wallet-auth challenge',
+    description:
+      'Verifies the signature over a previously issued challenge and returns access/refresh tokens for the (upserted) wallet account.',
+  })
+  @ApiResponse({ status: 201, description: 'Signature verified; tokens issued.' })
+  @ApiResponse({ status: 401, description: 'Invalid signature, or challenge expired/not found.' })
+  @ApiBody({ type: WalletVerifyDto })
+  public async verify(@Body() dto: WalletVerifyDto) {
+    return this.walletAuthProvider.verify(dto.address, dto.signedChallenge);
+  }
 }

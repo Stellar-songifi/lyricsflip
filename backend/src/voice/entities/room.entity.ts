@@ -19,4 +19,10 @@ export class RoomEntity implements Room {
   }
 
   addParticipant(participant: Participant): boolean {
-    if (this.participants.size >= this.maxParticipant){}}
+    if (this.participants.size >= this.maxParticipants) {
+      return false;
+    }
+    this.participants.set(participant.id, participant);
+    return true;
+  }
+}

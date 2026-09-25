@@ -52,11 +52,10 @@ Copy `.env.example` to `backend/.env` (or `.env.development`):
 
 | Variable | Required | Default | Description |
 | --- | --- | --- | --- |
-| `NODE_ENV` | no | `development` | `development` enables TypeORM `synchronize` (unless `DB_SYNCHRONIZE` is set) and Swagger |
+| `NODE_ENV` | no | `development` | Enables Swagger; schema changes always go through migrations, in every environment |
 | `LOG_LEVEL` | no | `info` | `error`, `warn`, `info`, `debug` or `verbose` |
 | `PORT` | no | `3000` | HTTP/WebSocket port |
 | `DATABASE_URL` | **yes** | — | e.g. `postgres://postgres:postgres@localhost:5432/lyricsflip` |
-| `DB_SYNCHRONIZE` | no | — | Overrides TypeORM `synchronize` |
 | `DB_MIGRATIONS_RUN` | no | `true` | Run pending migrations on startup |
 | `JWT_SECRET` | **yes** | — | Access-token signing secret |
 | `JWT_REFRESH_SECRET` | yes | — | Refresh-token signing secret |
@@ -96,19 +95,23 @@ docker compose up                     # Postgres 16, Redis 7, Mailpit and the AP
 docker compose --profile soroban up   # also start stellar/quickstart for a local Soroban network
 ```
 
-The schema is applied on startup (`DB_SYNCHRONIZE`, plus any migrations in `src/migrations`).
+The schema is applied on startup by running any pending migrations in `src/migrations` (set `DB_MIGRATIONS_RUN=false` to disable).
 Emails sent by the API, such as password reset links, show up in Mailpit at http://localhost:8025.
 Copy `.env.example` to `.env.development` to run the backend outside Docker.
 
 ## Migrations
 
-Migrations live in `src/database/migrations` and use the data source in `src/database/data-source.ts`.
+Migrations live in `src/migrations` and use the data source in `src/database/data-source.ts` — the
+same directory `app.module.ts` runs on startup (`DB_MIGRATIONS_RUN`), so the CLI and the running
+app share one migration history. `synchronize` is always off; schema changes go through a migration
+in every environment.
 
 ```bash
-npm run migration:run
+npm run migration:run              # apply pending migrations
+npm run migration:revert           # roll back the last migration
+npm run migration:show             # list applied/pending migrations
+npm run migration:generate -- src/migrations/DescriptiveName   # generate one from entity changes
 ```
-
-In `development`, TypeORM `synchronize` is on; never rely on it in staging/production.
 
 ## API docs and health
 

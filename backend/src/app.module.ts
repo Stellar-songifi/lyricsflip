@@ -80,17 +80,17 @@ import { HealthModule } from './health/health.module';
         ),
       }),
     }),
-    TypeOrmModule.forRootAsync({
-      inject: [ConfigService],
-      useFactory: (config: ConfigService) => ({
-        type: 'postgres',
-        url: config.get<string>('database.url'),
-        autoLoadEntities: true,
-        synchronize: config.get<boolean>('database.synchronize') ??
-          config.get<string>('env') === 'development',
-        migrations: [__dirname + '/migrations/*{.ts,.js}'],
-        migrationsRun: config.get<boolean>('database.migrationsRun') !== false,
-      }),
+    TypeOrmModule.forRoot({
+      type: 'postgres',
+      url: process.env.DATABASE_URL,
+      autoLoadEntities: true,
+      // Schema changes go through migrations (see `database/data-source.ts`
+      // and `npm run migration:*`) in every environment, staging and
+      // production included — `synchronize` is unsafe outside a scratch DB
+      // and doesn't version schema changes.
+      synchronize: false,
+      migrations: [__dirname + '/migrations/*{.ts,.js}'],
+      migrationsRun: process.env.DB_MIGRATIONS_RUN !== 'false',
     }),
     QuestionsModule,
     QuickGameModule,

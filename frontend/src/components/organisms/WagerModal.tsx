@@ -15,15 +15,19 @@ import { WagerSummaryContent } from './WagerSummaryModal';
 import { WagerDetails, useStore } from '@/store';
 import { useRouter } from 'next/navigation';
 import { useStellar } from '@/lib/stellar/hooks/useStellar';
+import { GENRE_OPTIONS } from '@/lib/stellar/genres';
 import type { Genre } from '@/lib/stellar/types';
 
-// Map form genre values to contract Genre enum variants and their display names
-export const GENRE_MAPPING: Record<string, { variant: Genre; display: string }> = {
-  pop: { variant: 'Pop', display: 'Pop' },
-  rock: { variant: 'Rock', display: 'Rock' },
-  hiphop: { variant: 'HipHop', display: 'Hip Hop' },
-  rnb: { variant: 'RnB', display: 'R&B' },
-};
+// Map form genre values (the Genre variant string itself) to contract Genre
+// enum variants and their display names. Built from the shared GENRE_OPTIONS
+// so it always covers all 13 on-chain genres.
+export const GENRE_MAPPING: Record<string, { variant: Genre; display: string }> =
+  Object.fromEntries(
+    GENRE_OPTIONS.map(({ value, label }) => [
+      value,
+      { variant: value, display: label },
+    ]),
+  );
 
 // Type for genre keys
 export type GenreKey = keyof typeof GENRE_MAPPING;
@@ -157,10 +161,11 @@ export function WagerModal() {
             <SelectValue placeholder="Select genre" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="pop">Pop</SelectItem>
-            <SelectItem value="rock">Rock</SelectItem>
-            <SelectItem value="hiphop">Hip Hop</SelectItem>
-            <SelectItem value="rnb">R&B</SelectItem>
+            {GENRE_OPTIONS.map(({ value, label }) => (
+              <SelectItem key={value} value={value}>
+                {label}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
         {formErrors.genre && (
@@ -303,7 +308,7 @@ export function WagerModal() {
       title={stage === 'form' ? 'Wager (Single Player)' : 'Wager Summary'}
       description={
         stage === 'form'
-          ? 'Quisque ipsum dolor sit amet, consectetur adipiscing elit. Nunc vulputate libero et velit interdum.'
+          ? 'Pick your genre, set your wager amount, and play solo to rack up points before time runs out.'
           : undefined
       }
       primaryActionLabel={

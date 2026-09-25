@@ -51,7 +51,7 @@ export default function ChallengeInvite({
           text: `Join my LyricsFlip challenge (round ${inviteCode})`,
           url: inviteLink,
         })
-        .catch((err) => console.log('Error sharing:', err));
+        .catch((err) => console.warn('Error sharing:', err));
     } else {
       handleCopyCode();
       alert('Invite link copied to clipboard!');

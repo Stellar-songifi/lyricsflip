@@ -128,7 +128,7 @@ export const GameResultModal = () => {
           title: 'Check out my game result!',
           text: `I scored ${roundData?.score || 0} points in LyricsFlip!`,
           url: window.location.href,
-        }).catch((err) => console.log('Error sharing:', err));
+        }).catch((err) => console.warn('Error sharing:', err));
       } else {
         navigator.clipboard.writeText(window.location.href)
           .then(() => alert('Link copied to clipboard!'))

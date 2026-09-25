@@ -35,12 +35,12 @@ export default function SamplePage() {
         <ShareButton
           shareCount={238}
           hugCount={72}
-          onShare={() => console.log('Share clicked')}
+          onShare={() => {}}
         />
         <Button
           variant="purple"
           size="full"
-          onClick={() => console.log('Play Again clicked')}
+          onClick={() => {}}
         >
           Play Again
         </Button>

@@ -23,7 +23,6 @@ import { ChatRoomModule } from './chat-room/chat-room.module';
 import { QuestionsModule } from './questions/questions.module';
 import { QuickGameModule } from './quick-game/quick-game.module';
 import { PowerUpModule } from './power-ups/power-up.module';
-import { TournamentService } from './tournament/tournament.service';
 import { TournamentModule } from './tournament/tournament.module';
 import { GameModule } from './game/game.module';
 import { AchievementModule } from './achievement/achievement.module';
@@ -32,7 +31,6 @@ import { RoomModule } from './room/room.module';
 import { SocialModule } from './social/social.module';
 import { CacheModule } from '@nestjs/cache-manager';
 import { EventEmitterModule } from '@nestjs/event-emitter';
-import * as redisStore from 'cache-manager-redis-store';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { Redis } from 'ioredis';
 import { RedisThrottlerStorage } from './common/throttler/redis-throttler.storage';
@@ -53,8 +51,6 @@ import { HealthModule } from './health/health.module';
     RewardModule,
     LeaderboardModule,
     NotificationModule,
-    AdminModule,
-    PlayerModule,
     LoggerModule,
     AppConfigModule,
     GameModule,
@@ -81,25 +77,21 @@ import { HealthModule } from './health/health.module';
         ),
       }),
     }),
-    TypeOrmModule.forRoot({
-      type: 'postgres',
-      url: process.env.DATABASE_URL,
-      autoLoadEntities: true,
-      synchronize:
-        process.env.DB_SYNCHRONIZE !== undefined
-          ? process.env.DB_SYNCHRONIZE === 'true'
-          : process.env.NODE_ENV === 'development',
-      migrations: [__dirname + '/migrations/*{.ts,.js}'],
-      migrationsRun: process.env.DB_MIGRATIONS_RUN !== 'false',
+    TypeOrmModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => ({
+        type: 'postgres',
+        url: config.get<string>('database.url'),
+        autoLoadEntities: true,
+        synchronize: config.get<boolean>('database.synchronize') ?? (process.env.NODE_ENV === 'development'),
+        migrations: [__dirname + '/migrations/*{.ts,.js}'],
+        migrationsRun: config.get<boolean>('database.migrationsRun') !== false,
+      }),
     }),
     QuestionsModule,
     QuickGameModule,
     CacheModule.register({
-      store: redisStore,
-      socket: {
-        host: process.env.REDIS_HOST || 'localhost',
-        port: Number(process.env.REDIS_PORT) || 6379,
-      },
+      isGlobal: true,
       ttl: 3600,
     }),
     SongsModule,
@@ -132,7 +124,6 @@ import { HealthModule } from './health/health.module';
       provide: APP_INTERCEPTOR,
       useClass: GlobalInterceptor,
     },
-    TournamentService,
   ],
 })
 export class AppModule implements NestModule {

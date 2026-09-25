@@ -9,17 +9,25 @@ import { ArrowLeft } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 import { Answer, type Card, type QuestionCard, type Round } from '@/lib/stellar/types';
+import { useGameTimer } from '@/features/game/hooks/useGameTimer';
 
 interface SongOption {
   title: string;
   artist: string;
 }
 
+// Default round duration in seconds (5 minutes)
+const DEFAULT_ROUND_SECONDS = 300;
+
 export default function SinglePlayerGame() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const roundId = searchParams.get('roundId');
   const { systemCalls } = useStellar();
+
+  // Use the single shared timer — no local setInterval here.
+  const { timeLeft, startTimer, stopTimer, resetTimer } = useGameTimer();
+
   const [round, setRound] = useState<Round | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -33,7 +41,13 @@ export default function SinglePlayerGame() {
   const [correctOption, setCorrectOption] = useState<SongOption | null>(null);
   const [isCardFlipped, setIsCardFlipped] = useState(false);
   const [score, setScore] = useState(0);
-  const [timeLeft, setTimeLeft] = useState(300); // 5 minutes default
+
+  // Stop the timer when the component unmounts (e.g. user navigates away).
+  useEffect(() => {
+    return () => {
+      stopTimer();
+    };
+  }, [stopTimer]);
 
   const loadNextCard = useCallback(async () => {
     if (!systemCalls || !roundId) return;
@@ -76,6 +90,11 @@ export default function SinglePlayerGame() {
         setTotalCards(cards.length);
         setAnsweredCount(roundData.next_card_index);
         setIsGameStarted(true);
+
+        // Initialise and start the shared timer for this round.
+        resetTimer(DEFAULT_ROUND_SECONDS);
+        startTimer();
+
         if (roundData.next_card_index < cards.length) {
           await loadNextCard();
         }
@@ -88,16 +107,8 @@ export default function SinglePlayerGame() {
     };
 
     fetchRoundData();
-  }, [roundId, systemCalls, loadNextCard]);
-
-  useEffect(() => {
-    if (isGameStarted && timeLeft > 0) {
-      const timer = setInterval(() => {
-        setTimeLeft(prev => prev - 1);
-      }, 1000);
-      return () => clearInterval(timer);
-    }
-  }, [isGameStarted, timeLeft]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [roundId, systemCalls]);
 
   const options: SongOption[] = question
     ? [question.option_one, question.option_two, question.option_three, question.option_four].map(

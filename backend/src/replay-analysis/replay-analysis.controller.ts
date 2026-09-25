@@ -1,7 +1,9 @@
 // src/replay-analysis/replay-analysis.controller.ts
 import { Controller, Post, Get, Param, Body, UploadedFile, UseInterceptors } from '@nestjs/common';
+import { ApiTags } from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
 
+@ApiTags('replay-analysis')
 @Controller('replay-analysis')
 export class ReplayAnalysisController {
   constructor(

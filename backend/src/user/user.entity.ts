@@ -19,12 +19,12 @@ export class User {
   @Column({ unique: true })
   username: string; // The username for the player
 
-  @Column({ unique: true })
-  email: string; // Player's email for account identification and recovery
+  @Column({ unique: true, nullable: true })
+  email: string; // Player's email for account identification and recovery. Optional: not set for wallet-only accounts (see stellarAddress below).
 
   @Exclude() // Passwords should not be returned when the user is returned
-  @Column()
-  password: string; // Hashed password for security
+  @Column({ nullable: true })
+  password: string; // Hashed password for security. Optional: not set for wallet-only accounts.
 
   @Column({ nullable: true })
   avatar: string; // Optional profile picture URL

@@ -1,3 +1,12 @@
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  ManyToOne,
+  Column,
+  CreateDateColumn,
+} from 'typeorm';
+import { GameState } from './game-state.entity';
+
 @Entity()
 export class StateAudit {
   @PrimaryGeneratedColumn('uuid')

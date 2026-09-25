@@ -18,6 +18,9 @@ import {
   type QuestionCard,
   type Round,
 } from '@/lib/stellar/types';
+import { useCallback, useEffect, useState } from 'react';
+import { Answer, type Card, type QuestionCard, type Round } from '@/lib/stellar/types';
+import { useGameTimer } from '@/features/game/hooks/useGameTimer';
 
 interface SongOption {
   title: string;
@@ -29,6 +32,8 @@ const MILESTONE_NAMES: Record<Milestone, string> = {
   [MILESTONES.Streak5]: 'Streak Master',
   [MILESTONES.TenWins]: 'Music Connoisseur',
 };
+// Default round duration in seconds (5 minutes)
+const DEFAULT_ROUND_SECONDS = 300;
 
 export default function SinglePlayerGame() {
   const router = useRouter();
@@ -37,6 +42,11 @@ export default function SinglePlayerGame() {
   const { account, systemCalls } = useStellar();
 
   // ── Round state ───────────────────────────────────────────────────────────
+  const { systemCalls } = useStellar();
+
+  // Use the single shared timer — no local setInterval here.
+  const { timeLeft, startTimer, stopTimer, resetTimer } = useGameTimer();
+
   const [round, setRound] = useState<Round | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -50,6 +60,13 @@ export default function SinglePlayerGame() {
   const [correctOption, setCorrectOption] = useState<SongOption | null>(null);
   const [isCardFlipped, setIsCardFlipped] = useState(false);
   const [score, setScore] = useState(0);
+
+  // Stop the timer when the component unmounts (e.g. user navigates away).
+  useEffect(() => {
+    return () => {
+      stopTimer();
+    };
+  }, [stopTimer]);
 
   // Round-level countdown (5-min) displayed in StatisticsPanel
   const [roundTimeLeft, setRoundTimeLeft] = useState(300);
@@ -131,6 +148,11 @@ export default function SinglePlayerGame() {
         setTotalCards(cards.length);
         setAnsweredCount(roundData.next_card_index);
         setIsGameStarted(true);
+
+        // Initialise and start the shared timer for this round.
+        resetTimer(DEFAULT_ROUND_SECONDS);
+        startTimer();
+
         if (roundData.next_card_index < cards.length) {
           await loadNextCard();
         }
@@ -151,6 +173,8 @@ export default function SinglePlayerGame() {
       return () => clearInterval(timer);
     }
   }, [isGameStarted, roundTimeLeft]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [roundId, systemCalls]);
 
   // ── Milestone / badge check ───────────────────────────────────────────────
   const checkMilestoneAndShowBadge = useCallback(

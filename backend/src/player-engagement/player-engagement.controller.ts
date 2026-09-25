@@ -1,8 +1,10 @@
 import { Controller, Get, Query } from "@nestjs/common";
-import { PlayerEngagementService } from "src/player-engagement/player-engagement.service";
-import { DateRangeDto } from "src/analytics/dto/date-range.dto";
+import { ApiTags } from "@nestjs/swagger";
+import { PlayerEngagementService } from "@app/player-engagement/player-engagement.service";
+import { DateRangeDto } from "@app/analytics/dto/date-range.dto";
 import { PlayerEngagementDto } from "./dto/player-engagement.dto";
 
+@ApiTags("player-engagement")
 @Controller("player-engagement")
 export class PlayerEngagementController {
   constructor(private readonly playerEngagementService: PlayerEngagementService) {}

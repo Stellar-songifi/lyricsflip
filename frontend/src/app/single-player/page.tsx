@@ -7,7 +7,7 @@ import { useStellar } from '@/lib/stellar/hooks/useStellar';
 import { useSearchParams } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Answer, type Card, type QuestionCard, type Round } from '@/lib/stellar/types';
 
 interface SongOption {
@@ -34,6 +34,9 @@ export default function SinglePlayerGame() {
   const [isCardFlipped, setIsCardFlipped] = useState(false);
   const [score, setScore] = useState(0);
   const [timeLeft, setTimeLeft] = useState(300); // 5 minutes default
+
+  // Ref to move focus to the live status region when tx status changes
+  const statusRef = useRef<HTMLParagraphElement>(null);
 
   const loadNextCard = useCallback(async () => {
     if (!systemCalls || !roundId) return;
@@ -66,7 +69,6 @@ export default function SinglePlayerGame() {
         const id = BigInt(roundId);
         let roundData = await systemCalls.getRound(id);
         if (!roundData.is_started) {
-          // Single-player rounds start as soon as the creator is ready.
           setTxStatus('Starting round…');
           await systemCalls.startRound(id);
           roundData = await systemCalls.getRound(id);
@@ -142,34 +144,55 @@ export default function SinglePlayerGame() {
 
   if (isLoading) {
     return (
-      <div className="container mt-4 mx-auto h-fit w-full mb-20 lg:mb-12 p-4 lg:p-0 md:mt-24 lg:mt-32">
-        <p>{txStatus || 'Loading game...'}</p>
-      </div>
+      <main
+        className="container mt-4 mx-auto h-fit w-full mb-20 lg:mb-12 p-4 lg:p-0 md:mt-24 lg:mt-32"
+        aria-label="Loading game"
+      >
+        {/* aria-live so screen readers hear status updates */}
+        <p aria-live="polite" aria-busy="true">
+          {txStatus || 'Loading game...'}
+        </p>
+      </main>
     );
   }
 
   if (error || !round) {
     return (
-      <div className="container mt-4 mx-auto h-fit w-full mb-20 lg:mb-12 p-4 lg:p-0 md:mt-24 lg:mt-32">
-        <p>{error || 'No round found'}</p>
+      <main
+        className="container mt-4 mx-auto h-fit w-full mb-20 lg:mb-12 p-4 lg:p-0 md:mt-24 lg:mt-32"
+        aria-label="Game error"
+      >
+        <p role="alert">{error || 'No round found'}</p>
         <button
           onClick={handleBack}
-          className="mt-4 px-4 py-2 bg-purple-500 text-white rounded"
+          className="mt-4 px-4 py-2 bg-purple-500 text-white rounded focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-purple-700"
         >
           Return to Home
         </button>
-      </div>
+      </main>
     );
   }
 
   return (
-    <div className="container mt-4 mx-auto h-fit w-full mb-20 lg:mb-12 p-4 lg:p-0 md:mt-24 lg:mt-32">
+    <main
+      className="container mt-4 mx-auto h-fit w-full mb-20 lg:mb-12 p-4 lg:p-0 md:mt-24 lg:mt-32"
+      aria-label="Single player game"
+    >
+      {/* Skip-to-content link (accessibility best practice) */}
+      <a
+        href="#game-options"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-purple-600 focus:text-white focus:rounded"
+      >
+        Skip to answer options
+      </a>
+
       <div className="mb-6">
         <button
           onClick={handleBack}
-          className="flex items-center text-gray-600 mb-4"
+          className="flex items-center text-gray-600 mb-4 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-purple-500 rounded"
+          aria-label="Back to home"
         >
-          <ArrowLeft className="h-4 w-4 mr-2" />
+          <ArrowLeft className="h-4 w-4 mr-2" aria-hidden="true" />
           Back
         </button>
         <h1 className="text-2xl font-bold">Wager (Single Player)</h1>
@@ -177,6 +200,18 @@ export default function SinglePlayerGame() {
           {`${round.genre.toString()} Genre | Expert Difficulty`}
         </p>
       </div>
+
+      {/* Transaction status – announced to screen readers */}
+      {txStatus && (
+        <p
+          ref={statusRef}
+          role="status"
+          aria-live="polite"
+          className="mt-2 text-sm text-gray-600"
+        >
+          {txStatus}
+        </p>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-start-2 lg:col-span-1 order-1 lg:order-2">
@@ -200,30 +235,34 @@ export default function SinglePlayerGame() {
         </div>
       </div>
 
-      {txStatus && <p className="mt-4 text-sm text-gray-600">{txStatus}</p>}
-
-      <SongOptions
-        options={options}
-        onSelect={handleSongSelect}
-        selectedOption={selectedOption}
-        correctOption={correctOption}
-      />
+      {/* Answer options – keyboard accessible */}
+      <div id="game-options">
+        <SongOptions
+          options={options}
+          onSelect={handleSongSelect}
+          selectedOption={selectedOption}
+          correctOption={correctOption}
+        />
+      </div>
 
       {isCardFlipped && (
-        <div className="mt-6 flex justify-center">
+        <div className="mt-6 flex justify-center" role="region" aria-label="Round navigation">
           {isRoundFinished ? (
-            <p className="font-semibold">{`Round complete: ${score} / ${totalCards} correct`}</p>
+            <p className="font-semibold" role="status">
+              {`Round complete: ${score} / ${totalCards} correct`}
+            </p>
           ) : (
             <button
               onClick={handleNextCard}
               disabled={!!txStatus}
-              className="px-4 py-2 bg-purple-500 text-white rounded disabled:opacity-50"
+              className="px-4 py-2 bg-purple-500 text-white rounded disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-purple-700"
+              aria-disabled={!!txStatus}
             >
               Next card
             </button>
           )}
         </div>
       )}
-    </div>
+    </main>
   );
 }

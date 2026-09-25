@@ -1,5 +1,6 @@
 // src/geolocation/controllers/geolocation.controller.ts
 import { Controller, Get, Post, Body, Param, Query, UseGuards, Req, HttpException, HttpStatus } from '@nestjs/common';
+import { ApiTags } from '@nestjs/swagger';
 import { GeolocationService } from '../services/geolocation.service';
 import { RegionRestrictionsService } from '../services/region-restrictions.service';
 import { LocationAnalyticsService } from '../services/location-analytics.service';
@@ -10,6 +11,7 @@ import { RolesGuard } from '../../auth/guards/roles.guard';
 import { Roles } from '../../auth/decorators/roles.decorator';
 import { Request } from 'express';
 
+@ApiTags('geolocation')
 @Controller('geolocation')
 export class GeolocationController {
   constructor(

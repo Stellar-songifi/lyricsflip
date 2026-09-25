@@ -1,5 +1,5 @@
 // src/features/game/hooks/useGameTimer.ts
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useStore } from '@/store';
 
 interface UseGameTimerReturn {
@@ -26,18 +26,26 @@ export const useGameTimer = (): UseGameTimerReturn => {
     tickTimer,
   } = useStore((state) => state.game);
 
-  // Timer countdown logic
+  // Keep a stable ref to tickTimer so the interval callback never goes stale.
+  // Without this, every Zustand re-render creates a new tickTimer function
+  // reference which would cause the effect to re-run and recreate the interval
+  // on every tick.
+  const tickTimerRef = useRef(tickTimer);
   useEffect(() => {
-    let intervalId: NodeJS.Timeout;
+    tickTimerRef.current = tickTimer;
+  });
 
-    if (isTimerRunning && isPlaying) {
-      intervalId = setInterval(() => {
-        tickTimer();
-      }, 1000);
-    }
+  // Single interval per mount — only re-creates when the running state changes,
+  // not on every tick. Clamps at 0 to prevent negative values on slow ticks.
+  useEffect(() => {
+    if (!isTimerRunning || !isPlaying) return;
+
+    const intervalId = setInterval(() => {
+      tickTimerRef.current();
+    }, 1000);
 
     return () => clearInterval(intervalId);
-  }, [isTimerRunning, isPlaying, tickTimer]);
+  }, [isTimerRunning, isPlaying]);
 
   return {
     timeLeft,

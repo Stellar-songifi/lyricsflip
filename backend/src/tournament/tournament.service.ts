@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Tournament } from './tournament.entity';
 import { Player } from '../player/player.entity';
-import { GameSession } from 'src/game-session/game-session.entity';
+import { GameSession } from '@app/game-session/game-session.entity';
 import { SchedulingService } from './scheduling.service';
 
 @Injectable()

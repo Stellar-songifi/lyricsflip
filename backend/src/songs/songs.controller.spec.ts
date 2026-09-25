@@ -8,11 +8,8 @@ describe('SongsController', () => {
   let controller: SongsController;
 
   const songsService = {
-    create: jest.fn(),
     findAll: jest.fn(),
     findOne: jest.fn(),
-    update: jest.fn(),
-    remove: jest.fn(),
     getRandom: jest.fn(),
     findByGenre: jest.fn(),
     findByOnChainCardId: jest.fn(),
@@ -38,31 +35,20 @@ describe('SongsController', () => {
     controller = module.get(SongsController);
   });
 
-  it('delegates CRUD to SongsService', () => {
-    const dto = {
-      genre: Genre.Rock,
-      artist: 'a',
-      title: 't',
-      year: 2000,
-      lyrics: 'l',
-      source: 's',
-      license: 'CC0-1.0',
-    };
-    controller.create(dto);
+  it('delegates reads to SongsService', () => {
     controller.findAll({ page: 1 });
     controller.findOne('id');
-    controller.update('id', { title: 'x' });
-    controller.remove('id');
 
-    expect(songsService.create).toHaveBeenCalledWith(dto);
     expect(songsService.findAll).toHaveBeenCalledWith({ page: 1 });
     expect(songsService.findOne).toHaveBeenCalledWith('id');
-    expect(songsService.update).toHaveBeenCalledWith('id', { title: 'x' });
-    expect(songsService.remove).toHaveBeenCalledWith('id');
   });
 
   it('records genre plays for the current user', () => {
     controller.recordGenrePlay('user-1', Genre.Jazz, { score: 50 });
-    expect(genresService.recordPlay).toHaveBeenCalledWith('user-1', Genre.Jazz, { score: 50 });
+    expect(genresService.recordPlay).toHaveBeenCalledWith(
+      'user-1',
+      Genre.Jazz,
+      { score: 50 },
+    );
   });
 });

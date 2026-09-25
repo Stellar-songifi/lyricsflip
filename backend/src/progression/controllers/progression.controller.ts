@@ -1,9 +1,11 @@
 // src/progression/controllers/progression.controller.ts
 import { Controller, Post, Body, Get, Param, UseGuards } from '@nestjs/common';
+import { ApiTags } from '@nestjs/swagger';
 import { ProgressionService } from '../services/progression.service';
 import { XpEventDto } from '../dtos/xp-event.dto';
 import { JwtAuthGuard } from '../../auth/guard/jwt-auth.guard';
 
+@ApiTags('progression')
 @Controller('progression')
 @UseGuards(JwtAuthGuard)
 export class ProgressionController {

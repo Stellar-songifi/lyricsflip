@@ -9,14 +9,15 @@ import {
   DefaultValuePipe,
   ParseIntPipe,
 } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { GameResultsService } from './game-results.service';
 import { CreateGameResultDto } from './dto/game-result.dto';
 import { GameResult } from './entities/game-result.entity';
 import { LeaderboardEntryDto } from './dto/leaderboard-entry.dto';
-import { ApiOperation, ApiResponse } from '@nestjs/swagger';
 // Assuming you have some form of authentication
 // import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
+@ApiTags('game-results')
 @Controller('game-results')
 export class GameResultsController {
   constructor(private readonly gameResultsService: GameResultsService) {}

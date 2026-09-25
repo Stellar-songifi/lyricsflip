@@ -17,6 +17,8 @@ import { createConfig, type StellarConfig } from './stellarConfig';
 import { createSystemCalls, type SystemCalls } from './client';
 import type { StellarAccount } from './types';
 import { ConfigErrorScreen } from '@/components/organisms/ConfigErrorScreen';
+import { requestWalletChallenge, verifyWalletChallenge } from '../../services/wallet-auth';
+import { setAuthTokens, clearAuthTokens } from '../../services/api';
 
 export interface StellarSetupResult {
   systemCalls: SystemCalls;
@@ -31,6 +33,10 @@ export interface StellarContextType {
   warnings: string[];
   connect: () => Promise<void>;
   disconnect: () => Promise<void>;
+  /** True once `connect()` has exchanged a signed challenge for a backend JWT (see services/api's setAuthTokens). */
+  isAuthenticated: boolean;
+  /** Set if the wallet connected but backend auth failed; on-chain features still work without it. */
+  authError: Error | null;
 }
 
 const StellarContext = createContext<StellarContextType>({
@@ -41,6 +47,8 @@ const StellarContext = createContext<StellarContextType>({
   warnings: [],
   connect: async () => {},
   disconnect: async () => {},
+  isAuthenticated: false,
+  authError: null,
 });
 
 const networkPassphraseToKitNetwork = (passphrase: string): KitNetworks => {
@@ -55,10 +63,34 @@ export const StellarProvider = ({ children }: { children: React.ReactNode }) => 
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const [warnings, setWarnings] = useState<string[]>([]);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [authError, setAuthError] = useState<Error | null>(null);
   const hasInit = useRef(false);
 
   const rebuildSystemCalls = useCallback((address: string | null) => {
     setSystemCalls(createSystemCalls(configRef.current, address));
+  }, []);
+
+  // Signs a challenge with the connected wallet and exchanges it for a JWT
+  // (see backend/src/auth/providers/wallet-auth.provider.ts), storing it via
+  // services/api's setAuthTokens (which the shared axios client already
+  // attaches to every request, and refreshes on expiry). Separate from
+  // `connect()`'s try/catch: a wallet can connect fine even if this fails
+  // (e.g. the wallet doesn't support message signing, or the API is down),
+  // and on-chain features don't depend on it.
+  const authenticate = useCallback(async (address: string) => {
+    setAuthError(null);
+    try {
+      const { challenge } = await requestWalletChallenge(address);
+      const { signedMessage } = await StellarWalletsKit.signMessage(challenge, { address });
+      const tokens = await verifyWalletChallenge(address, signedMessage);
+      setAuthTokens(tokens.accessToken, tokens.refreshToken);
+      setIsAuthenticated(true);
+    } catch (err) {
+      setAuthError(
+        err instanceof Error ? err : new Error('Failed to authenticate with the backend'),
+      );
+    }
   }, []);
 
   const connect = useCallback(async () => {
@@ -67,10 +99,11 @@ export const StellarProvider = ({ children }: { children: React.ReactNode }) => 
       const { address } = await StellarWalletsKit.authModal();
       setAccount({ address });
       rebuildSystemCalls(address);
+      await authenticate(address);
     } catch (err) {
       setError(err instanceof Error ? err : new Error('Failed to connect wallet'));
     }
-  }, [rebuildSystemCalls]);
+  }, [rebuildSystemCalls, authenticate]);
 
   const disconnect = useCallback(async () => {
     try {
@@ -78,6 +111,9 @@ export const StellarProvider = ({ children }: { children: React.ReactNode }) => 
     } finally {
       setAccount(null);
       rebuildSystemCalls(null);
+      setIsAuthenticated(false);
+      setAuthError(null);
+      clearAuthTokens();
     }
   }, [rebuildSystemCalls]);
 
@@ -122,6 +158,12 @@ export const StellarProvider = ({ children }: { children: React.ReactNode }) => 
           if (address) {
             setAccount({ address });
             rebuildSystemCalls(address);
+            // Not re-running `authenticate()` here: a leftover JWT in
+            // localStorage (see services/api.ts) still gets attached to API
+            // calls by its own interceptor regardless of this component's
+            // state, and re-signing on every reload would need a user
+            // gesture most wallets won't grant silently anyway. `isAuthenticated`
+            // just starts false again until the user calls `connect()`.
           }
         })
         .catch(() => {
@@ -142,6 +184,8 @@ export const StellarProvider = ({ children }: { children: React.ReactNode }) => 
     warnings,
     connect,
     disconnect,
+    isAuthenticated,
+    authError,
   };
 
   // Show a clear "App is not configured" screen when the game contract ID is

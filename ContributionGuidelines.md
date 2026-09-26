@@ -29,3 +29,15 @@ IF AN ISSUE IS TAGGED FOR AN EVENT AND YOU APPLY FOR IT BEFORE THE EVENT, YOU AR
    Whether it’s fixing a bug, adding a new feature, or improving docs, every contribution matters. Celebrate your effort—you rock!  
 
 Now go ahead and make some noise! 🚀  
+
+---
+
+### 🔗 Repository Links
+
+All LyricsFlip repositories live under the [`Stellar-songifi`](https://github.com/Stellar-songifi) organization:
+
+- **Web app:** [github.com/Stellar-songifi/lyricsflip](https://github.com/Stellar-songifi/lyricsflip)
+- **Mobile app:** [github.com/Stellar-songifi/lyricsflip_mobile](https://github.com/Stellar-songifi/lyricsflip_mobile)
+- **Design:** [Figma – LyricsFlip](https://www.figma.com/design/lyricsflip)
+
+If you spot a link that no longer resolves, please open an issue so we can fix it.

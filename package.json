@@ -2,6 +2,7 @@
   "name": "lyricsflip",
   "version": "1.0.0",
   "private": true,
+  "license": "MIT",
   "description": "LyricsFlip - A real-time multiplayer music game",
   "workspaces": [
     "frontend",

@@ -94,7 +94,7 @@ type LyricsFlipContract = {
   create_round: (args: { caller: string; genre: number; seed: bigint }) => Promise<contract.AssembledTransaction<bigint>>;
   join_round: (args: { caller: string; round_id: bigint }) => Promise<contract.AssembledTransaction<null>>;
   start_round: (args: { caller: string; round_id: bigint }) => Promise<contract.AssembledTransaction<null>>;
-  next_card: (args: { round_id: bigint }) => Promise<contract.AssembledTransaction<WireCard>>;
+  next_card: (args: { caller: string; round_id: bigint }) => Promise<contract.AssembledTransaction<WireCard>>;
   submit_answer: (args: {
     caller: string;
     round_id: bigint;
@@ -173,13 +173,10 @@ export function createSystemCalls(config: StellarConfig, publicKey: string | nul
     },
 
     nextCard: async (roundId) => {
-      // `next_card` has no `caller`/auth requirement on-chain, but it still
-      // mutates round state, so it must be signed & submitted (not just
-      // simulated) by a connected, fee-paying account.
       const caller = requireAccount();
       const client = await getGameClient(config, caller);
-      const wireCard = await submit(() => client.next_card({ round_id: roundId }));
-      return cardFromWire(wireCard);
+      const card = await submit(() => client.next_card({ caller, round_id: roundId }));
+      return cardFromWire(card);
     },
 
     submitAnswer: async (roundId, answer) => {
@@ -202,14 +199,14 @@ export function createSystemCalls(config: StellarConfig, publicKey: string | nul
 
     getCard: async (cardId) => {
       const client = await getGameClient(config, publicKey);
-      const assembled = await client.get_card({ card_id: cardId });
-      return cardFromWire(assembled.result);
+      const card = await client.get_card({ card_id: cardId });
+      return cardFromWire(card.result);
     },
 
     getCardsCount: async () => {
       const client = await getGameClient(config, publicKey);
-      const assembled = await client.get_cards_count();
-      return assembled.result;
+      const { result } = await client.get_cards_count();
+      return result;
     },
 
     setCardsPerRound: async (value) => {
@@ -221,89 +218,79 @@ export function createSystemCalls(config: StellarConfig, publicKey: string | nul
     setRole: async (recipient, isEnable) => {
       const caller = requireAccount();
       const client = await getGameClient(config, caller);
-      await submit(() => client.set_role({ caller, recipient, role: ROLE_ADMIN, is_enable: isEnable }));
-    },
-
-    isOwner: async (address) => {
-      // There is no owner getter on-chain, but `set_role` rejects every caller
-      // except the owner, so a successful dry-run simulation identifies them.
-      try {
-        const client = await getGameClient(config, address);
-        const assembled = await client.set_role({
-          caller: address,
-          recipient: address,
-          role: ROLE_ADMIN,
-          is_enable: true,
-        });
-        void assembled.result;
-        return true;
-      } catch {
-        return false;
-      }
+      await submit(() =>
+        client.set_role({ caller, recipient, role: ROLE_ADMIN, is_enable: isEnable }),
+      );
     },
 
     isAdmin: async (address) => {
       const client = await getGameClient(config, publicKey);
-      const assembled = await client.is_admin({ role: ROLE_ADMIN, address });
-      return assembled.result;
+      const { result } = await client.is_admin({ role: ROLE_ADMIN, address });
+      return result;
+    },
+
+    isOwner: async (address) => {
+      const client = await getGameClient(config, publicKey);
+      const { result } = await client.is_admin({ role: ROLE_ADMIN, address });
+      return result;
     },
 
     isRoundPlayer: async (roundId, address) => {
       const client = await getGameClient(config, publicKey);
-      const assembled = await client.get_round_players({ round_id: roundId });
-      return assembled.result.includes(address);
+      const { result } = await client.get_round_players({ round_id: roundId });
+      return result.includes(address);
     },
 
     getRound: async (roundId) => {
       const client = await getGameClient(config, publicKey);
-      const assembled = await client.get_round({ round_id: roundId });
-      return roundFromWire(assembled.result);
+      const { result } = await client.get_round({ round_id: roundId });
+      return roundFromWire(result);
     },
 
     getRoundCards: async (roundId) => {
       const client = await getGameClient(config, publicKey);
-      const assembled = await client.get_round_cards({ round_id: roundId });
-      return assembled.result;
+      const { result } = await client.get_round_cards({ round_id: roundId });
+      return result;
     },
 
     getRoundPlayers: async (roundId) => {
       const client = await getGameClient(config, publicKey);
-      const assembled = await client.get_round_players({ round_id: roundId });
-      return assembled.result;
+      const { result } = await client.get_round_players({ round_id: roundId });
+      return result;
     },
 
     getPlayerStat: async (address) => {
       const client = await getGameClient(config, publicKey);
-      const assembled = await client.get_player_stat({ player: address });
-      return assembled.result;
+      const { result } = await client.get_player_stat({ player: address });
+      return result;
     },
 
     getCardsOfGenre: async (genre, seed = randomSeed()) => {
       const client = await getGameClient(config, publicKey);
-      const assembled = await client.get_cards_of_genre({ genre: genreToWire(genre), seed });
-      return assembled.result.map(cardFromWire);
+      const { result } = await client.get_cards_of_genre({ genre: genreToWire(genre), seed });
+      return result.map(cardFromWire);
     },
 
     getCardsOfArtist: async (artist, seed = randomSeed()) => {
       const client = await getGameClient(config, publicKey);
-      const assembled = await client.get_cards_of_artist({ artist, seed });
-      return assembled.result.map(cardFromWire);
+      const { result } = await client.get_cards_of_artist({ artist, seed });
+      return result.map(cardFromWire);
     },
 
     getCardsOfAYear: async (year, seed = randomSeed()) => {
       const client = await getGameClient(config, publicKey);
-      const assembled = await client.get_cards_of_a_year({ year: BigInt(year), seed });
-      return assembled.result.map(cardFromWire);
+      const { result } = await client.get_cards_of_a_year({ year: BigInt(year), seed });
+      return result.map(cardFromWire);
     },
 
     buildQuestionCard: async (card, kind, seed = randomSeed()) => {
       const client = await getGameClient(config, publicKey);
-      const assembled = await client.build_question_card({
+      const { result } = await client.build_question_card({
         card: cardToWire(card),
         seed,
         kind: questionKindToWire(kind),
       });
-      return assembled.result;
+      return result;
     },
 
     claimReward: async (milestone) => {

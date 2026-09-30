@@ -58,6 +58,12 @@ export interface SystemCalls {
    */
   claimReward: (milestone: Milestone) => Promise<bigint>;
   /**
+   * Claims the connected wallet's share of a wagered round's pot (LF-014).
+   * Pull payment: the contract transfers the caller's share and marks it
+   * claimed, so a winner can only claim once. Returns the amount paid out.
+   */
+  claimWinnings: (roundId: bigint) => Promise<bigint>;
+  /**
    * `getCategories`, `getSongs`, `getLeaderboard`, and `claimEarnings` were
    * already referenced by some UI components on the Starknet/Dojo version of
    * this app despite never being part of the on-chain `ILyricsFlip`
@@ -69,7 +75,12 @@ export interface SystemCalls {
   getCategories: () => Promise<any>;
   getSongs: () => Promise<any>;
   getLeaderboard: () => Promise<any>;
-  claimEarnings: () => Promise<any>;
+  /**
+   * Legacy alias for `claimWinnings`. The old Starknet/Dojo UI called this
+   * with no arguments; it now forwards to the on-chain `claim_winnings`
+   * pull-payment flow for the given round.
+   */
+  claimEarnings: (roundId: bigint) => Promise<bigint>;
 }
 
 const randomSeed = () => BigInt(Date.now());
@@ -121,6 +132,7 @@ type LyricsFlipContract = {
   get_cards_of_a_year: (args: { year: bigint; seed: bigint }) => Promise<contract.AssembledTransaction<WireCard[]>>;
   build_question_card: (args: { card: WireCard; seed: bigint; kind: number }) => Promise<contract.AssembledTransaction<QuestionCard>>;
   claim_reward: (args: { caller: string; milestone: number }) => Promise<contract.AssembledTransaction<bigint>>;
+  claim_winnings: (args: { caller: string; round_id: bigint }) => Promise<contract.AssembledTransaction<bigint>>;
 };
 
 async function getGameClient(config: StellarConfig, publicKey: string | null) {
@@ -151,6 +163,12 @@ export function createSystemCalls(config: StellarConfig, publicKey: string | nul
       throw new Error('Connect a Stellar wallet before performing this action.');
     }
     return publicKey;
+  };
+
+  const claimWinnings = async (roundId: bigint): Promise<bigint> => {
+    const caller = requireAccount();
+    const client = await getGameClient(config, caller);
+    return submit(() => client.claim_winnings({ caller, round_id: roundId }));
   };
 
   return {
@@ -205,8 +223,8 @@ export function createSystemCalls(config: StellarConfig, publicKey: string | nul
 
     getCardsCount: async () => {
       const client = await getGameClient(config, publicKey);
-      const { result } = await client.get_cards_count();
-      return result;
+      const res = await client.get_cards_count();
+      return res.result;
     },
 
     setCardsPerRound: async (value) => {
@@ -225,72 +243,72 @@ export function createSystemCalls(config: StellarConfig, publicKey: string | nul
 
     isAdmin: async (address) => {
       const client = await getGameClient(config, publicKey);
-      const { result } = await client.is_admin({ role: ROLE_ADMIN, address });
-      return result;
+      const res = await client.is_admin({ role: ROLE_ADMIN, address });
+      return res.result;
     },
 
     isOwner: async (address) => {
       const client = await getGameClient(config, publicKey);
-      const { result } = await client.is_admin({ role: ROLE_ADMIN, address });
-      return result;
+      const res = await client.is_admin({ role: 0, address });
+      return res.result;
     },
 
     isRoundPlayer: async (roundId, address) => {
       const client = await getGameClient(config, publicKey);
-      const { result } = await client.get_round_players({ round_id: roundId });
-      return result.includes(address);
+      const players = await client.get_round_players({ round_id: roundId });
+      return players.result.includes(address);
     },
 
     getRound: async (roundId) => {
       const client = await getGameClient(config, publicKey);
-      const { result } = await client.get_round({ round_id: roundId });
-      return roundFromWire(result);
+      const round = await client.get_round({ round_id: roundId });
+      return roundFromWire(round.result);
     },
 
     getRoundCards: async (roundId) => {
       const client = await getGameClient(config, publicKey);
-      const { result } = await client.get_round_cards({ round_id: roundId });
-      return result;
+      const res = await client.get_round_cards({ round_id: roundId });
+      return res.result;
     },
 
     getRoundPlayers: async (roundId) => {
       const client = await getGameClient(config, publicKey);
-      const { result } = await client.get_round_players({ round_id: roundId });
-      return result;
+      const res = await client.get_round_players({ round_id: roundId });
+      return res.result;
     },
 
     getPlayerStat: async (address) => {
       const client = await getGameClient(config, publicKey);
-      const { result } = await client.get_player_stat({ player: address });
-      return result;
+      const res = await client.get_player_stat({ player: address });
+      return res.result;
     },
 
     getCardsOfGenre: async (genre, seed = randomSeed()) => {
       const client = await getGameClient(config, publicKey);
-      const { result } = await client.get_cards_of_genre({ genre: genreToWire(genre), seed });
-      return result.map(cardFromWire);
+      const res = await client.get_cards_of_genre({ genre: genreToWire(genre), seed });
+      return res.result.map(cardFromWire);
     },
 
     getCardsOfArtist: async (artist, seed = randomSeed()) => {
       const client = await getGameClient(config, publicKey);
-      const { result } = await client.get_cards_of_artist({ artist, seed });
-      return result.map(cardFromWire);
+      const res = await client.get_cards_of_artist({ artist, seed });
+      return res.result.map(cardFromWire);
     },
 
     getCardsOfAYear: async (year, seed = randomSeed()) => {
       const client = await getGameClient(config, publicKey);
-      const { result } = await client.get_cards_of_a_year({ year: BigInt(year), seed });
-      return result.map(cardFromWire);
+      const res = await client.get_cards_of_a_year({ year: BigInt(year), seed });
+      return res.result.map(cardFromWire);
     },
 
     buildQuestionCard: async (card, kind, seed = randomSeed()) => {
       const client = await getGameClient(config, publicKey);
-      const { result } = await client.build_question_card({
+      const res = await client.build_question_card({
         card: cardToWire(card),
         seed,
         kind: questionKindToWire(kind),
       });
-      return result;
+      return res.result;
     },
 
     claimReward: async (milestone) => {
@@ -299,9 +317,11 @@ export function createSystemCalls(config: StellarConfig, publicKey: string | nul
       return submit(() => client.claim_reward({ caller, milestone }));
     },
 
+    claimWinnings,
+
     getCategories: notImplemented('getCategories'),
     getSongs: notImplemented('getSongs'),
     getLeaderboard: notImplemented('getLeaderboard'),
-    claimEarnings: notImplemented('claimEarnings'),
+    claimEarnings: claimWinnings,
   };
 }

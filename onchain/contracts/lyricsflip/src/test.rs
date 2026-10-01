@@ -2261,6 +2261,45 @@ fn lf004_cannot_guess_until_correct_by_resubmitting() {
 /// N cards correctly has a streak of exactly N (not N*2 from double-answers).
 #[test]
 fn lf004_streak_cannot_grow_more_than_one_per_card() {
+// LF-003 — Last card of a round can be answered (#420)
+// ---------------------------------------------------------------------------
+
+/// cards_per_round = 1: draw the only card then submit an answer — must succeed.
+/// Before the fix, next_card set is_completed = true immediately, causing
+/// submit_answer to reject with RoundCompleted on the very first answer.
+#[test]
+fn lf003_single_card_round_can_be_answered() {
+    let (env, client, owner) = setup();
+    seed_cards(&env, &client, &owner, 4);
+    client.set_cards_per_round(&owner, &1);
+
+    let round_id = client.create_round(&owner, &Some(Genre::Pop), &7u64);
+    client.start_round(&owner, &round_id);
+
+    // Draw the only card in the round.
+    env.ledger().set_timestamp(NOW + 5);
+    let card = client.next_card(&round_id);
+
+    // Submitting an answer for the last (and only) card must not panic.
+    env.ledger().set_timestamp(NOW + 10);
+    let correct = client.submit_answer(&owner, &round_id, &Answer::Title(card.title.clone()));
+    assert!(correct, "answer to the only card in a 1-card round must be accepted");
+
+    // Round is not yet completed — only finalize_round sets is_completed.
+    let round = client.get_round(&round_id);
+    assert!(!round.is_completed, "round must not be completed until finalize_round is called");
+
+    // Finalize succeeds because the one card has been answered.
+    client.finalize_round(&owner, &round_id);
+    let round = client.get_round(&round_id);
+    assert!(round.is_completed, "round must be completed after finalize_round");
+    assert!(round.end_time > 0, "end_time must be set when the round completes");
+}
+
+/// cards_per_round = 3: answer to the 3rd card is accepted; round is marked
+/// completed only after finalize_round, not after drawing the last card.
+#[test]
+fn lf003_three_card_round_last_card_is_answerable() {
     let (env, client, owner) = setup();
     seed_cards(&env, &client, &owner, 6);
     client.set_cards_per_round(&owner, &3);
@@ -2269,6 +2308,14 @@ fn lf004_streak_cannot_grow_more_than_one_per_card() {
     client.start_round(&owner, &round_id);
 
     for i in 0..3u64 {
+    let round_id = client.create_round(&owner, &Some(Genre::Pop), &13u64);
+    let player2 = Address::generate(&env);
+    client.join_round(&player2, &round_id);
+    client.start_round(&owner, &round_id);
+    client.start_round(&player2, &round_id);
+
+    // Draw and answer cards 1 and 2.
+    for i in 0..2u64 {
         env.ledger().set_timestamp(NOW + 5 + i * 30);
         let card = client.next_card(&round_id);
         env.ledger().set_timestamp(NOW + 8 + i * 30);
@@ -2292,6 +2339,39 @@ fn lf004_streak_cannot_grow_more_than_one_per_card() {
 /// per-player, not per-card.
 #[test]
 fn lf004_other_players_can_still_answer_same_card() {
+        client.submit_answer(&player2, &round_id, &Answer::Title(card.title.clone()));
+    }
+
+    // Draw card 3 (the last one).
+    env.ledger().set_timestamp(NOW + 65);
+    let last_card = client.next_card(&round_id);
+
+    // Round must NOT be completed yet — players must still be able to answer.
+    let round = client.get_round(&round_id);
+    assert!(
+        !round.is_completed,
+        "round must not be completed after drawing the last card — answer window is still open"
+    );
+
+    // Both players can answer the last card.
+    env.ledger().set_timestamp(NOW + 70);
+    let owner_correct =
+        client.submit_answer(&owner, &round_id, &Answer::Title(last_card.title.clone()));
+    let p2_correct =
+        client.submit_answer(&player2, &round_id, &Answer::Title(last_card.title.clone()));
+    assert!(owner_correct, "owner must be able to answer the last card");
+    assert!(p2_correct, "player2 must be able to answer the last card");
+
+    // Finalizing after all answers succeeds and sets end_time.
+    client.finalize_round(&owner, &round_id);
+    let round = client.get_round(&round_id);
+    assert!(round.is_completed);
+    assert!(round.end_time > 0, "end_time must be set by finalize_round");
+}
+
+/// next_card returns NoMoreCards (not RoundCompleted) when the deck is exhausted.
+#[test]
+fn lf003_next_card_after_deck_exhausted_returns_no_more_cards() {
     let (env, client, owner) = setup();
     seed_cards(&env, &client, &owner, 4);
     client.set_cards_per_round(&owner, &2);
@@ -2323,4 +2403,21 @@ fn lf004_other_players_can_still_answer_same_card() {
         .unwrap_err()
         .unwrap();
     assert_eq!(err, crate::Error::AlreadyAnswered);
+    let round_id = client.create_round(&owner, &Some(Genre::Pop), &21u64);
+    client.start_round(&owner, &round_id);
+
+    // Draw both cards.
+    env.ledger().set_timestamp(NOW + 5);
+    client.next_card(&round_id);
+    env.ledger().set_timestamp(NOW + 35);
+    client.next_card(&round_id);
+
+    // A third call must fail with NoMoreCards, not RoundCompleted.
+    env.ledger().set_timestamp(NOW + 65);
+    let err = client.try_next_card(&round_id).unwrap_err().unwrap();
+    assert_eq!(
+        err,
+        crate::Error::NoMoreCards,
+        "exhausted deck must return NoMoreCards, not RoundCompleted"
+    );
 }

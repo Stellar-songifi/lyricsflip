@@ -703,19 +703,32 @@ impl LyricsFlip {
     }
 
     /// Advances to the next card.
+    ///
+    /// Returns `Error::NoMoreCards` (LF-003) when the deck is exhausted so
+    /// callers can distinguish "deck empty, call finalize_round" from "round
+    /// already finalized". The `is_completed` flag is set only by
+    /// `finalize_round`, so players can still answer the last drawn card
+    /// after this function returns it.
     pub fn next_card(env: Env, round_id: u64) -> Card {
         let mut round = Self::read_round(&env, round_id);
         if !round.is_started {
             panic_with_error!(env, Error::RoundNotStarted);
         }
-        if round.is_completed {
-            panic_with_error!(env, Error::RoundCompleted);
+        if env
+            .storage()
+            .persistent()
+            .get(&DataKey::RoundFinalized(round_id))
+            .unwrap_or(false)
+        {
+            panic_with_error!(env, Error::RoundAlreadyFinalized);
         }
 
         let round_cards = Self::read_round_cards(&env, round_id);
+        // LF-003: use NoMoreCards (not RoundCompleted) so the caller knows
+        // the deck is exhausted without implying the round is finished.
         let card_id = round_cards
             .get(round.next_card_index)
-            .unwrap_or_else(|| panic_with_error!(env, Error::RoundCompleted));
+            .unwrap_or_else(|| panic_with_error!(env, Error::NoMoreCards));
         let card = Self::get_card(env.clone(), card_id);
 
         CardDrawn {
@@ -731,8 +744,9 @@ impl LyricsFlip {
             .set(&started_at_key, &env.ledger().timestamp());
         bump_persistent(&env, &started_at_key);
 
-        // The round is marked completed by `finalize_round`, so players can
-        // still answer the last card after it is drawn.
+        // Do NOT set is_completed here. The round is completed only by
+        // finalize_round, which lets players answer the last card after it
+        // has been drawn (LF-003).
         round.next_card_index += 1;
         env.storage()
             .persistent()
@@ -946,6 +960,10 @@ impl LyricsFlip {
         if round.is_completed || env.ledger().timestamp() >= round.end_time {
             panic_with_error!(env, Error::RoundCompleted);
         }
+        // LF-003: do NOT block on round.is_completed here. is_completed is
+        // set only by finalize_round (which is guarded by RoundAlreadyFinalized
+        // above). The old `round.is_completed` check fired as soon as the last
+        // card was drawn, preventing players from ever answering it.
         if round.next_card_index == 0 {
             panic_with_error!(env, Error::NoActiveCard);
         }

@@ -42,6 +42,7 @@ export const LYRICSFLIP_ERRORS: Record<number, ContractErrorInfo> = {
   31: { name: 'DuplicateCard', message: 'A card with that title and artist already exists.' },
   32: { name: 'BatchTooLarge', message: 'Too many cards in one batch (max 20).' },
   33: { name: 'NotPendingOwner', message: 'You are not the pending owner of this contract.' },
+  34: { name: 'NoActiveCard', message: 'No card has been drawn yet for this round.' },
 };
 
 export const LYRICSFLIP_NFT_ERRORS: Record<number, ContractErrorInfo> = {

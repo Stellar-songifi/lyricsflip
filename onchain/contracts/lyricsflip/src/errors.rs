@@ -29,9 +29,11 @@ pub enum Error {
     LimitMustBeGreaterThanZero = 16,
     RoundNotReady = 18,
     RoundAlreadyFinalized = 19,
-    NotEnoughDistinctCards = 20,
     NonExistingCard = 17,
-    RoundCancelled = 20,
+    RoundNotReady = 18,
+    RoundAlreadyFinalized = 19,
+    NotEnoughDistinctCards = 20,
+    RoundCancelled = 35,
     RoundFull = 21,
     InvalidMaxPlayers = 22,
     NftContractNotSet = 23,
@@ -49,4 +51,5 @@ pub enum Error {
     /// this round. A player may answer each card at most once. Prevents
     /// answer-farming and streak manipulation (LF-004).
     AlreadyAnswered = 35,
+    NoActiveCard = 34,
 }

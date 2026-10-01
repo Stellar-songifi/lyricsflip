@@ -20,10 +20,6 @@ pub use events::{
 pub use types::{
     Answer, Card, CardPos, DataKey, Genre, Milestone, PlayerStats, QuestionCard, QuestionKind,
     Role, Round,
-pub use types::{Answer, Card, DataKey, Genre, Milestone, PlayerStats, QuestionCard, Role, Round};
-pub use events::{PlayerReady, RoundCompleted, RoundCreated, RoundJoined, RoundStarted};
-pub use types::{
-    Answer, Card, DataKey, Genre, PlayerStats, QuestionCard, QuestionKind, Role, Round,
 };
 
 use soroban_sdk::{
@@ -156,7 +152,7 @@ impl Index {
         }
     }
 
-    fn pos<'a>(&self, pos: &'a mut CardPos) -> &'a mut u32 {
+fn pos<'a>(&self, pos: &'a mut CardPos) -> &'a mut u32 {
         match self {
             Index::All => &mut pos.all,
             Index::Genre(_) => &mut pos.genre,
@@ -164,39 +160,7 @@ impl Index {
             Index::Year(_) => &mut pos.year,
         }
     }
-// ---------------------------------------------------------------------------
-// LF-012 – TTL policy
-//
-// Soroban persistent and instance entries are archived when their TTL expires.
-// We extend TTLs on every write (and on reads for hot keys) so that active
-// game data stays available on testnet / mainnet.
-//
-// Ledger cadence on Stellar mainnet ≈ 5 s, so:
-//   DAY_IN_LEDGERS  ≈ 17 280 ledgers/day
-//   BUMP_AMOUNT     = 30 days of ledgers
-//   LIFETIME_THRESHOLD = 7 days — extend only when less than this remains,
-//                        avoiding a per-call extend when lots of TTL is left.
-// ---------------------------------------------------------------------------
-pub const DAY_IN_LEDGERS: u32 = 17_280;
-pub const BUMP_AMOUNT: u32 = 30 * DAY_IN_LEDGERS; // ~30 days
-pub const LIFETIME_THRESHOLD: u32 = 7 * DAY_IN_LEDGERS; // ~7 days
-
-/// Extend instance storage TTL (owner, admin map, counters, config).
-#[inline]
-fn bump_instance(env: &Env) {
-    env.storage()
-        .instance()
-        .extend_ttl(LIFETIME_THRESHOLD, BUMP_AMOUNT);
 }
-
-/// Extend a single persistent storage entry by key.
-#[inline]
-fn bump_persistent<K: soroban_sdk::IntoVal<Env, soroban_sdk::Val>>(env: &Env, key: &K) {
-    env.storage()
-        .persistent()
-        .extend_ttl(key, LIFETIME_THRESHOLD, BUMP_AMOUNT);
-}
-
 #[contract]
 pub struct LyricsFlip;
 
@@ -468,10 +432,16 @@ impl LyricsFlip {
         };
 
         let amount = Self::get_cards_per_round(env.clone()) as u64;
-        let cards_count = Self::index_len(&env, &Index::All) as u64;
+        let genre_count = Self::index_len(&env, &Index::Genre(genre)) as u64;
+        if genre_count == 0 {
+            panic_with_error!(env, Error::EmptyGenreCards);
+        }
+        if genre_count < amount {
+            panic_with_error!(env, Error::AmountExceedsLimit);
+        }
         let mut cards: Vec<u64> = Vec::new(&env);
-        for idx in Self::get_random_numbers(&env, seed, amount, cards_count, true).iter() {
-            cards.push_back(Self::index_get(&env, &Index::All, idx as u32));
+        for idx in Self::get_random_numbers(&env, seed, amount, genre_count, true).iter() {
+            cards.push_back(Self::index_get(&env, &Index::Genre(genre), idx as u32));
         }
 
         let round_count: u64 = env
@@ -987,12 +957,15 @@ impl LyricsFlip {
         {
             panic_with_error!(env, Error::RoundAlreadyFinalized);
         }
+        if round.is_completed || env.ledger().timestamp() >= round.end_time {
+            panic_with_error!(env, Error::RoundCompleted);
+        }
         // LF-003: do NOT block on round.is_completed here. is_completed is
         // set only by finalize_round (which is guarded by RoundAlreadyFinalized
         // above). The old `round.is_completed` check fired as soon as the last
         // card was drawn, preventing players from ever answering it.
         if round.next_card_index == 0 {
-            panic_with_error!(env, Error::RoundNotStarted);
+            panic_with_error!(env, Error::NoActiveCard);
         }
 
         let current_index = round.next_card_index - 1;
@@ -1080,13 +1053,6 @@ impl LyricsFlip {
         is_answer_correct
     }
 
-    /// Builds a question card.
-    pub fn build_question_card(
-        env: Env,
-        card: Card,
-        seed: u64,
-        kind: QuestionKind,
-    ) -> QuestionCard {
     /// Sets the max players.
     pub fn set_max_players(env: Env, caller: Address, value: u32) {
         caller.require_auth();
@@ -1162,11 +1128,6 @@ impl LyricsFlip {
     // ---- build_question_card helpers ----
 
     fn build_title_question(env: &Env, card: Card, seed: u64, cards_count: u64) -> QuestionCard {
-        let random_idxs =
-            Self::get_random_numbers(env, seed, cards_count.min(10), cards_count, true);
-
-        let mut false_answers: Vec<String> = Vec::new(env);
-        for idx in random_idxs.iter() {
         let correct = card.title.clone();
         Self::build_options_question(
             env,
@@ -1237,33 +1198,11 @@ impl LyricsFlip {
                     false_answers.push_back(value);
                 }
                 seen += 1;
-        for id in random_ids.iter() {
-            if false_answers.len() >= 3 {
-                break;
-            }
-            let id = Self::index_get(env, &Index::All, idx as u32);
-            let candidate = Self::get_card(env.clone(), id);
-            if candidate.title != card.title
-                && !Self::contains_string(&false_answers, &candidate.title)
-            {
-                false_answers.push_back(candidate.title.clone());
             }
             attempt += 1;
         }
         if false_answers.len() < 3 {
             panic_with_error!(env, Error::NotEnoughDistinctCards);
-
-        let mut extra_seed = seed + 1;
-        while false_answers.len() < 3 {
-            let idxs = Self::get_random_numbers(env, extra_seed, 1, cards_count, true);
-            let id = Self::index_get(env, &Index::All, idxs.get(0).unwrap() as u32);
-            let candidate = Self::get_card(env.clone(), id);
-            if candidate.title != card.title
-                && !Self::contains_string(&false_answers, &candidate.title)
-            {
-                false_answers.push_back(candidate.title.clone());
-            }
-            extra_seed += 1;
         }
 
         let mut options: Vec<String> = Vec::new(env);
@@ -1285,45 +1224,19 @@ impl LyricsFlip {
         }
     }
 
-    fn build_artist_question(env: &Env, card: Card, seed: u64, cards_count: u64) -> QuestionCard {
-        let random_idxs =
-            Self::get_random_numbers(env, seed, cards_count.min(10), cards_count, true);
-
-        let mut false_answers: Vec<String> = Vec::new(env);
-        for idx in random_idxs.iter() {
-            if false_answers.len() >= 3 {
-                break;
-            }
-            let id = Self::index_get(env, &Index::All, idx as u32);
-            let candidate = Self::get_card(env.clone(), id);
-            if candidate.artist != card.artist
-                && !Self::contains_string(&false_answers, &candidate.artist)
-            {
-                false_answers.push_back(candidate.artist.clone());
-            }
-        }
-
-        let mut extra_seed = seed + 1;
-        while false_answers.len() < 3 {
-            let idxs = Self::get_random_numbers(env, extra_seed, 1, cards_count, true);
-            let id = Self::index_get(env, &Index::All, idxs.get(0).unwrap() as u32);
-            let candidate = Self::get_card(env.clone(), id);
-            if candidate.artist != card.artist
-                && !Self::contains_string(&false_answers, &candidate.artist)
-            {
-                false_answers.push_back(candidate.artist.clone());
     /// Ordered card ids used to pick distractors for `card`: same-genre cards
     /// (shuffled with `seed`) first so wrong options stay plausible, then every
     /// remaining card (shuffled with a derived seed). Each card appears exactly
     /// once, so a question can always be answered — or fail with
     /// `NotEnoughDistinctCards` — without ever looping.
     fn distractor_candidate_ids(env: &Env, card: &Card, seed: u64, cards_count: u64) -> Vec<u64> {
-        let genre_ids: Vec<u64> = env
-            .storage()
-            .persistent()
-            .get(&DataKey::GenreCards(card.genre))
-            .unwrap_or(Vec::new(env));
-        let genre_len = genre_ids.len() as u64;
+        let genre_index = Index::Genre(card.genre);
+        let genre_len = Self::index_len(env, &genre_index) as u64;
+
+        let mut genre_ids: Vec<u64> = Vec::new(env);
+        for i in 0..genre_len {
+            genre_ids.push_back(Self::index_get(env, &genre_index, i as u32));
+        }
 
         let mut candidates: Vec<u64> = Vec::new(env);
 

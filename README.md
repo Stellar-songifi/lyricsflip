@@ -558,3 +558,6 @@ Design references: [Figma](https://www.figma.com/design/6phOWkHKQgLRhRwmBBQDXB/L
 - #487: LF-070 · Fix misspelled file and component names
 <!-- handsoff-issue-485 -->
 - #485: LF-068 · Add `frontend/.env.example`
+
+<!-- handsoff-issue-430 -->
+- #430: LF-013 · Implement real token wagering (escrow) for rounds

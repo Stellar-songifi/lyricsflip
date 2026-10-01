@@ -47,5 +47,12 @@ pub enum Error {
     DuplicateCard = 31,
     BatchTooLarge = 32,
     NotPendingOwner = 33,
+    /// All cards in the round have been drawn; call `finalize_round` to
+    /// complete the round. Replaces `RoundCompleted` in `next_card` so that
+    /// the two states — deck exhausted vs round finalized — are distinct.
+    NoMoreCards = 34,
+    /// The calling player has already submitted an answer for this card in
+    /// this round. A player may answer each card at most once.
+    AlreadyAnswered = 35,
     NoActiveCard = 34,
 }

@@ -47,6 +47,9 @@ pub enum Error {
     DuplicateCard = 31,
     BatchTooLarge = 32,
     NotPendingOwner = 33,
+    /// The calling player has already submitted an answer for this card in
+    /// this round. A player may answer each card at most once. Prevents
+    /// answer-farming and streak manipulation (LF-004).
     /// All cards in the round have been drawn; call `finalize_round` to
     /// complete the round. Replaces `RoundCompleted` in `next_card` so that
     /// the two states — deck exhausted vs round finalized — are distinct.

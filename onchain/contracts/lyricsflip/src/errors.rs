@@ -45,4 +45,8 @@ pub enum Error {
     DuplicateCard = 31,
     BatchTooLarge = 32,
     NotPendingOwner = 33,
+    /// The calling player has already submitted an answer for this card in
+    /// this round. A player may answer each card at most once. Prevents
+    /// answer-farming and streak manipulation (LF-004).
+    AlreadyAnswered = 35,
 }

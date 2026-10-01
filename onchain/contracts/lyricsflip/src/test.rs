@@ -2188,3 +2188,139 @@ fn faster_correct_answers_earn_more_points_and_wrong_answers_earn_zero() {
     assert_eq!(scores.get(wrong.clone()).unwrap(), 0);
     assert_eq!(scores.get(owner.clone()).unwrap(), 0);
 }
+
+// ---------------------------------------------------------------------------
+// LF-004 — Players cannot answer the same card more than once (#421)
+// ---------------------------------------------------------------------------
+
+/// A second submit_answer for the same card by the same player must fail
+/// with Error::AlreadyAnswered.
+#[test]
+fn lf004_second_answer_for_same_card_fails_with_already_answered() {
+    let (env, client, owner) = setup();
+    seed_cards(&env, &client, &owner, 4);
+    client.set_cards_per_round(&owner, &2);
+
+    let round_id = client.create_round(&owner, &Some(Genre::Pop), &55u64);
+    client.start_round(&owner, &round_id);
+
+    env.ledger().set_timestamp(NOW + 5);
+    let card = client.next_card(&round_id);
+
+    // First answer is accepted.
+    env.ledger().set_timestamp(NOW + 8);
+    let first = client.submit_answer(&owner, &round_id, &Answer::Title(card.title.clone()));
+    assert!(first);
+
+    // Second answer for the same card must be rejected with AlreadyAnswered.
+    env.ledger().set_timestamp(NOW + 10);
+    let err = client
+        .try_submit_answer(&owner, &round_id, &Answer::Title(card.title.clone()))
+        .unwrap_err()
+        .unwrap();
+    assert_eq!(err, crate::Error::AlreadyAnswered);
+}
+
+/// Repeated wrong-then-correct guessing is blocked: each successive call
+/// returns AlreadyAnswered after the first submission.
+#[test]
+fn lf004_cannot_guess_until_correct_by_resubmitting() {
+    let (env, client, owner) = setup();
+    seed_cards(&env, &client, &owner, 4);
+    client.set_cards_per_round(&owner, &2);
+
+    let round_id = client.create_round(&owner, &Some(Genre::Pop), &66u64);
+    client.start_round(&owner, &round_id);
+
+    env.ledger().set_timestamp(NOW + 5);
+    let card = client.next_card(&round_id);
+
+    // Submit a wrong answer first.
+    env.ledger().set_timestamp(NOW + 8);
+    let wrong = client.submit_answer(
+        &owner,
+        &round_id,
+        &Answer::Title(String::from_str(&env, "definitely-wrong")),
+    );
+    assert!(!wrong, "wrong answer must return false");
+
+    // Attempting to submit a second answer (even a correct one) must fail.
+    env.ledger().set_timestamp(NOW + 9);
+    let err = client
+        .try_submit_answer(&owner, &round_id, &Answer::Title(card.title.clone()))
+        .unwrap_err()
+        .unwrap();
+    assert_eq!(
+        err,
+        crate::Error::AlreadyAnswered,
+        "second answer attempt must be rejected even if the first was wrong"
+    );
+}
+
+/// Streaks cannot grow by more than 1 per card: a player who has answered
+/// N cards correctly has a streak of exactly N (not N*2 from double-answers).
+#[test]
+fn lf004_streak_cannot_grow_more_than_one_per_card() {
+    let (env, client, owner) = setup();
+    seed_cards(&env, &client, &owner, 6);
+    client.set_cards_per_round(&owner, &3);
+
+    let round_id = client.create_round(&owner, &Some(Genre::Pop), &77u64);
+    client.start_round(&owner, &round_id);
+
+    for i in 0..3u64 {
+        env.ledger().set_timestamp(NOW + 5 + i * 30);
+        let card = client.next_card(&round_id);
+        env.ledger().set_timestamp(NOW + 8 + i * 30);
+        client.submit_answer(&owner, &round_id, &Answer::Title(card.title.clone()));
+
+        // Attempt a second answer; it must fail, not add to the streak.
+        env.ledger().set_timestamp(NOW + 10 + i * 30);
+        let _ = client.try_submit_answer(&owner, &round_id, &Answer::Title(card.title.clone()));
+    }
+
+    let stats = client.get_player_stat(&owner);
+    // Answered 3 cards correctly, 1 answer per card → streak must be exactly 3.
+    assert_eq!(
+        stats.current_streak, 3,
+        "streak must equal the number of cards answered, not double from re-submissions"
+    );
+    assert_eq!(stats.max_streak, 3);
+}
+
+/// Other players can still answer the same card — AlreadyAnswered is
+/// per-player, not per-card.
+#[test]
+fn lf004_other_players_can_still_answer_same_card() {
+    let (env, client, owner) = setup();
+    seed_cards(&env, &client, &owner, 4);
+    client.set_cards_per_round(&owner, &2);
+
+    let round_id = client.create_round(&owner, &Some(Genre::Pop), &88u64);
+    let player2 = Address::generate(&env);
+    client.join_round(&player2, &round_id);
+    client.start_round(&owner, &round_id);
+    client.start_round(&player2, &round_id);
+
+    env.ledger().set_timestamp(NOW + 5);
+    let card = client.next_card(&round_id);
+
+    // Owner answers first.
+    env.ledger().set_timestamp(NOW + 8);
+    assert!(client.submit_answer(&owner, &round_id, &Answer::Title(card.title.clone())));
+
+    // player2 can still answer the same card — AlreadyAnswered is per-player.
+    env.ledger().set_timestamp(NOW + 10);
+    assert!(
+        client.submit_answer(&player2, &round_id, &Answer::Title(card.title.clone())),
+        "player2 must be allowed to answer a card that owner has already answered"
+    );
+
+    // But owner cannot answer again.
+    env.ledger().set_timestamp(NOW + 11);
+    let err = client
+        .try_submit_answer(&owner, &round_id, &Answer::Title(card.title.clone()))
+        .unwrap_err()
+        .unwrap();
+    assert_eq!(err, crate::Error::AlreadyAnswered);
+}

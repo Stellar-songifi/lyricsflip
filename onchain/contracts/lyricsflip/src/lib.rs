@@ -986,13 +986,17 @@ impl LyricsFlip {
 
         let answered_key =
             DataKey::RoundPlayerAnswered((round_id, caller.clone(), current_card_id));
+        // LF-004: reject duplicate answers with a hard error instead of
+        // silently returning false. A silent false let the caller guess
+        // every option in a loop until one returned true, and let repeated
+        // correct answers farm current_streak / max_streak indefinitely.
         if env
             .storage()
             .persistent()
             .get(&answered_key)
             .unwrap_or(false)
         {
-            return false;
+            panic_with_error!(env, Error::AlreadyAnswered);
         }
         env.storage().persistent().set(&answered_key, &true);
         bump_persistent(&env, &answered_key);

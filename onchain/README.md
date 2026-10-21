@@ -504,6 +504,7 @@ Every variant is currently referenced by the contract. The ones marked
 | 42 | `InvalidLobbyTimeout` | `set_lobby_timeout` called with value outside [30, 86400]s |
 | 43 | `InvalidRoundDuration` | `set_round_duration` or `set_round_buffer` called with out-of-bounds value |
 | 44 | `CardInActiveRound` | `update_card` tried to change a card's title/artist/year while a non-finalized round still references it (LF-176) |
+| 45 | `TooManyOpenRounds` | `create_round` rejected because the caller already has `MAX_OPEN_ROUNDS_PER_ADDRESS` open public lobbies (LF-175) |
 
 ### `lyricsflip-nft`
 

@@ -375,6 +375,10 @@ pub enum DataKey {
     /// and that have not been finalized or cancelled. Guards `update_card`
     /// against changing answer fields mid-round.
     CardLiveRounds(u64),
+    /// LF-175: number of public lobby rounds an address currently has open.
+    /// Caps how many free (0-wager) lobbies one account can park in
+    /// `OpenRounds`; decremented on start, cancel, and expiry.
+    OpenRoundsOf(Address),
 }
 
 #[contracttype]

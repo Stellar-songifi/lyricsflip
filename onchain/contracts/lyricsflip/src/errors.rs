@@ -100,4 +100,7 @@ pub enum Error {
     /// that an unfinalized round still references. Wait for the round to
     /// finalize (or be cancelled) before editing the card.
     CardInActiveRound = 44,
+    /// LF-175: the caller already has `MAX_OPEN_ROUNDS_PER_ADDRESS` public
+    /// lobbies open. Start, cancel, or let one expire before creating another.
+    TooManyOpenRounds = 45,
 }

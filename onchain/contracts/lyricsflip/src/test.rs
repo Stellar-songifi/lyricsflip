@@ -18,8 +18,8 @@ use crate::{
     RoleUpdated, RoundBufferUpdated, RoundCancelled, RoundCompleted, RoundDurationUpdated,
     RoundLeft, SchemaMigrated, CARD_ANSWER_WINDOW_SECONDS, DEFAULT_MAX_PLAYERS,
     DEFAULT_ROUND_BUFFER_SECONDS, LOBBY_TIMEOUT_SECONDS, MAX_ANSWER_WINDOW_SECONDS,
-    MAX_CARDS_PER_BATCH, MAX_LOBBY_TIMEOUT_SECONDS, MAX_LYRICS_LEN, MAX_PAGE_LIMIT,
-    MAX_ROUND_BUFFER_SECONDS, MAX_ROUND_DURATION_SECONDS, MAX_ROUND_PLAYERS,
+    MAX_CARDS_PER_BATCH, MAX_LOBBY_TIMEOUT_SECONDS, MAX_LYRICS_LEN, MAX_OPEN_ROUNDS_PER_ADDRESS,
+    MAX_PAGE_LIMIT, MAX_ROUND_BUFFER_SECONDS, MAX_ROUND_DURATION_SECONDS, MAX_ROUND_PLAYERS,
     MIN_ANSWER_WINDOW_SECONDS, MIN_LOBBY_TIMEOUT_SECONDS, MIN_ROUND_BUFFER_SECONDS,
     MIN_ROUND_DURATION_SECONDS,
 };
@@ -1111,8 +1111,11 @@ fn get_rounds_paginates_and_respects_limit() {
     let (env, client, owner) = setup();
     seed_cards(&env, &client, &owner, 5);
     client.set_cards_per_round(&owner, &3);
+    // LF-175 caps open lobbies per address, so spread the rounds across
+    // several creators (this test exercises pagination, not the cap).
     for seed in 0..5u64 {
-        client.create_round(&owner, &Some(Genre::Pop), &seed, &None);
+        let creator = Address::generate(&env);
+        client.create_round(&creator, &Some(Genre::Pop), &seed, &None);
     }
 
     let page = client.get_rounds(&1, &2);
@@ -1136,8 +1139,11 @@ fn get_rounds_clamps_limit_to_max() {
     seed_cards(&env, &client, &owner, 3);
     client.set_cards_per_round(&owner, &1);
     let total = MAX_PAGE_LIMIT as u64 + 5;
+    // LF-175 caps open lobbies per address, so spread the rounds across
+    // several creators (this test exercises pagination, not the cap).
     for seed in 0..total {
-        client.create_round(&owner, &Some(Genre::Pop), &seed, &None);
+        let creator = Address::generate(&env);
+        client.create_round(&creator, &Some(Genre::Pop), &seed, &None);
     }
 
     let page = client.get_rounds(&1, &u32::MAX);
@@ -1229,6 +1235,8 @@ fn error_codes_are_stable() {
         (Error::InvalidAnswerWindow, 41),
         (Error::InvalidLobbyTimeout, 42),
         (Error::InvalidRoundDuration, 43),
+        (Error::CardInActiveRound, 44),
+        (Error::TooManyOpenRounds, 45),
     ];
     for (variant, code) in expected {
         assert_eq!(variant as u32, code, "{:?} was renumbered", variant);
@@ -1456,6 +1464,123 @@ fn anyone_can_cancel_only_after_lobby_timeout() {
     env.ledger().set_timestamp(1_000 + LOBBY_TIMEOUT_SECONDS);
     client.cancel_round(&stranger, &round_id);
     assert!(client.get_round(&round_id).is_cancelled);
+}
+
+// ---------------------------------------------------------------------------
+// LF-175 – cap open lobbies per address
+// ---------------------------------------------------------------------------
+
+/// Opens `MAX_OPEN_ROUNDS_PER_ADDRESS` public lobbies for `creator`.
+fn fill_open_lobby_cap(
+    client: &LyricsFlipClient,
+    creator: &Address,
+    seed_base: u64,
+) -> std::vec::Vec<u64> {
+    (0..MAX_OPEN_ROUNDS_PER_ADDRESS)
+        .map(|i| client.create_round(creator, &Some(Genre::Pop), &(seed_base + i as u64), &None))
+        .collect()
+}
+
+#[test]
+fn create_round_caps_open_lobbies_per_address() {
+    let (env, client, owner) = setup();
+    seed_cards(&env, &client, &owner, 2);
+    client.set_cards_per_round(&owner, &2);
+
+    let rounds = fill_open_lobby_cap(&client, &owner, 1);
+    assert_eq!(
+        client.get_open_rounds(&0, &10).len() as u32,
+        MAX_OPEN_ROUNDS_PER_ADDRESS
+    );
+
+    // A 4th open lobby from the same address fails.
+    assert_eq!(
+        client.try_create_round(&owner, &Some(Genre::Pop), &10u64, &None),
+        Err(Ok(Error::TooManyOpenRounds.into()))
+    );
+
+    // Another address still has free slots.
+    let other = Address::generate(&env);
+    client.create_round(&other, &Some(Genre::Pop), &20u64, &None);
+    assert_eq!(client.get_open_rounds(&0, &10).len(), 4);
+
+    // Cancelling one lobby frees a slot for the capped address.
+    client.cancel_round(&owner, &rounds[0]);
+    client.create_round(&owner, &Some(Genre::Pop), &11u64, &None);
+    assert_eq!(client.get_open_rounds(&0, &10).len(), 4);
+}
+
+#[test]
+fn starting_round_frees_open_lobby_slot() {
+    let (env, client, owner) = setup();
+    seed_cards(&env, &client, &owner, 2);
+    client.set_cards_per_round(&owner, &2);
+
+    let rounds = fill_open_lobby_cap(&client, &owner, 1);
+    assert_eq!(
+        client.try_create_round(&owner, &Some(Genre::Pop), &10u64, &None),
+        Err(Ok(Error::TooManyOpenRounds.into()))
+    );
+
+    // The sole player marking ready starts the round and frees the slot.
+    client.start_round(&owner, &rounds[0]);
+    assert_eq!(client.get_open_rounds(&0, &10).len(), 2);
+    client.create_round(&owner, &Some(Genre::Pop), &11u64, &None);
+    assert_eq!(client.get_open_rounds(&0, &10).len(), 3);
+}
+
+#[test]
+fn expired_lobby_cancel_frees_open_lobby_slot() {
+    let (env, client, owner) = setup();
+    seed_cards(&env, &client, &owner, 2);
+    client.set_cards_per_round(&owner, &2);
+
+    let rounds = fill_open_lobby_cap(&client, &owner, 1);
+    assert_eq!(
+        client.try_create_round(&owner, &Some(Genre::Pop), &10u64, &None),
+        Err(Ok(Error::TooManyOpenRounds.into()))
+    );
+
+    // After the lobby timeout anyone may cancel ("expiry"); the slot frees.
+    env.ledger().set_timestamp(NOW + LOBBY_TIMEOUT_SECONDS);
+    client.cancel_round(&Address::generate(&env), &rounds[0]);
+    client.create_round(&owner, &Some(Genre::Pop), &11u64, &None);
+    assert_eq!(client.get_open_rounds(&0, &10).len(), 3);
+}
+
+#[test]
+fn private_and_solo_rounds_do_not_consume_open_lobby_slots() {
+    let (env, client, owner) = setup();
+    // A solo round draws and builds a question card inline, which needs
+    // enough distinct cards/artists in the catalogue.
+    seed_cards(&env, &client, &owner, 10);
+    client.set_cards_per_round(&owner, &1);
+
+    fill_open_lobby_cap(&client, &owner, 1);
+    assert_eq!(
+        client.try_create_round(&owner, &Some(Genre::Pop), &10u64, &None),
+        Err(Ok(Error::TooManyOpenRounds.into()))
+    );
+
+    // A private round never enters OpenRounds, so it bypasses the cap...
+    let hash = BytesN::from_array(&env, &[7u8; 32]);
+    let private_id = client.create_round(&owner, &Some(Genre::Pop), &10u64, &Some(hash));
+    assert_eq!(client.get_open_rounds(&0, &10).len(), 3);
+
+    // ...and cancelling it must not free a public-lobby slot.
+    client.cancel_round(&owner, &private_id);
+    assert_eq!(
+        client.try_create_round(&owner, &Some(Genre::Pop), &11u64, &None),
+        Err(Ok(Error::TooManyOpenRounds.into()))
+    );
+
+    // A solo round starts immediately and never enters OpenRounds either.
+    client.create_solo_round(&owner, &Some(Genre::Pop), &12u64);
+    assert_eq!(client.get_open_rounds(&0, &10).len(), 3);
+    assert_eq!(
+        client.try_create_round(&owner, &Some(Genre::Pop), &13u64, &None),
+        Err(Ok(Error::TooManyOpenRounds.into()))
+    );
 }
 
 #[test]

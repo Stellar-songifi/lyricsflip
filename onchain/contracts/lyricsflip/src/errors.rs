@@ -100,4 +100,6 @@ pub enum Error {
     /// that an unfinalized round still references. Wait for the round to
     /// finalize (or be cancelled) before editing the card.
     CardInActiveRound = 44,
+    /// LF-154: `set_max_players` got a value above `MAX_ROUND_PLAYERS`.
+    MaxPlayersTooHigh = 45,
 }

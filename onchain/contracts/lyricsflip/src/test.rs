@@ -19,7 +19,7 @@ use crate::{
     RoundLeft, SchemaMigrated, CARD_ANSWER_WINDOW_SECONDS, DEFAULT_MAX_PLAYERS,
     DEFAULT_ROUND_BUFFER_SECONDS, LOBBY_TIMEOUT_SECONDS, MAX_ANSWER_WINDOW_SECONDS,
     MAX_CARDS_PER_BATCH, MAX_LOBBY_TIMEOUT_SECONDS, MAX_LYRICS_LEN, MAX_PAGE_LIMIT,
-    MAX_ROUND_BUFFER_SECONDS, MAX_ROUND_DURATION_SECONDS, MAX_ROUND_PLAYERS,
+    MAX_CARDS_PER_ROUND, MAX_ROUND_BUFFER_SECONDS, MAX_ROUND_DURATION_SECONDS, MAX_ROUND_PLAYERS,
     MIN_ANSWER_WINDOW_SECONDS, MIN_LOBBY_TIMEOUT_SECONDS, MIN_ROUND_BUFFER_SECONDS,
     MIN_ROUND_DURATION_SECONDS,
 };
@@ -201,6 +201,26 @@ fn set_cards_per_round_requires_admin() {
     let non_admin = Address::generate(&env);
     let result = client.try_set_cards_per_round(&non_admin, &5);
     assert!(result.is_err());
+}
+
+#[test]
+fn set_cards_per_round_rejects_above_cap() {
+    let (_env, client, owner) = setup();
+    client.set_cards_per_round(&owner, &MAX_CARDS_PER_ROUND);
+    assert_eq!(
+        client.try_set_cards_per_round(&owner, &(MAX_CARDS_PER_ROUND + 1)),
+        Err(Ok(Error::InvalidCardsPerRound.into()))
+    );
+}
+
+#[test]
+fn set_max_players_rejects_above_cap() {
+    let (_env, client, owner) = setup();
+    client.set_max_players(&owner, &MAX_ROUND_PLAYERS);
+    assert_eq!(
+        client.try_set_max_players(&owner, &(MAX_ROUND_PLAYERS + 1)),
+        Err(Ok(Error::MaxPlayersTooHigh.into()))
+    );
 }
 
 // ---------------------------------------------------------------------------
@@ -1229,6 +1249,7 @@ fn error_codes_are_stable() {
         (Error::InvalidAnswerWindow, 41),
         (Error::InvalidLobbyTimeout, 42),
         (Error::InvalidRoundDuration, 43),
+        (Error::MaxPlayersTooHigh, 45),
     ];
     for (variant, code) in expected {
         assert_eq!(variant as u32, code, "{:?} was renumbered", variant);
@@ -1241,19 +1262,20 @@ fn error_codes_are_stable() {
 
 /// Confirms that `get_random_numbers(amount=50, limit=50)` Ã¢Â€Â” the worst-case
 /// scenario that caused the coupon-collector blowup Ã¢Â€Â” now runs in a fixed
-/// number of iterations. We check this indirectly: seed the contract with 50
-/// cards, call `get_cards_of_genre` (which internally calls
-/// `get_random_numbers(amount=50, limit=50)`), and assert the result is
-/// exactly 50 distinct card IDs with no panics or budget exhaustion.
+/// number of iterations. We check this indirectly: seed the contract with
+/// `MAX_CARDS_PER_ROUND` cards, call `get_cards_of_genre` (which internally
+/// calls `get_random_numbers(amount == limit)`), and assert every card comes
+/// back with no panics or budget exhaustion.
 #[test]
 fn get_random_numbers_worst_case_amount_equals_limit() {
     let (env, client, owner) = setup();
 
-    // Add 50 distinct cards (all Pop genre).
-    for i in 0..50u64 {
+    // LF-154 caps cards per round, so the worst case is now
+    // amount == limit == MAX_CARDS_PER_ROUND.
+    for i in 0..MAX_CARDS_PER_ROUND as u64 {
         let title = soroban_sdk::String::from_str(&env, &std::format!("T{}", i));
         // Unique titles via seeded shuffle are not required here; we only care
-        // that the function returns 50 results without panicking.
+        // that the function returns every card without panicking.
         let card = Card {
             card_id: 0,
             genre: Genre::Pop,
@@ -1265,14 +1287,14 @@ fn get_random_numbers_worst_case_amount_equals_limit() {
         };
         client.add_card(&owner, &card);
     }
-    client.set_cards_per_round(&owner, &50);
+    client.set_cards_per_round(&owner, &MAX_CARDS_PER_ROUND);
 
     // This must complete without panicking (no infinite loop).
     let cards = client.get_cards_of_genre(&Genre::Pop, &12345u64);
     assert_eq!(
         cards.len(),
-        50,
-        "expected exactly 50 cards back when amount == limit == 50"
+        MAX_CARDS_PER_ROUND,
+        "expected every card back when amount == limit"
     );
 }
 

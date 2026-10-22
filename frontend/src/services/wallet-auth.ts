@@ -1,6 +1,6 @@
 import { post } from './api';
 import type { components } from './generated/openapi';
-import { clearAuthTokens } from './auth-storage';
+import { clearAuthTokens } from './api';
 
 // Talks to the backend's wallet-based auth endpoints (backend/src/auth/auth.controller.ts
 // `challenge`/`verify`). NEXT_PUBLIC_API_URL must point at the bare backend
@@ -20,8 +20,9 @@ export const requestWalletChallenge = (
   post<WalletChallengeResponse>('/auth/challenge', { address });
 
 /**
- * Verifies a signed challenge and returns access/refresh tokens for the
- * (upserted) account tied to that Stellar address.
+ * Verifies a signed challenge and returns the access token for the
+ * (upserted) account tied to that Stellar address. The refresh token is set
+ * as an HttpOnly cookie by the backend (LF-202) and never reaches JS.
  */
 export const verifyWalletChallenge = (
   address: string,

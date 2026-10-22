@@ -4,13 +4,14 @@ import type React from 'react';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft, CircleCheck, CircleX } from 'lucide-react';
 import { useStellar } from '@/lib/stellar/hooks/use-stellar';
 import { useProfileStore } from '@/store/use-profile-store';
 
 export default function SetUsername() {
   const router = useRouter();
+  const next = useSearchParams().get('next');
   const { account } = useStellar();
   const { setUsername, getUsername } = useProfileStore();
   const [username, setUsernameInput] = useState('');
@@ -54,7 +55,10 @@ export default function SetUsername() {
 
     try {
       await setUsername(account.address, username);
-      router.push(`/profile/${account.address}`);
+      // LF-204: first login continues to where the user was headed.
+      router.push(
+        next?.startsWith('/') && !next.startsWith('//') ? next : `/profile/${account.address}`,
+      );
     } catch (error) {
       const message =
         error instanceof Error ? error.message : 'Failed to save username';
@@ -77,7 +81,7 @@ export default function SetUsername() {
       <div className="w-full col-span-1 p-6 md:p-12 flex flex-col flex-1">
         <div className="mb-8 absolute">
           <Link
-            href="/sign-up"
+            href="/sign-in"
             className="flex gap-x-1 items-center text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
           >
             <ArrowLeft className="w-5 h-5" />

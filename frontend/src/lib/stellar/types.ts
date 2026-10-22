@@ -91,6 +91,13 @@ export interface RoundFilter {
 export const MILESTONES = { FirstWin: 0, Streak5: 1, TenWins: 2 } as const;
 export type Milestone = (typeof MILESTONES)[keyof typeof MILESTONES];
 
+/** Display name for each milestone badge (the NFT's `token_kind`). */
+export const MILESTONE_NAMES: Record<Milestone, string> = {
+  [MILESTONES.FirstWin]: 'First Win',
+  [MILESTONES.Streak5]: 'Streak Master',
+  [MILESTONES.TenWins]: 'Music Connoisseur',
+};
+
 /** Raw shape returned by the contract, before `genreFromWire` is applied. */
 export interface WireRound extends Omit<Round, 'genre'> {
   genre: number;

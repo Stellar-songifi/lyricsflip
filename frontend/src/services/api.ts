@@ -19,54 +19,100 @@ const apiConfig = {
   headers: {
     'Content-Type': 'application/json',
     Accept: 'application/json',
+    // CSRF guard required by the cookie-authenticated auth routes
+    // (backend/src/auth/refresh-cookie.ts).
+    'X-Requested-With': 'XMLHttpRequest',
   },
   timeout: 15000, // 15 seconds
+  // Sends the HttpOnly refresh-token cookie (LF-202).
+  withCredentials: true,
 };
 
 // Create axios instance with the configuration
 const apiClient = axios.create(apiConfig);
 
-// Tokens issued by wallet login (`POST /api/v1/auth/sign-in`) are kept in localStorage.
-const ACCESS_TOKEN_KEY = 'accessToken';
-const REFRESH_TOKEN_KEY = 'refreshToken';
+// LF-202: the access token from wallet login (`POST /api/v1/auth/verify`)
+// lives in memory only, and the refresh token is an HttpOnly cookie set by
+// the backend. No auth token is ever written to localStorage or
+// sessionStorage, so XSS can't steal a long-lived session.
+let accessToken: string | null = null;
 
-const readToken = (key: string): string | null =>
-  typeof window === 'undefined' ? null : window.localStorage.getItem(key);
+// Remove tokens that earlier versions persisted in localStorage.
+if (typeof window !== 'undefined') {
+  try {
+    window.localStorage.removeItem('accessToken');
+    window.localStorage.removeItem('refreshToken');
+  } catch {
+    // Storage may be unavailable (private mode, etc.) - nothing to clean.
+  }
+}
 
-export const setAuthTokens = (accessToken: string, refreshToken?: string) => {
-  window.localStorage.setItem(ACCESS_TOKEN_KEY, accessToken);
-  if (refreshToken)
-    window.localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
+export const setAuthTokens = (token: string) => {
+  accessToken = token;
 };
 
 export const clearAuthTokens = () => {
-  window.localStorage.removeItem(ACCESS_TOKEN_KEY);
-  window.localStorage.removeItem(REFRESH_TOKEN_KEY);
+  accessToken = null;
 };
 
 // Request interceptor: attach the JWT from wallet login
 apiClient.interceptors.request.use((config) => {
-  const token = readToken(ACCESS_TOKEN_KEY);
+  const token = accessToken;
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
   return config;
 });
 
-// Shared in-flight refresh so concurrent 401s trigger a single refresh call
-let refreshPromise: Promise<string> | null = null;
-
 const refreshAccessToken = async (): Promise<string> => {
-  const refreshToken = readToken(REFRESH_TOKEN_KEY);
-  if (!refreshToken) throw new Error('No refresh token');
-  // Uses the same versioned base URL as `apiClient` (`/api/v1/auth/refresh`).
+  // The refresh token rides along in the HttpOnly cookie. Uses the same
+  // versioned base URL as `apiClient` (`/api/v1/auth/refresh`).
   const { data } = await axios.post<{ accessToken: string }>(
     `${apiConfig.baseURL}/auth/refresh`,
-    { refreshToken },
-    { headers: apiConfig.headers, timeout: apiConfig.timeout },
+    undefined,
+    {
+      headers: apiConfig.headers,
+      timeout: apiConfig.timeout,
+      withCredentials: true,
+    },
   );
   setAuthTokens(data.accessToken);
   return data.accessToken;
+};
+
+// Shared in-flight refresh so concurrent callers trigger a single refresh call
+let refreshPromise: Promise<string> | null = null;
+const sharedRefresh = (): Promise<string> =>
+  (refreshPromise ??= refreshAccessToken().finally(() => {
+    refreshPromise = null;
+  }));
+
+/**
+ * Restores the session after a page reload by exchanging the refresh cookie
+ * for a new in-memory access token. Resolves to false when there's no valid
+ * session.
+ */
+export const restoreSession = async (): Promise<boolean> => {
+  try {
+    // Shares the in-flight refresh: refresh tokens rotate, so two parallel
+    // refreshes would trip reuse detection and revoke the session.
+    await sharedRefresh();
+    return true;
+  } catch {
+    clearAuthTokens();
+    return false;
+  }
+};
+
+/** Revokes the refresh-token family server-side and clears the cookie. */
+export const logout = async (): Promise<void> => {
+  try {
+    if (accessToken) await apiClient.post('/auth/logout');
+  } catch {
+    // Best effort: the local session is cleared either way.
+  } finally {
+    clearAuthTokens();
+  }
 };
 
 // Response interceptor: refresh the access token once on 401 and retry
@@ -81,10 +127,7 @@ apiClient.interceptors.response.use(
     }
     original._retry = true;
     try {
-      refreshPromise ??= refreshAccessToken().finally(() => {
-        refreshPromise = null;
-      });
-      const token = await refreshPromise;
+      const token = await sharedRefresh();
       original.headers.Authorization = `Bearer ${token}`;
       return apiClient(original);
     } catch {

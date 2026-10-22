@@ -97,6 +97,44 @@ The game flow matches the README's player-facing flow:
 - The backend is an off-chain extension that enriches the game with profiles, social features, and indexable events.
 - The contract is not replaced by the database; the database is for user experience and operational data, not game authority.
 
+## Sign-in flow (LF-204)
+
+`/sign-in` is the single entry point for authentication. Routes that need an
+account (`/notifications`, `/set-username`) are wrapped in
+`components/providers/require-account.tsx`, which sends visitors to
+`/sign-in?next=<path>` when a step is missing.
+
+1. **Connect wallet.** `connect()` opens the Stellar Wallets Kit modal.
+2. **Sign the challenge (LF-228).** `connect()` then calls
+   `POST /api/v1/auth/challenge`, signs the challenge with
+   `StellarWalletsKit.signMessage`, and exchanges it at
+   `POST /api/v1/auth/verify` for a session. On a page reload the session is
+   restored from the refresh cookie instead, so the user doesn't sign again.
+3. **Set a username, on first login only.** If the wallet has no username yet,
+   `/sign-in` continues to `/set-username?next=<path>`. Returning users skip
+   this step and go straight to `next`. Until the backend profile endpoint
+   (`PATCH /user/me/profile`) is implemented, the username is remembered in
+   this browser (`frontend/src/store/use-profile-store.ts`).
+
+The old `/notifications/notifications` path redirects to `/notifications`.
+
+### Auth tokens (LF-202)
+
+- The **access token** is kept in memory only (`frontend/src/services/api.ts`)
+  and sent as a `Bearer` header. On a `401` the client refreshes it once and
+  retries the request.
+- The **refresh token** is an `HttpOnly; Secure; SameSite=Lax` cookie, scoped to
+  `/api/v1/auth`, set by `verify` and rotated by `refresh`. `logout` revokes its
+  token family and clears it. No auth token is stored in `localStorage` or
+  `sessionStorage`.
+- CORS allows credentials only from the configured origins (`CORS_ORIGINS`,
+  defaulting to `FRONTEND_URL` or `http://localhost:3000`). A wildcard origin
+  can't be used with credentials.
+- **CSRF:** the cookie-authenticated routes (`refresh`, `logout`) require the
+  `X-Requested-With: XMLHttpRequest` header, which the API client always sends.
+  Cross-site forms can't set it, and cross-origin scripts fail the CORS
+  preflight.
+
 ## Architecture Decision Records
 
 Significant decisions are recorded as ADRs in [`docs/adr/`](./adr/). Each ADR follows the [template](./adr/template.md) (context, decision, consequences, status) and stays *Proposed* until a maintainer accepts it. Every issue that depends on a decision links to its ADR.

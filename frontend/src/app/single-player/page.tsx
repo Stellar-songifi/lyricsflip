@@ -19,6 +19,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Answer,
   MILESTONES,
+  MILESTONE_NAMES,
   type Card,
   type Milestone,
   type PlayerStats,
@@ -35,12 +36,6 @@ interface SongOption {
   title: string;
   artist: string;
 }
-
-const MILESTONE_NAMES: Record<Milestone, string> = {
-  [MILESTONES.FirstWin]: 'First Win',
-  [MILESTONES.Streak5]: 'Streak Master',
-  [MILESTONES.TenWins]: 'Music Connoisseur',
-};
 
 const MILESTONE_DEFINITIONS: Array<{
   milestone: Milestone;

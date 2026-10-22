@@ -61,10 +61,12 @@ export default () => ({
       parseInt(process.env.INDEXER_MAX_LAG_LEDGERS, 10) || 100,
   },
   cors: {
-    // Comma-separated list of allowed origins, or `*` for all (main.ts).
+    // Comma-separated list of allowed origins (main.ts). Must be explicit,
+    // not `*`: the refresh-token cookie (LF-202) needs `credentials: true`,
+    // which browsers refuse for a wildcard origin.
     origin: process.env.CORS_ORIGINS
       ? process.env.CORS_ORIGINS.split(',').map((origin) => origin.trim())
-      : '*',
+      : (process.env.FRONTEND_URL ?? 'http://localhost:3000'),
   },
   redis: {
     host: process.env.REDIS_HOST || 'localhost',

@@ -24,6 +24,7 @@ const buildContextValue = (overrides: Partial<StellarContextType> = {}): Stellar
   disconnect: mockDisconnect,
   isAuthenticated: false,
   authError: null,
+  isSessionChecked: false,
   ...overrides,
 });
 

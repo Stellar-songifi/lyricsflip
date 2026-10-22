@@ -465,7 +465,7 @@ Every variant is currently referenced by the contract. The ones marked
 | 3 | `RoundAlreadyStarted` | Tried to join a round that has already started |
 | 4 | `NonExistingGenre` | `create_round` was called without a genre |
 | 5 | `RoundAlreadyJoined` | Caller is already a player in the round |
-| 6 | `InvalidCardsPerRound` | `set_cards_per_round` was called with 0 |
+| 6 | `InvalidCardsPerRound` | `set_cards_per_round` was called with 0 or more than `MAX_CARDS_PER_ROUND` (20) |
 | 7 | `ArtistCardsIsZero` | No cards exist for the requested artist |
 | 8 | `EmptyYearCards` | No cards exist for the requested year |
 | 9 | `EmptyGenreCards` | No cards exist for the requested genre |
@@ -504,6 +504,7 @@ Every variant is currently referenced by the contract. The ones marked
 | 42 | `InvalidLobbyTimeout` | `set_lobby_timeout` called with value outside [30, 86400]s |
 | 43 | `InvalidRoundDuration` | `set_round_duration` or `set_round_buffer` called with out-of-bounds value |
 | 44 | `CardInActiveRound` | `update_card` tried to change a card's title/artist/year while a non-finalized round still references it (LF-176) |
+| 45 | `MaxPlayersTooHigh` | `set_max_players` got a value above `MAX_ROUND_PLAYERS` (8) (LF-154) |
 
 ### `lyricsflip-nft`
 

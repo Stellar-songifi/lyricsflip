@@ -57,6 +57,7 @@ export const CONTRACT_ERROR_NAMES: Record<number, string> = {
   42: 'InvalidLobbyTimeout',
   43: 'InvalidRoundDuration',
   44: 'CardInActiveRound',
+  45: 'MaxPlayersTooHigh',
 };
 
 /**
@@ -68,7 +69,7 @@ export const LYRICSFLIP_ERROR_MESSAGES: Record<string, string> = {
   RoundAlreadyStarted: 'That round has already started.',
   NonExistingGenre: 'Pick a genre to create a round.',
   RoundAlreadyJoined: 'You have already joined this round.',
-  InvalidCardsPerRound: 'Cards per round must be greater than zero.',
+  InvalidCardsPerRound: 'Cards per round must be between 1 and 20.',
   ArtistCardsIsZero: 'There are no cards for that artist yet.',
   EmptyYearCards: 'There are no cards for that year yet.',
   EmptyGenreCards: 'There are no cards for that genre yet.',
@@ -85,6 +86,7 @@ export const LYRICSFLIP_ERROR_MESSAGES: Record<string, string> = {
   NotEnoughDistinctCards: 'Not enough distinct answers to build a question card.',
   RoundFull: 'That round is full.',
   InvalidMaxPlayers: 'A round needs room for at least 2 players.',
+  MaxPlayersTooHigh: 'A round can have at most 8 players.',
   NftContractNotSet: 'NFT rewards are not configured yet.',
   MilestoneNotReached: 'You have not reached that milestone yet.',
   MilestoneAlreadyClaimed: 'You already claimed that reward.',

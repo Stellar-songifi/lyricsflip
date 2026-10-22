@@ -21,7 +21,8 @@ async function bootstrap() {
   // prefix elsewhere to avoid duplicate/conflicting configuration.
   configureApp(app);
 
-  const corsOrigin = config.get<string>('cors.origin') ?? '*';
+  const corsOrigin =
+    config.get<string | string[]>('cors.origin') ?? 'http://localhost:3000';
   app.enableCors({
     origin: corsOrigin,
     credentials: true,

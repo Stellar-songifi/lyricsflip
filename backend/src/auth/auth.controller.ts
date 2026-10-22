@@ -6,9 +6,13 @@ import {
   HttpCode,
   HttpStatus,
   Post,
+  Req,
+  Res,
+  UnauthorizedException,
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
+import type { Request, Response } from 'express';
 import { Throttle } from '@nestjs/throttler';
 import { Public } from './decorators/public.decorator';
 import { AccessTokenGuard } from './guards/access-token.guard';
@@ -16,7 +20,12 @@ import { ApiTags, ApiOperation, ApiResponse, ApiBody } from '@nestjs/swagger';
 import { AuthService } from './providers/auth.service';
 import { SignInDto } from './dtos/signIn.dto';
 import { UserDTO } from './../user/dtos/create-user.dto';
-import { RefreshTokenDto } from './dtos/refresh-token.dto';
+import {
+  assertCsrfHeader,
+  clearRefreshCookie,
+  readRefreshCookie,
+  setRefreshCookie,
+} from './refresh-cookie';
 import { ForgotPasswordDto } from './dtos/forgot-password.dto';
 import { ResetPasswordDto } from './dtos/reset-password.dto';
 import { AuthThrottle } from '../common/throttler/throttle-limits';
@@ -85,13 +94,32 @@ export class AuthController {
     return await this.authService.signUp(UserDTO);
   }
 
+  @Public()
   @Post('refresh')
-  @ApiOperation({ summary: 'Refresh access token' })
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Refresh access token',
+    description:
+      'Reads the refresh token from the HttpOnly `refreshToken` cookie, rotates it, and returns a new access token. Requires `X-Requested-With: XMLHttpRequest` (CSRF).',
+  })
   @ApiResponse({ status: 200, description: 'Token refreshed successfully.' })
-  @ApiResponse({ status: 401, description: 'Invalid refresh token.' })
-  @ApiBody({ type: RefreshTokenDto })
-  public async refreshToken(@Body() refreshTokenDto: RefreshTokenDto) {
-    return this.authService.refreshToken(refreshTokenDto);
+  @ApiResponse({
+    status: 401,
+    description: 'Missing or invalid refresh token.',
+  })
+  @ApiResponse({ status: 403, description: 'Missing CSRF header.' })
+  public async refreshToken(
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    assertCsrfHeader(req);
+    const refreshToken = readRefreshCookie(req);
+    if (!refreshToken) {
+      throw new UnauthorizedException('Missing refresh token');
+    }
+    const tokens = await this.authService.refreshToken({ refreshToken });
+    setRefreshCookie(res, tokens.refreshToken);
+    return { accessToken: tokens.accessToken };
   }
 
   @Post('logout')
@@ -100,13 +128,21 @@ export class AuthController {
   @ApiOperation({
     summary: 'Log out',
     description:
-      'Revokes the refresh-token family associated with the supplied refresh token.',
+      'Revokes the refresh-token family in the `refreshToken` cookie and clears the cookie. Requires `X-Requested-With: XMLHttpRequest` (CSRF).',
   })
   @ApiResponse({ status: 204, description: 'Logged out; token family revoked.' })
   @ApiResponse({ status: 401, description: 'Missing or invalid access token.' })
-  @ApiBody({ type: RefreshTokenDto })
-  public async logout(@Body() refreshTokenDto: RefreshTokenDto) {
-    await this.authService.logout(refreshTokenDto);
+  @ApiResponse({ status: 403, description: 'Missing CSRF header.' })
+  public async logout(
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    assertCsrfHeader(req);
+    const refreshToken = readRefreshCookie(req);
+    if (refreshToken) {
+      await this.authService.logout({ refreshToken });
+    }
+    clearRefreshCookie(res);
   }
 
   @Post('forgot-password')
@@ -150,12 +186,18 @@ async resetPassword(@Body() resetPasswordDto: ResetPasswordDto) {
   @ApiOperation({
     summary: 'Verify a signed wallet-auth challenge',
     description:
-      'Verifies the signature over a previously issued challenge and returns access/refresh tokens for the (upserted) wallet account.',
+      'Verifies the signature over a previously issued challenge for the (upserted) wallet account. Returns the access token; the refresh token is set as the HttpOnly `refreshToken` cookie.',
   })
   @ApiResponse({ status: 201, description: 'Signature verified; tokens issued.' })
   @ApiResponse({ status: 401, description: 'Invalid signature, or challenge expired/not found.' })
   @ApiBody({ type: WalletVerifyDto })
-  public async verify(@Body() dto: WalletVerifyDto) {
-    return this.walletAuthProvider.verify(dto.address, dto.signedChallenge);
+  public async verify(
+    @Body() dto: WalletVerifyDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const { accessToken, refreshToken, user } =
+      await this.walletAuthProvider.verify(dto.address, dto.signedChallenge);
+    setRefreshCookie(res, refreshToken);
+    return { accessToken, user };
   }
 }

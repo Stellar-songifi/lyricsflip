@@ -6,9 +6,9 @@ extern crate std;
 
 use crate::budget_thresholds::*;
 use crate::{
-    Answer, Card, Genre, LyricsFlip, LyricsFlipClient, Milestone, QuestionKind, MAX_ROUND_PLAYERS,
+    Answer, Card, Genre, LyricsFlip, LyricsFlipClient, Milestone, QuestionKind,
+    MAX_CARDS_PER_ROUND, MAX_ROUND_PLAYERS,
 };
-use crate::{Answer, Card, Genre, LyricsFlip, LyricsFlipClient, QuestionKind, MAX_ROUND_PLAYERS};
 use soroban_sdk::{
     testutils::{Address as _, Ledger},
     Address, Env, String,
@@ -55,12 +55,12 @@ fn setup_full_round(
     cards_per_round: u32,
 ) -> (u64, std::vec::Vec<Address>) {
     client.set_cards_per_round(owner, &cards_per_round);
-    let round_id = client.create_round(owner, &Some(Genre::Pop), &42u64);
+    let round_id = client.create_round(owner, &Some(Genre::Pop), &42u64, &None);
 
     let mut joiners = std::vec::Vec::new();
     for _ in 1..MAX_ROUND_PLAYERS {
         let player = Address::generate(env);
-        client.join_round(&player, &round_id);
+        client.join_round(&player, &round_id, &None);
         joiners.push(player);
     }
     for player in joiners.iter() {
@@ -184,15 +184,15 @@ fn build_question_card_budget_large_catalogue() {
 #[test]
 fn submit_answer_budget() {
     let (env, client, owner) = setup_catalogue();
-    let (round_id, joiners) = setup_full_round(&env, &client, &owner, 20);
+    let (round_id, joiners) = setup_full_round(&env, &client, &owner, MAX_CARDS_PER_ROUND);
 
     // Everyone but the owner finishes their deck first so the owner's last
     // answer is measured under a realistic, fully-populated round (scores
     // and answer-time maps at their largest for this round).
     for player in joiners.iter() {
-        answer_every_card(&env, &client, player, round_id, 20);
+        answer_every_card(&env, &client, player, round_id, MAX_CARDS_PER_ROUND);
     }
-    answer_every_card(&env, &client, &owner, round_id, 19);
+    answer_every_card(&env, &client, &owner, round_id, MAX_CARDS_PER_ROUND - 1);
     client.next_card(&owner, &round_id);
 
     measure(
@@ -206,18 +206,18 @@ fn submit_answer_budget() {
     );
 }
 
-/// LF-181: `finalize_round` with 8 players × 20 cards — the round size at
-/// which its players × cards loop (`are_all_required_answers_submitted`)
-/// is most expensive in practice.
+/// LF-181 / LF-154: `finalize_round` at the worst case the contract allows,
+/// `MAX_ROUND_PLAYERS` × `MAX_CARDS_PER_ROUND`, so its players × cards loop
+/// (`are_all_required_answers_submitted`) can never exceed the budget.
 #[test]
 fn finalize_round_budget() {
     let (env, client, owner) = setup_catalogue();
-    let (round_id, joiners) = setup_full_round(&env, &client, &owner, 20);
+    let (round_id, joiners) = setup_full_round(&env, &client, &owner, MAX_CARDS_PER_ROUND);
 
     for player in joiners.iter() {
-        answer_every_card(&env, &client, player, round_id, 20);
+        answer_every_card(&env, &client, player, round_id, MAX_CARDS_PER_ROUND);
     }
-    answer_every_card(&env, &client, &owner, round_id, 20);
+    answer_every_card(&env, &client, &owner, round_id, MAX_CARDS_PER_ROUND);
 
     measure(
         &env,
@@ -249,7 +249,7 @@ fn claim_reward_budget() {
 
     // Win a round as the owner so FirstWin is reached.
     client.set_cards_per_round(&owner, &1u32);
-    let round_id = client.create_round(&owner, &Some(Genre::Pop), &42u64);
+    let round_id = client.create_round(&owner, &Some(Genre::Pop), &42u64, &None);
     client.start_round(&owner, &round_id);
     let card = client.next_card(&owner, &round_id);
     client.submit_answer(&owner, &round_id, &Answer::Title(card.title.clone()));

@@ -1,19 +1,36 @@
 "use client";
-import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { Suspense, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useStellar } from '@/lib/stellar/hooks/use-stellar';
 import { useProfileStore } from '@/store/use-profile-store';
 
-export default function SignInPage() {
+/** Only same-site paths are allowed as `next`, never an external URL. */
+const safeNext = (next: string | null) =>
+  next && next.startsWith('/') && !next.startsWith('//') ? next : '/';
+
+/**
+ * LF-204: the single auth entry point. Connect wallet -> sign the backend
+ * challenge (LF-228, done by `connect()`) -> pick a username on first login
+ * only -> continue to `next`. See docs/architecture.md, "Sign-in flow".
+ */
+function SignInFlow() {
   const router = useRouter();
-  const { account, connect, error } = useStellar();
+  const next = safeNext(useSearchParams().get('next'));
+  const { account, connect, error, isAuthenticated, authError } = useStellar();
   const getUsername = useProfileStore((state) => state.getUsername);
 
-  // Once a wallet is connected, send first-time users to pick a username.
+  // Once signed in, send first-time users to pick a username; returning
+  // users (or a session restored from the refresh cookie) skip that step.
   useEffect(() => {
-    if (!account?.address) return;
-    router.replace(getUsername(account.address) ? '/' : '/set-username');
-  }, [account?.address, getUsername, router]);
+    if (!account?.address || !isAuthenticated) return;
+    router.replace(
+      getUsername(account.address)
+        ? next
+        : `/set-username?next=${encodeURIComponent(next)}`,
+    );
+  }, [account?.address, isAuthenticated, getUsername, next, router]);
+
+  const needsSignature = !!account?.address && !isAuthenticated;
 
   return (
     <div className="flex h-screen">
@@ -33,10 +50,12 @@ export default function SignInPage() {
             onClick={() => connect()}
             className="mt-8 w-full cursor-pointer rounded-full bg-purple-600 py-6 text-white hover:bg-purple-700"
           >
-            Connect Stellar Wallet
+            {needsSignature ? 'Sign in with your wallet' : 'Connect Stellar Wallet'}
           </button>
-          {error && (
-            <p className="mt-4 text-center text-sm text-red-500">{error.message}</p>
+          {(authError ?? error) && (
+            <p className="mt-4 text-center text-sm text-red-500">
+              {(authError ?? error)?.message}
+            </p>
           )}
         </div>
         </div>
@@ -50,5 +69,13 @@ export default function SignInPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function SignInPage() {
+  return (
+    <Suspense>
+      <SignInFlow />
+    </Suspense>
   );
 }

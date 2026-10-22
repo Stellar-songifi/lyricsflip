@@ -129,6 +129,12 @@ const MAX_DISTRACTOR_SAMPLE: u64 = 10;
 /// (read on every join/answer/finalize) bounded.
 pub const MAX_ROUND_PLAYERS: u32 = 8;
 
+/// Maximum value accepted by `set_cards_per_round`. Together with
+/// `MAX_ROUND_PLAYERS` this bounds the players x cards loops in
+/// `start_round`, `finalize_round` and `are_all_required_answers_submitted`
+/// (see `test_budget::finalize_round_budget`).
+pub const MAX_CARDS_PER_ROUND: u32 = 20;
+
 /// Card validation bounds. The upper year bound is the current year derived
 /// from the ledger timestamp.
 pub const MIN_CARD_YEAR: u64 = 1900;
@@ -1246,7 +1252,7 @@ impl LyricsFlip {
     pub fn set_cards_per_round(env: Env, caller: Address, value: u32) {
         caller.require_auth();
         Self::assert_admin(&env, &caller);
-        if value == 0 {
+        if value == 0 || value > MAX_CARDS_PER_ROUND {
             panic_with_error!(env, Error::InvalidCardsPerRound);
         }
         env.storage()
@@ -1730,6 +1736,9 @@ impl LyricsFlip {
         Self::assert_owner(&env, &caller);
         if value < 2 {
             panic_with_error!(env, Error::InvalidMaxPlayers);
+        }
+        if value > MAX_ROUND_PLAYERS {
+            panic_with_error!(env, Error::MaxPlayersTooHigh);
         }
         env.storage().instance().set(&DataKey::MaxPlayers, &value);
     }

@@ -25,8 +25,8 @@ pub const BUILD_QUESTION_CARD_MAX_MEM: u64 = 2_750_000;
 pub const CREATE_SOLO_ROUND_MAX_CPU: u64 = 59_000_000;
 pub const CREATE_SOLO_ROUND_MAX_MEM: u64 = 19_000_000;
 // LF-164
-pub const ANSWER_AND_NEXT_MAX_CPU: u64 = 20_000_000;
-pub const ANSWER_AND_NEXT_MAX_MEM: u64 = 500_000;
+pub const ANSWER_AND_NEXT_MAX_CPU: u64 = 24_000_000;
+pub const ANSWER_AND_NEXT_MAX_MEM: u64 = 7_000_000;
 
 // LF-181: thresholds below are conservative, unmeasured ceilings, not
 // measured-value-plus-headroom like the ones above — getting real numbers
@@ -49,5 +49,3 @@ pub const FINALIZE_ROUND_MAX_MEM: u64 = 15_000_000;
 /// contract.
 pub const CLAIM_REWARD_MAX_CPU: u64 = 15_000_000;
 pub const CLAIM_REWARD_MAX_MEM: u64 = 3_000_000;
-pub const ANSWER_AND_NEXT_MAX_CPU: u64 = 24_000_000;
-pub const ANSWER_AND_NEXT_MAX_MEM: u64 = 7_000_000;

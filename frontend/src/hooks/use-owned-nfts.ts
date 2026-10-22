@@ -3,35 +3,42 @@
 /**
  * useOwnedNfts
  *
- * Returns the list of NFT token IDs (and, once resolved, their metadata URIs)
- * owned by `address` on the LyricsFlip NFT contract.
+ * Returns the NFT badges owned by `address` on the LyricsFlip NFT contract,
+ * each with its milestone kind and display name.
  *
- * Strategy
- * --------
- * The on-chain NFT contract does not expose a "tokens of owner" enumeration,
- * so we reconstruct ownership by iterating token IDs from 0 to `token_count`
- * and comparing each owner to the requested address.  On testnet the token
- * count is expected to stay small (< 100), so a sequential scan is fine;
- * a production indexer can replace this later (LF-019).
- *
- * We also use `claim_reward` and `owner_of` from `SystemCalls` (via
- * `StellarConfig`) to resolve the base URI and build full metadata URLs.
+ * Loading makes exactly two RPC calls however many tokens exist in total
+ * (LF-203):
+ * 1. `simulateTransaction` of `tokens_of_owner(owner, 0, MAX_TOKENS_PER_PAGE)`
+ *    (LF-170) to list the owner's token ids.
+ * 2. One batched `getLedgerEntries` that reads every `TokenKind(id)` entry
+ *    (LF-168) at once, instead of one `token_kind` call per token.
  */
 
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { contract } from '@stellar/stellar-sdk';
-import { StellarWalletsKit } from '@creit.tech/stellar-wallets-kit';
+import { useCallback, useEffect, useState } from 'react';
+import {
+  Account,
+  Address,
+  BASE_FEE,
+  Contract,
+  TransactionBuilder,
+  nativeToScVal,
+  rpc,
+  scValToNative,
+  xdr,
+} from '@stellar/stellar-sdk';
 import { createConfig } from '../lib/stellar/stellar-config';
+import { MILESTONE_NAMES, type Milestone } from '../lib/stellar/types';
 
-// ── Types ──────────────────────────────────────────────────────────────────
+/** Mirrors `MAX_TOKENS_PER_PAGE` in the NFT contract. */
+const MAX_TOKENS_PER_PAGE = 50;
 
 export interface NftMetadata {
   tokenId: bigint;
-  /** Full URL to the token's JSON metadata, e.g. `<baseUri>/<tokenId>`. */
-  metadataUri: string;
-  /** Optional: badge image loaded from `metadataUri` (name field). */
+  /** Milestone the badge represents (`token_kind`). */
+  kind: number;
+  /** Display name for the milestone, when the kind is known. */
   name?: string;
-  /** Optional: badge image URL loaded from `metadataUri` (image field). */
+  /** Optional badge image URL. */
   image?: string;
 }
 
@@ -42,128 +49,87 @@ export interface UseOwnedNftsResult {
   refresh: () => void;
 }
 
-// ── Minimal NFT contract client ────────────────────────────────────────────
-
-type NftContract = {
-  token_count: () => Promise<contract.AssembledTransaction<bigint>>;
-  owner_of: (args: { token_id: bigint }) => Promise<contract.AssembledTransaction<string>>;
-  base_uri: () => Promise<contract.AssembledTransaction<string>>;
-};
-
-function makeSignTransaction(networkPassphrase: string) {
-  return async (xdr: string, opts?: { networkPassphrase?: string; address?: string }) => {
-    const { signedTxXdr, signerAddress } = await StellarWalletsKit.signTransaction(xdr, {
-      networkPassphrase: opts?.networkPassphrase ?? networkPassphrase,
-      address: opts?.address,
-    });
-    return { signedTxXdr, signerAddress };
-  };
+/** Ledger key of the NFT contract's `DataKey::TokenKind(token_id)` entry. */
+function tokenKindKey(contractId: string, tokenId: bigint): xdr.LedgerKey {
+  return xdr.LedgerKey.contractData(
+    new xdr.LedgerKeyContractData({
+      contract: new Address(contractId).toScAddress(),
+      key: xdr.ScVal.scvVec([
+        xdr.ScVal.scvSymbol('TokenKind'),
+        nativeToScVal(tokenId, { type: 'u128' }),
+      ]),
+      durability: xdr.ContractDataDurability.persistent,
+    }),
+  );
 }
 
-async function getNftClient(
-  contractId: string,
-  rpcUrl: string,
-  networkPassphrase: string,
-  publicKey?: string,
-) {
-  return contract.Client.from<NftContract>({
-    contractId,
+export async function fetchOwnedNfts(owner: string): Promise<NftMetadata[]> {
+  const { lyricsflipNftContractId, rpcUrl, networkPassphrase } = createConfig();
+  if (!lyricsflipNftContractId) {
+    throw new Error('NFT contract ID is not configured');
+  }
+  const server = new rpc.Server(rpcUrl, { allowHttp: rpcUrl.startsWith('http://') });
+
+  // RPC call 1: list the owner's token ids. A read-only simulation needs no
+  // funded source account, so the owner's address with sequence 0 is enough.
+  const tx = new TransactionBuilder(new Account(owner, '0'), {
+    fee: BASE_FEE,
     networkPassphrase,
-    rpcUrl,
-    publicKey,
-    signTransaction: makeSignTransaction(networkPassphrase),
-  });
-}
+  })
+    .addOperation(
+      new Contract(lyricsflipNftContractId).call(
+        'tokens_of_owner',
+        nativeToScVal(owner, { type: 'address' }),
+        nativeToScVal(0, { type: 'u32' }),
+        nativeToScVal(MAX_TOKENS_PER_PAGE, { type: 'u32' }),
+      ),
+    )
+    .setTimeout(30)
+    .build();
+  const sim = await server.simulateTransaction(tx);
+  if (rpc.Api.isSimulationError(sim)) {
+    throw new Error(sim.error);
+  }
+  const tokenIds = (sim.result ? scValToNative(sim.result.retval) : []) as bigint[];
+  if (tokenIds.length === 0) {
+    return [];
+  }
 
-// ── Hook ───────────────────────────────────────────────────────────────────
+  // RPC call 2: read every token's kind in one batched request.
+  const keys = tokenIds.map((id) => tokenKindKey(lyricsflipNftContractId, id));
+  const { entries } = await server.getLedgerEntries(...keys);
+  const kindByKey = new Map<string, number>();
+  for (const entry of entries) {
+    if (entry.val.type !== 'contractData') continue;
+    kindByKey.set(
+      entry.key.toXDR('base64'),
+      Number(scValToNative(entry.val.contractData.val)),
+    );
+  }
+
+  return tokenIds
+    .map((tokenId, i) => {
+      // `token_kind` defaults to 0 when no kind was stored.
+      const kind = kindByKey.get(keys[i].toXDR('base64')) ?? 0;
+      return { tokenId, kind, name: MILESTONE_NAMES[kind as Milestone] };
+    })
+    .sort((a, b) => (a.tokenId < b.tokenId ? -1 : a.tokenId > b.tokenId ? 1 : 0));
+}
 
 export function useOwnedNfts(address: string | null | undefined): UseOwnedNftsResult {
   const [nfts, setNfts] = useState<NftMetadata[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const refreshCounter = useRef(0);
 
-  const fetchOwnedNfts = useCallback(async () => {
+  const load = useCallback(async () => {
     if (!address) {
       setNfts([]);
       return;
     }
-
     setIsLoading(true);
     setError(null);
-
     try {
-      const config = createConfig();
-      const { lyricsflipNftContractId, rpcUrl, networkPassphrase } = config;
-
-      if (!lyricsflipNftContractId) {
-        setError('NFT contract ID is not configured');
-        return;
-      }
-
-      const client = await getNftClient(
-        lyricsflipNftContractId,
-        rpcUrl,
-        networkPassphrase,
-        address,
-      );
-
-      // 1. Get total minted token count
-      const countAssembled = await client.token_count();
-      const totalCount = Number(countAssembled.result);
-
-      if (totalCount === 0) {
-        setNfts([]);
-        return;
-      }
-
-      // 2. Get base URI once
-      const baseUriAssembled = await client.base_uri();
-      const baseUri = baseUriAssembled.result.replace(/\/$/, ''); // strip trailing slash
-
-      // 3. Scan all token IDs to find tokens owned by `address`
-      const owned: NftMetadata[] = [];
-
-      await Promise.all(
-        Array.from({ length: totalCount }, (_, i) => BigInt(i)).map(async (tokenId) => {
-          try {
-            const ownerAssembled = await client.owner_of({ token_id: tokenId });
-            if (ownerAssembled.result === address) {
-              owned.push({
-                tokenId,
-                metadataUri: `${baseUri}/${tokenId.toString()}`,
-              });
-            }
-          } catch {
-            // Token may not exist yet; skip silently
-          }
-        }),
-      );
-
-      // Sort by token ID ascending
-      owned.sort((a, b) => (a.tokenId < b.tokenId ? -1 : a.tokenId > b.tokenId ? 1 : 0));
-
-      // 4. Optionally enrich metadata from the token URI (best effort)
-      const enriched = await Promise.all(
-        owned.map(async (nft) => {
-          try {
-            const res = await fetch(nft.metadataUri);
-            if (res.ok) {
-              const data = await res.json();
-              return {
-                ...nft,
-                name: data.name as string | undefined,
-                image: data.image as string | undefined,
-              };
-            }
-          } catch {
-            // Metadata fetch is best-effort; return the token without enrichment
-          }
-          return nft;
-        }),
-      );
-
-      setNfts(enriched);
+      setNfts(await fetchOwnedNfts(address));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch owned NFTs');
     } finally {
@@ -172,13 +138,8 @@ export function useOwnedNfts(address: string | null | undefined): UseOwnedNftsRe
   }, [address]);
 
   useEffect(() => {
-    fetchOwnedNfts();
-  }, [fetchOwnedNfts, refreshCounter.current]);
+    load();
+  }, [load]);
 
-  const refresh = useCallback(() => {
-    refreshCounter.current += 1;
-    fetchOwnedNfts();
-  }, [fetchOwnedNfts]);
-
-  return { nfts, isLoading, error, refresh };
+  return { nfts, isLoading, error, refresh: load };
 }

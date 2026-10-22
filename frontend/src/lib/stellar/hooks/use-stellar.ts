@@ -22,11 +22,26 @@ export interface UseStellarResult {
   warnings: string[];
   connect: () => Promise<void>;
   disconnect: () => Promise<void>;
+  /** True once the user holds a backend session (signed challenge or restored cookie). */
+  isAuthenticated: boolean;
+  authError: Error | null;
+  /** True once the reload-time session restore has finished. */
+  isSessionChecked: boolean;
 }
 
 export function useStellar(): UseStellarResult {
-  const { setup, account, isLoading, error, warnings, connect, disconnect }: StellarContextType =
-    useContext(StellarContext);
+  const {
+    setup,
+    account,
+    isLoading,
+    error,
+    warnings,
+    connect,
+    disconnect,
+    isAuthenticated,
+    authError,
+    isSessionChecked,
+  }: StellarContextType = useContext(StellarContext);
 
   return {
     setup,
@@ -37,5 +52,8 @@ export function useStellar(): UseStellarResult {
     warnings,
     connect,
     disconnect,
+    isAuthenticated,
+    authError,
+    isSessionChecked,
   };
 }

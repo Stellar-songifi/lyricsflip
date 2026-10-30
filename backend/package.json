@@ -40,7 +40,7 @@
     "@nestjs/platform-socket.io": "^10.4.22",
     "@nestjs/schedule": "^4.0.0",
     "@nestjs/swagger": "^7.3.0",
-    "@nestjs/terminus": "^10.2.3",
+    "@nestjs/terminus": "^12.1.0",
     "@nestjs/throttler": "^5.1.2",
     "@nestjs/typeorm": "^10.0.2",
     "@nestjs/websockets": "^10.4.22",

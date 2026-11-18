@@ -6,7 +6,7 @@ extern crate std;
 
 use crate::budget_thresholds::*;
 use crate::{
-    Answer, Card, Genre, LyricsFlip, LyricsFlipClient, Milestone, QuestionKind,
+    Answer, Card, Genre, LyricsFlip, LyricsFlipClient, Milestone, QuestionKind, QuestionMode,
     MAX_CARDS_PER_ROUND, MAX_ROUND_PLAYERS,
 };
 use soroban_sdk::{
@@ -55,7 +55,13 @@ fn setup_full_round(
     cards_per_round: u32,
 ) -> (u64, std::vec::Vec<Address>) {
     client.set_cards_per_round(owner, &cards_per_round);
-    let round_id = client.create_round(owner, &Some(Genre::Pop), &42u64, &None);
+    let round_id = client.create_round(
+        owner,
+        &Some(Genre::Pop),
+        &42u64,
+        &None,
+        &QuestionMode::TitleOnly,
+    );
 
     let mut joiners = std::vec::Vec::new();
     for _ in 1..MAX_ROUND_PLAYERS {
@@ -103,7 +109,13 @@ fn create_round_budget() {
         CREATE_ROUND_MAX_CPU,
         CREATE_ROUND_MAX_MEM,
         || {
-            client.create_round(&owner, &Some(Genre::Pop), &42u64, &None);
+            client.create_round(
+                &owner,
+                &Some(Genre::Pop),
+                &42u64,
+                &None,
+                &QuestionMode::TitleOnly,
+            );
         },
     );
 }
@@ -111,7 +123,13 @@ fn create_round_budget() {
 #[test]
 fn start_round_budget() {
     let (env, client, owner) = setup_catalogue();
-    let round_id = client.create_round(&owner, &Some(Genre::Pop), &42u64, &None);
+    let round_id = client.create_round(
+        &owner,
+        &Some(Genre::Pop),
+        &42u64,
+        &None,
+        &QuestionMode::TitleOnly,
+    );
     let mut players = std::vec::Vec::new();
     for _ in 1..MAX_ROUND_PLAYERS {
         let player = Address::generate(&env);
@@ -249,7 +267,13 @@ fn claim_reward_budget() {
 
     // Win a round as the owner so FirstWin is reached.
     client.set_cards_per_round(&owner, &1u32);
-    let round_id = client.create_round(&owner, &Some(Genre::Pop), &42u64, &None);
+    let round_id = client.create_round(
+        &owner,
+        &Some(Genre::Pop),
+        &42u64,
+        &None,
+        &QuestionMode::TitleOnly,
+    );
     client.start_round(&owner, &round_id);
     let card = client.next_card(&owner, &round_id);
     client.submit_answer(&owner, &round_id, &Answer::Title(card.title.clone()));
@@ -276,7 +300,7 @@ fn create_solo_round_budget() {
         CREATE_SOLO_ROUND_MAX_CPU,
         CREATE_SOLO_ROUND_MAX_MEM,
         || {
-            client.create_solo_round(&owner, &Some(Genre::Pop), &42u64);
+            client.create_solo_round(&owner, &Some(Genre::Pop), &42u64, &QuestionMode::TitleOnly);
         },
     );
 }
@@ -285,7 +309,13 @@ fn create_solo_round_budget() {
 fn answer_and_next_budget() {
     let (env, client, owner) = setup_catalogue();
     client.set_cards_per_round(&owner, &5);
-    let round_id = client.create_round(&owner, &Some(Genre::Pop), &42u64, &None);
+    let round_id = client.create_round(
+        &owner,
+        &Some(Genre::Pop),
+        &42u64,
+        &None,
+        &QuestionMode::TitleOnly,
+    );
     client.start_round(&owner, &round_id);
     let card = client.next_card(&owner, &round_id);
     measure(
@@ -295,6 +325,93 @@ fn answer_and_next_budget() {
         ANSWER_AND_NEXT_MAX_MEM,
         || {
             client.answer_and_next(&owner, &round_id, &Answer::Title(card.title.clone()));
+        },
+    );
+}
+
+/// LF-266: `OpenRounds` uses a count-plus-slot layout, so create and cancel
+/// must cost the same whether there are a handful of open lobbies or a
+/// thousand. Each lobby is created by a distinct address to stay within
+/// `MAX_OPEN_ROUNDS_PER_ADDRESS`.
+#[test]
+fn open_lobbies_budget_stays_flat() {
+    const OPEN_LOBBIES: u32 = 1_000;
+
+    let (env, client, owner) = setup_catalogue();
+
+    // Baseline: create and cancel with only a couple of open lobbies.
+    let first = client.create_round(
+        &owner,
+        &Some(Genre::Pop),
+        &42u64,
+        &None,
+        &QuestionMode::TitleOnly,
+    );
+    measure(
+        &env,
+        "create_round (2 open lobbies)",
+        CREATE_ROUND_MAX_CPU,
+        CREATE_ROUND_MAX_MEM,
+        || {
+            client.create_round(
+                &owner,
+                &Some(Genre::Pop),
+                &42u64,
+                &None,
+                &QuestionMode::TitleOnly,
+            );
+        },
+    );
+    measure(
+        &env,
+        "cancel_round (2 open lobbies)",
+        CANCEL_ROUND_MAX_CPU,
+        CANCEL_ROUND_MAX_MEM,
+        || {
+            client.cancel_round(&owner, &first);
+        },
+    );
+
+    // Fill the open-lobby set with 1,000 distinct creators.
+    let mut creators = std::vec::Vec::new();
+    for _ in 0..OPEN_LOBBIES {
+        let creator = Address::generate(&env);
+        client.create_round(
+            &creator,
+            &Some(Genre::Pop),
+            &42u64,
+            &None,
+            &QuestionMode::TitleOnly,
+        );
+        creators.push(creator);
+    }
+
+    // Create and cancel against the fully-populated set: the cost must not
+    // grow with the number of open lobbies.
+    let last_creator = Address::generate(&env);
+    let mut last_round = 0u64;
+    measure(
+        &env,
+        "create_round (1,000 open lobbies)",
+        CREATE_ROUND_MAX_CPU,
+        CREATE_ROUND_MAX_MEM,
+        || {
+            last_round = client.create_round(
+                &last_creator,
+                &Some(Genre::Pop),
+                &42u64,
+                &None,
+                &QuestionMode::TitleOnly,
+            );
+        },
+    );
+    measure(
+        &env,
+        "cancel_round (1,000 open lobbies)",
+        CANCEL_ROUND_MAX_CPU,
+        CANCEL_ROUND_MAX_MEM,
+        || {
+            client.cancel_round(&last_creator, &last_round);
         },
     );
 }

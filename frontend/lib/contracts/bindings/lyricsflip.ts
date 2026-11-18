@@ -1,10 +1,20 @@
 import { Contract } from '@stellar/stellar-sdk-client';
 
+export type QuestionMode = 'TitleOnly' | 'Mixed' | 'ArtistOnly' | 'YearOnly';
+
 export interface Round {
   pot: bigint;
   status: string;
   winners: string[];
   claimed: string[];
+  question_mode: QuestionMode;
+}
+
+export interface PlayerStats {
+  rounds_played: number;
+  rounds_won: number;
+  solo_rounds_completed: number;
+  solo_best_score: number;
 }
 
 export interface Config {
@@ -17,6 +27,13 @@ export interface Config {
 export interface CreateRoundParams {
   round_id: bigint;
   pot: bigint;
+  question_mode: QuestionMode;
+}
+
+export interface CreateSoloRoundParams {
+  round_id: bigint;
+  pot: bigint;
+  question_mode: QuestionMode;
 }
 
 export interface SettleRoundParams {
@@ -66,6 +83,14 @@ export class LyricsFlipContract {
 
   async create_round(params: CreateRoundParams) {
     return this.contract.call('create_round', params);
+  }
+
+  async create_solo_round(params: CreateSoloRoundParams) {
+    return this.contract.call('create_solo_round', params);
+  }
+
+  async get_player_stats(params: { player: string }) {
+    return this.contract.call('get_player_stats', params);
   }
 
   async settle_round(params: SettleRoundParams) {

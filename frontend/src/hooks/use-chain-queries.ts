@@ -15,6 +15,18 @@ import {
 } from '@/lib/react-query';
 
 /**
+ * Player stats as surfaced to the UI.
+ *
+ * `rounds_won` only counts multiplayer wins (solo rounds are excluded on-chain),
+ * while solo activity is reported separately via `solo_rounds_completed` and
+ * `solo_best_score` so the stats panel can render them independently.
+ */
+export type PlayerStatsView = PlayerStats & {
+  solo_rounds_completed: number;
+  solo_best_score: number;
+};
+
+/**
  * Shape of the read/mutation functions exposed by `systemCalls`.
  * Kept intentionally loose so the hooks work with the existing client.
  */
@@ -70,13 +82,20 @@ export function useRound(
 
 export function usePlayerStats(
   address: string | undefined,
-  options?: QueryOpts<PlayerStats>,
+  options?: QueryOpts<PlayerStatsView>,
 ) {
   const { systemCalls, contractId } = useChainContext();
 
-  return useQuery<PlayerStats, Error, PlayerStats, readonly unknown[]>({
+  return useQuery<PlayerStatsView, Error, PlayerStatsView, readonly unknown[]>({
     queryKey: queryKeys.playerStats(contractId, address ?? ''),
-    queryFn: () => systemCalls.getPlayerStats(address as string),
+    queryFn: async () => {
+      const stats = await systemCalls.getPlayerStats(address as string);
+      return {
+        ...stats,
+        solo_rounds_completed: stats.solo_rounds_completed ?? 0,
+        solo_best_score: stats.solo_best_score ?? 0,
+      };
+    },
     enabled: Boolean(address),
     ...options,
   });

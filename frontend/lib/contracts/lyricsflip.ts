@@ -15,6 +15,15 @@ export interface Config {
   fee_bps: number;
 }
 
+export type QuestionMode = 'TitleOnly' | 'Mixed' | 'ArtistOnly' | 'YearOnly';
+
+export interface PlayerStats {
+  rounds_played: number;
+  rounds_won: number;
+  solo_rounds_completed: number;
+  solo_best_score: number;
+}
+
 export class LyricsFlipClient {
   private contract: LyricsFlipContract;
 
@@ -48,11 +57,34 @@ export class LyricsFlipClient {
   /**
    * Create a round. Note there is no `seed` argument: the contract uses
    * the network PRNG to draw cards, so callers cannot influence the deal.
+   *
+   * `questionMode` selects which question kinds are asked. In `Mixed`
+   * rounds the contract picks title/artist/year per card with the PRNG.
    */
-  async createRound(params: { roundId: bigint; pot: bigint }): Promise<void> {
+  async createRound(params: {
+    roundId: bigint;
+    pot: bigint;
+    questionMode?: QuestionMode;
+  }): Promise<void> {
     await this.contract.create_round({
       round_id: params.roundId,
       pot: params.pot,
+      question_mode: params.questionMode ?? 'TitleOnly',
+    });
+  }
+
+  /**
+   * Create a solo round. Solo rounds do not count toward multiplayer
+   * win milestones (`FirstWin`, `TenWins`); they track
+   * `solo_rounds_completed` / `solo_best_score` instead.
+   */
+  async createSoloRound(params: {
+    roundId: bigint;
+    questionMode?: QuestionMode;
+  }): Promise<void> {
+    await this.contract.create_solo_round({
+      round_id: params.roundId,
+      question_mode: params.questionMode ?? 'TitleOnly',
     });
   }
 
@@ -99,5 +131,22 @@ export class LyricsFlipClient {
       amount,
     });
     return result.result;
+  }
+
+  /**
+   * Read a player's stats. `rounds_won` only counts multiplayer wins;
+   * solo performance is reported separately via `solo_rounds_completed`
+   * and `solo_best_score`.
+   */
+  async getPlayerStats(player: string): Promise<PlayerStats> {
+    const result = await this.contract.get_player_stats({
+      player: NativeToScval.addressToScval(player),
+    });
+    return {
+      rounds_played: Number(result.result.rounds_played),
+      rounds_won: Number(result.result.rounds_won),
+      solo_rounds_completed: Number(result.result.solo_rounds_completed),
+      solo_best_score: Number(result.result.solo_best_score),
+    };
   }
 }

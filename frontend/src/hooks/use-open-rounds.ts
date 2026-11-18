@@ -150,6 +150,11 @@ export function useOpenRounds({
         }),
       );
 
+      // The contract stores open rounds in a count-plus-slot layout, so the
+      // order of `get_open_rounds` is not stable across calls (slots are
+      // reused after a round is removed or cleaned up). Sort by id for a
+      // deterministic UI order, and drop ids that vanished between the list
+      // read and the per-round reads.
       return enriched
         .filter((entry): entry is OpenRound => entry !== null)
         .filter((entry) => !entry.isExpired && !entry.isFull)
@@ -209,6 +214,8 @@ export function useOpenRounds({
         }
 
         if (response.events.length > 0) {
+          // Any lobby event may have removed a round (cancel, start, or the
+          // contract's expired-lobby cleanup), so always re-read the list.
           await queryClient.invalidateQueries({ queryKey });
         }
       } catch {

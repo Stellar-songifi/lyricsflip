@@ -47,6 +47,11 @@ pub struct PlayerStats {
     pub rounds_won: u64,
     pub current_streak: u64,
     pub max_streak: u64,
+    /// LF-273: number of solo rounds the player has finished. Solo rounds do
+    /// not count towards `rounds_won` or the multiplayer milestones.
+    pub solo_rounds_completed: u32,
+    /// LF-273: best score achieved in a solo round.
+    pub solo_best_score: u64,
 }
 
 impl PlayerStats {
@@ -56,6 +61,32 @@ impl PlayerStats {
             rounds_won: 0,
             current_streak: 0,
             max_streak: 0,
+            solo_rounds_completed: 0,
+            solo_best_score: 0,
+        }
+    }
+}
+
+/// Schema v4 `PlayerStats` layout (pre LF-273): no solo counters.
+/// `read_player_stats` lazily re-encodes stored v4 entries as `PlayerStats`.
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct PlayerStatsV4 {
+    pub total_rounds: u64,
+    pub rounds_won: u64,
+    pub current_streak: u64,
+    pub max_streak: u64,
+}
+
+impl From<PlayerStatsV4> for PlayerStats {
+    fn from(s: PlayerStatsV4) -> Self {
+        Self {
+            total_rounds: s.total_rounds,
+            rounds_won: s.rounds_won,
+            current_streak: s.current_streak,
+            max_streak: s.max_streak,
+            solo_rounds_completed: 0,
+            solo_best_score: 0,
         }
     }
 }
@@ -152,6 +183,8 @@ pub struct Round {
     pub is_private: bool,
     /// LF-163: solo rounds skip OpenRounds and start in the same call.
     pub solo: bool,
+    /// LF-269: which question kinds this round asks.
+    pub question_mode: QuestionMode,
 }
 
 #[contracttype]
@@ -187,12 +220,14 @@ impl From<LegacyRound> for Round {
             round_duration: 300,
             is_private: false,
             solo: false,
+            question_mode: QuestionMode::TitleOnly,
         }
     }
 }
 
-/// Schema v3 round layout (pre LF-162/163): `Round` without `is_private` and
-/// `solo`. `read_round` lazily re-encodes stored v3 entries as `Round`.
+/// Schema v3 round layout (pre LF-162/163): `Round` without `is_private`,
+/// `solo` and `question_mode`. `read_round` lazily re-encodes stored v3
+/// entries as `Round`.
 #[contracttype]
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct RoundV3 {
@@ -209,6 +244,8 @@ pub struct RoundV3 {
     pub answer_window: u64,
     pub lobby_timeout: u64,
     pub round_duration: u64,
+    /// LF-269: question kind mix for the round.
+    pub question_mode: QuestionMode,
 }
 
 impl From<RoundV3> for Round {
@@ -229,6 +266,52 @@ impl From<RoundV3> for Round {
             round_duration: r.round_duration,
             is_private: false,
             solo: false,
+            question_mode: r.question_mode,
+        }
+    }
+}
+
+/// Schema v4 round layout (pre LF-269): `Round` without `question_mode`.
+/// `read_round` lazily re-encodes stored v4 entries as `Round`.
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct RoundV4 {
+    pub round_id: u64,
+    pub admin: Address,
+    pub genre: Genre,
+    pub wager_amount: i128,
+    pub start_time: u64,
+    pub is_started: bool,
+    pub is_completed: bool,
+    pub end_time: u64,
+    pub next_card_index: u32,
+    pub is_cancelled: bool,
+    pub answer_window: u64,
+    pub lobby_timeout: u64,
+    pub round_duration: u64,
+    pub is_private: bool,
+    pub solo: bool,
+}
+
+impl From<RoundV4> for Round {
+    fn from(r: RoundV4) -> Self {
+        Self {
+            round_id: r.round_id,
+            admin: r.admin,
+            genre: r.genre,
+            wager_amount: r.wager_amount,
+            start_time: r.start_time,
+            is_started: r.is_started,
+            is_completed: r.is_completed,
+            end_time: r.end_time,
+            next_card_index: r.next_card_index,
+            is_cancelled: r.is_cancelled,
+            answer_window: r.answer_window,
+            lobby_timeout: r.lobby_timeout,
+            round_duration: r.round_duration,
+            is_private: r.is_private,
+            solo: r.solo,
+            question_mode: QuestionMode::TitleOnly,
         }
     }
 }
@@ -255,6 +338,18 @@ pub enum QuestionKind {
     Title = 0,
     Artist = 1,
     Year = 2,
+}
+
+/// LF-269: which question kinds a round asks. `Mixed` picks a kind per card
+/// with the PRNG and stores it under `DataKey::RoundCardKind`.
+/// Keep `frontend/src/lib/stellar/types.ts`'s `QUESTION_MODE_VALUES` in sync.
+#[contracttype]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum QuestionMode {
+    TitleOnly = 0,
+    Mixed = 1,
+    ArtistOnly = 2,
+    YearOnly = 3,
 }
 
 #[contracttype]
@@ -339,9 +434,16 @@ pub enum DataKey {
     PlayerStats(Address),
     RoundReady((u64, Address)),
     RoundReadyCount(u64),
-    /// Ids of rounds that have been created but not yet started, in creation
-    /// order. Backs the multiplayer lobby's `get_open_rounds` view.
-    OpenRounds,
+    /// LF-266: number of joinable (open) rounds. Open rounds are stored as a
+    /// count plus one slot per round (like `CardAt`/`CardPos`) so insert and
+    /// remove are O(1) regardless of how many lobbies are open.
+    OpenRoundsCount,
+    /// LF-266: round id stored in open-round slot `u32`.
+    OpenRoundAt(u32),
+    /// LF-266: slot an open round currently occupies (for O(1) removal).
+    OpenRoundPos(u64),
+    /// LF-269: question kind chosen for card `u32` of round `u64`.
+    RoundCardKind((u64, u32)),
     /// Global cap on players per round (owner-configurable).
     MaxPlayers,
     /// Ledger timestamp at which a round was created; drives the lobby timeout.

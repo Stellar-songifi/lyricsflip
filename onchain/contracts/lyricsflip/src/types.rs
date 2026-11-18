@@ -387,5 +387,5 @@ pub struct AnswerResult {
     pub correct: bool,
     pub points: u64,
     pub correct_option: u32,
-    pub next: Vec<Card>,
+    pub next: Option<QuestionCard>,
 }

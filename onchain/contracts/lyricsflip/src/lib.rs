@@ -30,7 +30,7 @@ use soroban_sdk::{
 };
 
 /// Bumped on every release that changes the contract's code; see `upgrade`.
-pub const VERSION: u32 = 1;
+pub const VERSION: u32 = 2;
 /// Current persisted storage layout. Kept separate from the code version.
 pub const SCHEMA_VERSION: u32 = 4;
 
@@ -315,32 +315,31 @@ impl LyricsFlip {
         scores
     }
 
-    /// Finalizes a round.
+    /// Finalizes a round after authenticating and checking participation/readiness.
     pub fn finalize_round(env: Env, caller: Address, round_id: u64) {
         caller.require_auth();
-        let round = Self::read_round(&env, round_id);
         if !Self::is_round_player(&env, round_id, &caller) {
             panic_with_error!(env, Error::NotAParticipant);
         }
+        Self::finalize_round_internal(&env, round_id);
+    }
+
+    /// Auth-free finalization used by combined entry points after their single
+    /// caller authentication frame has already been established.
+    fn finalize_round_internal(env: &Env, round_id: u64) {
+        let round = Self::read_round(env, round_id);
         if round.is_cancelled {
             panic_with_error!(env, Error::RoundCancelled);
         }
-        if env
-            .storage()
-            .persistent()
-            .get(&DataKey::RoundFinalized(round_id))
-            .unwrap_or(false)
-        {
+        if env.storage().persistent().get(&DataKey::RoundFinalized(round_id)).unwrap_or(false) {
             panic_with_error!(env, Error::RoundAlreadyFinalized);
         }
-
         let now = env.ledger().timestamp();
-        let is_all_cards_answered = Self::are_all_required_answers_submitted(&env, round_id);
+        let is_all_cards_answered = Self::are_all_required_answers_submitted(env, round_id);
         let is_past_deadline = round.end_time != 0 && now >= round.end_time;
         if !is_all_cards_answered && !is_past_deadline {
             panic_with_error!(env, Error::RoundNotReady);
         }
-
         // Record when the round actually ended: now if everyone finished
         // early, otherwise the (already passed) deadline.
         let mut round = round;
@@ -389,8 +388,7 @@ impl LyricsFlip {
         bump_persistent(&env, &DataKey::RoundFinalized(round_id));
         // LF-176: the round no longer constrains `update_card` on its cards.
         Self::clear_live_rounds(&env, round_id);
-        bump_instance(&env);
-    }
+        bump_instance(&env);    }
 
     /// Number of live (added and not removed) cards.
     pub fn get_cards_count(env: Env) -> u64 {
@@ -1196,9 +1194,16 @@ impl LyricsFlip {
     /// already finalized". The `is_completed` flag is set only by
     /// `finalize_round`, so players can still answer the last drawn card
     /// after this function returns it.
-    pub fn next_card(env: Env, caller: Address, round_id: u64) -> Card {
+    pub fn next_card(env: Env, caller: Address, round_id: u64) -> QuestionCard {
         caller.require_auth();
-        Self::next_card_internal(&env, &caller, round_id)
+        let card = Self::next_card_internal(&env, &caller, round_id);
+        let index = env
+            .storage()
+            .persistent()
+            .get::<_, u32>(&DataKey::PlayerCardIndex((round_id, caller)))
+            .unwrap_or(1)
+            .saturating_sub(1);
+        Self::build_question_card(env, card, round_id.wrapping_add(index as u64), QuestionKind::Title)
     }
 
     /// LF-164: auth-free body of `next_card` so `answer_and_next` can draw the
@@ -1615,139 +1620,11 @@ impl LyricsFlip {
         .publish(&env);
     }
 
-    /// Submits a round answer.
+    /// Submits a round answer through the shared scoring implementation.
     pub fn submit_answer(env: Env, caller: Address, round_id: u64, answer: Answer) -> bool {
         caller.require_auth();
-        if !Self::is_round_player(&env, round_id, &caller) {
-            panic_with_error!(env, Error::NotAParticipant);
-        }
-
-        let round = Self::read_round(&env, round_id);
-        if !round.is_started {
-            panic_with_error!(env, Error::RoundNotStarted);
-        }
-        if env
-            .storage()
-            .persistent()
-            .get(&DataKey::RoundFinalized(round_id))
-            .unwrap_or(false)
-        {
-            panic_with_error!(env, Error::RoundAlreadyFinalized);
-        }
-        if round.is_completed || env.ledger().timestamp() >= round.end_time {
-            panic_with_error!(env, Error::RoundCompleted);
-        }
-        // LF-003: do NOT block on round.is_completed here. is_completed is
-        // set only by finalize_round (which is guarded by RoundAlreadyFinalized
-        // above). The old `round.is_completed` check fired as soon as the last
-        // card was drawn, preventing players from ever answering it.
-        let player_index: u32 = env
-            .storage()
-            .persistent()
-            .get(&DataKey::PlayerCardIndex((round_id, caller.clone())))
-            .unwrap_or(0);
-        if player_index == 0 {
-            panic_with_error!(env, Error::NoActiveCard);
-        }
-
-        let current_index = player_index - 1;
-        let round_cards = Self::read_round_cards(&env, round_id);
-        let current_card_id = round_cards.get(current_index).unwrap();
-        let current_card = Self::read_card(&env, current_card_id);
-
-        let answered_key =
-            DataKey::RoundPlayerAnswered((round_id, caller.clone(), current_card_id));
-        // LF-004: reject duplicate answers with a hard error instead of
-        // silently returning false. A silent false let the caller guess
-        // every option in a loop until one returned true, and let repeated
-        // correct answers farm current_streak / max_streak indefinitely.
-        if env
-            .storage()
-            .persistent()
-            .get(&answered_key)
-            .unwrap_or(false)
-        {
-            panic_with_error!(env, Error::AlreadyAnswered);
-        }
-        env.storage().persistent().set(&answered_key, &true);
-        bump_persistent(&env, &answered_key);
-
-        let answer_started_at: u64 = env
-            .storage()
-            .persistent()
-            .get(&DataKey::PlayerCardStartedAt((
-                round_id,
-                caller.clone(),
-                current_card_id,
-            )))
-            .unwrap_or(round.start_time);
-        let answer_time = env.ledger().timestamp().saturating_sub(answer_started_at);
-        let answer_times = Self::read_round_answer_times(&env, round_id);
-        let mut answer_times = answer_times;
-        let total_time = answer_times.get(caller.clone()).unwrap_or(0u64);
-        answer_times.set(caller.clone(), total_time + answer_time);
-        env.storage()
-            .persistent()
-            .set(&DataKey::RoundAnswerTimes(round_id), &answer_times);
-        bump_persistent(&env, &DataKey::RoundAnswerTimes(round_id));
-
-        // Answers after the card window are scored as wrong (not rejected),
-        // so the player still counts as having answered the card.
-        let is_answer_correct = answer_time <= round.answer_window
-            && match answer {
-                Answer::Artist(value) => value == current_card.artist,
-                Answer::Year(value) => value == current_card.year,
-                Answer::Title(value) => value == current_card.title,
-            };
-
-        let points = if is_answer_correct {
-            MAX_CORRECT_POINTS
-                .saturating_sub(
-                    answer_time
-                        .saturating_sub(FIRST_LEDGER_GRACE_SECONDS)
-                        .saturating_mul(POINTS_DECAY_PER_SECOND),
-                )
-                .max(MIN_CORRECT_POINTS)
-                .saturating_mul(current_card.difficulty as u64)
-        } else {
-            0
-        };
-
-        let mut scores = Self::read_round_scores(&env, round_id);
-        if is_answer_correct {
-            let score = scores.get(caller.clone()).unwrap_or(0u64);
-            scores.set(caller.clone(), score + points);
-            env.storage()
-                .persistent()
-                .set(&DataKey::RoundScores(round_id), &scores);
-            bump_persistent(&env, &DataKey::RoundScores(round_id));
-        }
-
-        let mut stats = Self::get_player_stat(env.clone(), caller.clone());
-        if is_answer_correct {
-            stats.current_streak += 1;
-            if stats.current_streak > stats.max_streak {
-                stats.max_streak = stats.current_streak;
-            }
-        } else {
-            stats.current_streak = 0;
-        }
-        env.storage()
-            .persistent()
-            .set(&DataKey::PlayerStats(caller.clone()), &stats);
-        bump_persistent(&env, &DataKey::PlayerStats(caller.clone()));
-
-        AnswerSubmitted {
-            round_id,
-            player: caller,
-            correct: is_answer_correct,
-            points,
-        }
-        .publish(&env);
-
-        is_answer_correct
+        Self::submit_answer_internal(&env, &caller, round_id, &answer).0
     }
-
     /// Sets the max players.
     pub fn set_max_players(env: Env, caller: Address, value: u32) {
         caller.require_auth();
@@ -2817,38 +2694,73 @@ impl LyricsFlip {
         choice: Answer,
     ) -> AnswerResult {
         caller.require_auth();
-
-        let (correct, points) =
-            Self::submit_answer_internal(&env, &caller, round_id, &choice);
-
-        let next_index: u32 = env
+        let player_index = env
             .storage()
             .persistent()
-            .get(&DataKey::PlayerCardIndex((round_id, caller.clone())))
+            .get::<_, u32>(&DataKey::PlayerCardIndex((round_id, caller.clone())))
             .unwrap_or(0);
-
+        let current_index = player_index.saturating_sub(1);
+        let round_cards = Self::read_round_cards(&env, round_id);
+        let current_card_id = round_cards
+            .get(current_index)
+            .unwrap_or_else(|| panic_with_error!(env, Error::NoActiveCard));
+        let current_card = Self::read_card(&env, current_card_id);
+        let kind = match &choice {
+            Answer::Title(_) => QuestionKind::Title,
+            Answer::Artist(_) => QuestionKind::Artist,
+            Answer::Year(_) => QuestionKind::Year,
+        };
+        let (correct, points) = Self::submit_answer_internal(&env, &caller, round_id, &choice);
+        // The question is reconstructed only after recording the answer, so its
+        // correct option cannot be used to leak the active answer early.
+        let answered_question = Self::build_question_card(
+            env.clone(),
+            current_card,
+            round_id.wrapping_add(current_index as u64),
+            kind,
+        );
+        let correct_option = Self::correct_option(&env, &answered_question, &choice);
+        let next_index = env
+            .storage()
+            .persistent()
+            .get::<_, u32>(&DataKey::PlayerCardIndex((round_id, caller.clone())))
+            .unwrap_or(0);
         let round_cards = Self::read_round_cards(&env, round_id);
         let round = Self::read_round(&env, round_id);
-
         let next = if (next_index as u64) < (round_cards.len() as u64) {
-            let mut v = Vec::new(&env);
-            v.push_back(Self::next_card_internal(&env, &caller, round_id));
-            v
+            let card = Self::next_card_internal(&env, &caller, round_id);
+            let question = Self::build_question_card(
+                &env,
+                card,
+                round_id.wrapping_add(next_index as u64),
+                QuestionKind::Title,
+            );
+            Some(question)
         } else {
             let ready = Self::are_all_required_answers_submitted(&env, round_id);
             let past = round.end_time != 0 && env.ledger().timestamp() >= round.end_time;
             if ready || past {
-                Self::finalize_round(env.clone(), caller.clone(), round_id);
+                Self::finalize_round_internal(&env, round_id);
             }
-            Vec::new(&env)
+            None
         };
-
-        AnswerResult { correct, points, correct_option: 0, next }
+        AnswerResult { correct, points, correct_option, next }
     }
 }
-
 // Private helpers shared by the exported entry points above.
 impl LyricsFlip {
+    fn correct_option(env: &Env, question: &QuestionCard, choice: &Answer) -> u32 {
+        let matches = |option: &String| match choice {
+            Answer::Title(value) | Answer::Artist(value) => option == value,
+            Answer::Year(value) => option == &Self::u64_to_string(env, *value),
+        };
+        let options = [&question.option_one, &question.option_two, &question.option_three, &question.option_four];
+        for (index, option) in options.iter().enumerate() {
+            if matches(option) { return (index + 1) as u32; }
+        }
+        0
+    }
+
     fn submit_answer_internal(
         env: &Env,
         caller: &Address,
@@ -2902,7 +2814,7 @@ impl LyricsFlip {
         env.storage().persistent().set(&DataKey::RoundAnswerTimes(round_id), &times);
         bump_persistent(env, &DataKey::RoundAnswerTimes(round_id));
 
-        let is_correct = answer_time <= CARD_ANSWER_WINDOW_SECONDS
+        let is_correct = answer_time <= round.answer_window
             && match answer {
                 Answer::Artist(v) => *v == current_card.artist,
                 Answer::Year(v) => *v == current_card.year,
@@ -2953,4 +2865,3 @@ impl LyricsFlip {
         (is_correct, points)
     }
 }
-

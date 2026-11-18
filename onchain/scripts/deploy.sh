@@ -90,10 +90,14 @@ log "Building contracts for wasm32v1-none…"
 )
 
 LYRICSFLIP_WASM="${ONCHAIN_DIR}/target/wasm32v1-none/release/lyricsflip.wasm"
+ESCROW_WASM="${ONCHAIN_DIR}/target/wasm32v1-none/release/lyricsflip_escrow.wasm"
 NFT_WASM="${ONCHAIN_DIR}/target/wasm32v1-none/release/lyricsflip_nft.wasm"
 
 if [[ ! -f "${LYRICSFLIP_WASM}" ]]; then
   echo "ERROR: lyricsflip.wasm not found after build."; exit 1
+fi
+if [[ ! -f "${ESCROW_WASM}" ]]; then
+  echo "ERROR: lyricsflip-escrow.wasm not found after build."; exit 1
 fi
 if [[ ! -f "${NFT_WASM}" ]]; then
   echo "ERROR: lyricsflip_nft.wasm not found after build."; exit 1
@@ -178,6 +182,7 @@ fi
   fi
   echo "NEXT_PUBLIC_LYRICSFLIP_CONTRACT_ID=${LYRICSFLIP_CONTRACT_ID}"
   echo "NEXT_PUBLIC_LYRICSFLIP_NFT_CONTRACT_ID=${NFT_CONTRACT_ID}"
+  echo "NEXT_PUBLIC_LYRICSFLIP_ESCROW_CONTRACT_ID=${ESCROW_CONTRACT_ID}"
   if [[ -n "${RPC_URL}" ]]; then
     echo "NEXT_PUBLIC_SOROBAN_RPC_URL=${RPC_URL}"
     echo "NEXT_PUBLIC_NETWORK_PASSPHRASE=${NETWORK_PASSPHRASE}"

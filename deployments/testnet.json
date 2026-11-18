@@ -10,5 +10,6 @@
   "wasm": {
     "lyricsflip": "",
     "lyricsflipNft": ""
-  }
+  },
+  "lyricsflipEscrow": ""
 }

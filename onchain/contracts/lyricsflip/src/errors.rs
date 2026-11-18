@@ -105,4 +105,7 @@ pub enum Error {
     TooManyOpenRounds = 45,
     /// LF-154: `set_max_players` got a value above `MAX_ROUND_PLAYERS`.
     MaxPlayersTooHigh = 46,
+    /// LF-265: the lobby is older than `round.lobby_timeout`; it can only be
+    /// cancelled, not joined, started, or listed.
+    LobbyExpired = 47,
 }

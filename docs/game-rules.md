@@ -97,6 +97,36 @@ Winners are chosen by `complete_round(...)` / `settle_round(...)` in this order:
 4. If **every** player scores zero, the round has **no winners**.
 
 Each winner's `rounds_won` in `PlayerStats` is incremented by **1** (see LF-005).
+Shared co-winners **each** receive the increment — a tie does not divide the win.
+
+### Decision Table
+
+The table below is the normative specification for `determine_round_winners` and
+`finalize_round`. Every row has a corresponding test in
+[`contracts/game/src/lib.rs`](../contracts/game/src/lib.rs).
+
+| # | Scenario | Winner selection | `rounds_won` | Pot payout |
+| --- | --- | --- | --- | --- |
+| 1 | One player has the strictly highest score | That player alone | +1 to the winner | Entire payout to the winner |
+| 2 | Two or more players tie on the highest score, but one has a strictly lower total answer time | The fastest of the tied players alone | +1 to that player | Entire payout to that player |
+| 3 | Two or more players tie on both the highest score **and** total answer time | All tied players are co-winners | +1 to **each** co-winner | Payout split **evenly**; integer-division dust goes to the co-winners with the **lowest player index**, one token each, in index order |
+| 4 | Every player scores zero | No winners | No change | No payout; the pool stays in escrow (refund path is LF-135) |
+| 5 | A player never submits any answer | Scores zero and total answer time counts only submitted answers (0s if none) | Only changes if they win | Only paid if they win |
+| 6 | A player answers every card correctly but slowly, another answers fewer cards quickly | Highest **total score** wins; slowness only breaks ties, it never overrides a higher score | +1 to the higher scorer | Entire payout to the higher scorer |
+| 7 | Solo round (one player) with a non-zero score | The solo player wins | +1 | Entire payout to the solo player |
+| 8 | Solo round (one player) with a zero score | No winners (row 4 applies) | No change | No payout |
+| 9 | A winner has left / is no longer a registered player at finalization | The winner is still recorded in `winners` and still gets `rounds_won`; the payout is skipped for that entry and remains in escrow | +1 to the departed winner | Departed winner's share is **not** transferred; it stays in escrow |
+
+Notes:
+
+- **Ties are common.** Total answer time comes from ledger timestamps, which advance in
+  roughly 5s steps, so row 3 is the normal outcome for equally fast players.
+- **Dust rule.** With `n` co-winners and payout `P`, each receives `P / n`; the remaining
+  `P % n` tokens are handed out one at a time to co-winners in ascending player-index
+  order. This matches the escrow split in `finalize_round`.
+- **Non-answering players** are never rejected from the round; they simply score zero
+  (row 5) and can still win a round in which everyone scores zero only if row 4 did not
+  apply — it always does, so they never win a zero-score round.
 
 ## Fees & Payouts
 
@@ -142,9 +172,10 @@ increases by 1.
 ### Tie-break illustration
 
 Suppose Ada and Bo had both scored **185**. Ada's total answer time is **13s** and Bo's
-is **18s**, so Ada still wins on the lower total answer time. If both had scored 185
-*and* both had a total answer time of 13s, they would be **shared co-winners** and each
-would gain +1 `rounds_won`.
+is **18s**, so Ada still wins on the lower total answer time (decision table row 2). If
+both had scored 185 *and* both had a total answer time of 13s, they would be **shared
+co-winners** (row 3): each would gain +1 `rounds_won`, and the 950-token payout would be
+split 475 / 475. Had the payout been 951, Ada (lower index) would receive 476 and Bo 475.
 
 ### Fee & payout
 
@@ -171,3 +202,4 @@ would gain +1 `rounds_won`.
 - LF-135 — wager escrow (**planned**)
 - LF-177 — card difficulty (**planned**)
 - LF-246 — this document rewrite
+- LF-271 — tie-breaking and edge-case decision table

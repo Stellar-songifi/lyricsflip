@@ -1,6 +1,7 @@
 #![no_std]
 
 mod errors;
+mod events;
 mod types;
 
 #[cfg(any(test, feature = "testutils"))]
@@ -12,34 +13,22 @@ mod test;
 pub use errors::Error;
 pub use types::{Config, Round, RoundStatus};
 
-use soroban_sdk::{contract, contractimpl, symbol_short, token, Address, Env, Vec};
+use events::{Cancelled, Claimed, Deposited, EscrowRoundCreated, Locked, Refunded, Settled, Swept};
+use soroban_sdk::{contract, contractimpl, symbol_short, token, Address, Env, Map, Vec};
 
-/// Storage key for the protocol configuration (instance storage).
 const CONFIG: soroban_sdk::Symbol = symbol_short!("CONFIG");
-/// Storage key prefix for per-round data (persistent storage).
 const ROUND: soroban_sdk::Symbol = symbol_short!("ROUND");
-/// Denominator for basis-point fee calculations (100% = 10 000 bps).
 const BPS_DENOM: i128 = 10_000;
-
-// ---------------------------------------------------------------------------
-// Contract
-// ---------------------------------------------------------------------------
+const DEFAULT_CLAIM_DEADLINE: u64 = 90 * 24 * 60 * 60;
+const LIFETIME_THRESHOLD: u32 = 30 * 24 * 60 * 60;
+const BUMP_AMOUNT: u32 = 30 * 24 * 60 * 60;
 
 #[contract]
 pub struct EscrowContract;
 
 #[contractimpl]
 impl EscrowContract {
-    // -----------------------------------------------------------------------
-    // Lifecycle
-    // -----------------------------------------------------------------------
-
-    /// One-time initialisation.
-    ///
-    /// * `owner`    – address of the game contract; the only caller allowed to
-    ///               create or settle rounds.
-    /// * `treasury` – address that receives the protocol fee on each payout.
-    /// * `fee_bps`  – protocol fee in basis points (0–10 000).
+    /// Initialise the escrow owner, treasury, fee, and default claim window.
     pub fn initialize(
         env: Env,
         owner: Address,
@@ -58,16 +47,13 @@ impl EscrowContract {
                 owner,
                 treasury,
                 fee_bps,
+                claim_deadline: DEFAULT_CLAIM_DEADLINE,
             },
         );
+        bump_instance(&env);
         Ok(())
     }
 
-    // -----------------------------------------------------------------------
-    // Admin (owner = game contract)
-    // -----------------------------------------------------------------------
-
-    /// Update the protocol fee.  Requires the game-contract address to auth.
     pub fn set_fee(env: Env, fee_bps: u32) -> Result<(), Error> {
         let mut config = Self::load_config(&env)?;
         config.owner.require_auth();
@@ -76,31 +62,33 @@ impl EscrowContract {
         }
         config.fee_bps = fee_bps;
         env.storage().instance().set(&CONFIG, &config);
+        bump_instance(&env);
         Ok(())
     }
 
-    /// Update the treasury address.  Requires the game-contract address to auth.
     pub fn set_treasury(env: Env, treasury: Address) -> Result<(), Error> {
         let mut config = Self::load_config(&env)?;
         config.owner.require_auth();
         config.treasury = treasury;
         env.storage().instance().set(&CONFIG, &config);
+        bump_instance(&env);
         Ok(())
     }
 
-    // -----------------------------------------------------------------------
-    // Round management (owner-gated)
-    // -----------------------------------------------------------------------
+    /// Set the claim window for rounds settled after this update.
+    pub fn set_claim_deadline(env: Env, seconds: u64) -> Result<(), Error> {
+        if seconds == 0 {
+            return Err(Error::InvalidAmount);
+        }
+        let mut config = Self::load_config(&env)?;
+        config.owner.require_auth();
+        config.claim_deadline = seconds;
+        env.storage().instance().set(&CONFIG, &config);
+        bump_instance(&env);
+        Ok(())
+    }
 
-    /// Register an escrow pot for a new round.
-    ///
-    /// Only the game contract (the `owner`) may call this.  Callers must
-    /// transfer `pot` tokens to this contract's address before calling.
-    ///
-    /// * `round_id` – id of the matching on-chain round in the game contract.
-    /// * `creator`  – address of the round creator in the game contract.
-    /// * `token`    – SEP-41 token contract address used for the pot.
-    /// * `pot`      – amount (in the token's base units) held in escrow.
+    /// Register a round whose initial pot has already been transferred here.
     pub fn create_round(
         env: Env,
         round_id: u64,
@@ -108,166 +96,282 @@ impl EscrowContract {
         token: Address,
         pot: i128,
     ) -> Result<(), Error> {
-        // Only the game contract is authorised to open an escrow round.
         let config = Self::load_config(&env)?;
         config.owner.require_auth();
-
-        // Prevent overwriting an existing round.
-        if env
-            .storage()
-            .persistent()
-            .has(&(ROUND, round_id))
-        {
+        if pot < 0 {
+            return Err(Error::InvalidAmount);
+        }
+        if env.storage().persistent().has(&(ROUND, round_id)) {
             return Err(Error::RoundAlreadyExists);
         }
 
-        env.storage().persistent().set(
-            &(ROUND, round_id),
-            &Round {
-                id: round_id,
-                creator,
-                token,
-                pot,
-                status: RoundStatus::Open,
-                winners: Vec::new(&env),
-                claimed: Vec::new(&env),
-            },
-        );
+        let mut deposits = Map::new(&env);
+        if pot > 0 {
+            deposits.set(creator.clone(), pot);
+        }
+        let round = Round {
+            id: round_id,
+            creator,
+            token: token.clone(),
+            pot,
+            fee: 0,
+            status: RoundStatus::Open,
+            winners: Vec::new(&env),
+            claimed: Vec::new(&env),
+            deposits,
+            claim_deadline: 0,
+            swept: false,
+        };
+        env.storage().persistent().set(&(ROUND, round_id), &round);
+        bump_round(&env, round_id);
+        EscrowRoundCreated { round_id, token, pot }.publish(&env);
         Ok(())
     }
 
-    /// Record the winners of a round and mark it as settled.
-    ///
-    /// Only the game contract (the `owner`) may call this.  After settlement
-    /// each winner may call `claim_winnings`.
+    /// Deposit additional tokens while a round is open.
+    pub fn deposit(env: Env, caller: Address, round_id: u64, amount: i128) -> Result<(), Error> {
+        caller.require_auth();
+        if amount <= 0 {
+            return Err(Error::InvalidAmount);
+        }
+        let mut round = Self::load_round(&env, round_id)?;
+        if round.status != RoundStatus::Open {
+            return Err(Error::InvalidRoundTransition);
+        }
+        let client = token::Client::new(&env, &round.token);
+        client.transfer(&caller, &env.current_contract_address(), &amount);
+        let existing = round.deposits.get(caller.clone()).unwrap_or(0);
+        round.deposits.set(caller.clone(), existing + amount);
+        round.pot += amount;
+        Self::save_round(&env, &round);
+        Deposited { round_id, player: caller, amount }.publish(&env);
+        Ok(())
+    }
+
+    /// Move an open round to Locked. Deposits are rejected after this point.
+    pub fn lock_round(env: Env, round_id: u64) -> Result<(), Error> {
+        let config = Self::load_config(&env)?;
+        config.owner.require_auth();
+        let mut round = Self::load_round(&env, round_id)?;
+        if round.status != RoundStatus::Open {
+            return Err(Error::InvalidRoundTransition);
+        }
+        round.status = RoundStatus::Locked;
+        Self::save_round(&env, &round);
+        Locked { round_id }.publish(&env);
+        Ok(())
+    }
+
+    /// Settle a locked round. An empty winner list refunds everyone and cancels it.
     pub fn settle_round(
         env: Env,
         round_id: u64,
         winners: Vec<Address>,
     ) -> Result<(), Error> {
-        // Only the game contract is authorised to settle a round.
         let config = Self::load_config(&env)?;
         config.owner.require_auth();
-
+        let mut round = Self::load_round(&env, round_id)?;
         if winners.is_empty() {
-            return Err(Error::NoWinners);
+            if round.status != RoundStatus::Open && round.status != RoundStatus::Locked {
+                return Err(Error::InvalidRoundTransition);
+            }
+            return Self::cancel_loaded_round(&env, &mut round);
+        }
+        if round.status != RoundStatus::Locked {
+            return Err(Error::InvalidRoundTransition);
         }
 
-        let mut round = Self::load_round(&env, round_id)?;
-
-        if round.status == RoundStatus::Settled {
-            return Err(Error::RoundAlreadySettled);
-        }
-
-        round.status = RoundStatus::Settled;
-        round.winners = winners;
-        env.storage()
-            .persistent()
-            .set(&(ROUND, round_id), &round);
-        Ok(())
-    }
-
-    // -----------------------------------------------------------------------
-    // Player actions
-    // -----------------------------------------------------------------------
-
-    /// Claim the caller's share of the pot for a settled round.
-    ///
-    /// The protocol fee is sent to the treasury on the **first** claim.
-    /// Remaining tokens are split equally among winners; any integer remainder
-    /// is distributed one unit at a time to the earliest winners (by index).
-    pub fn claim_winnings(env: Env, caller: Address, round_id: u64) -> Result<i128, Error> {
-        caller.require_auth();
-
-        let config = Self::load_config(&env)?;
-        let mut round = Self::load_round(&env, round_id)?;
-
-        if round.status != RoundStatus::Settled {
-            return Err(Error::RoundNotSettled);
-        }
-
-        // Locate the caller in the winners list.
-        let winner_index = round
-            .winners
-            .iter()
-            .position(|w| w == caller)
-            .ok_or(Error::NotAWinner)? as i128;
-
-        // Ensure the caller has not already claimed.
-        if round.claimed.iter().any(|c| c == caller) {
-            return Err(Error::AlreadyClaimed);
-        }
-
-        let winner_count = round.winners.len() as i128;
         let fee = round.pot * (config.fee_bps as i128) / BPS_DENOM;
-        let distributable = round.pot - fee;
-        let base_share = distributable / winner_count;
-        let remainder = distributable - base_share * winner_count;
-
-        // Deterministic dust: the first `remainder` winners receive one extra unit.
-        let payout = if winner_index < remainder {
-            base_share + 1
-        } else {
-            base_share
-        };
-
-        round.claimed.push_back(caller.clone());
-        env.storage()
-            .persistent()
-            .set(&(ROUND, round_id), &round);
-
-        let token_client = token::Client::new(&env, &round.token);
-
-        if payout > 0 {
-            token_client.transfer(&env.current_contract_address(), &caller, &payout);
-        }
-
-        // Send the protocol fee to the treasury exactly once — on the first claim.
-        if fee > 0 && round.claimed.len() == 1 {
-            token_client.transfer(
+        if fee > 0 {
+            token::Client::new(&env, &round.token).transfer(
                 &env.current_contract_address(),
                 &config.treasury,
                 &fee,
             );
         }
+        round.fee = fee;
+        round.status = RoundStatus::Settled;
+        round.winners = winners.clone();
+        round.claim_deadline = env.ledger().timestamp() + config.claim_deadline;
+        Self::save_round(&env, &round);
+        Settled {
+            round_id,
+            winners,
+            fee,
+            claim_deadline: round.claim_deadline,
+        }
+        .publish(&env);
+        Ok(())
+    }
 
-        env.events().publish(
-            (symbol_short!("claimed"), caller.clone(), round_id),
-            payout,
+    /// Refund one depositor while the round is still open.
+    pub fn refund(env: Env, caller: Address, round_id: u64) -> Result<i128, Error> {
+        caller.require_auth();
+        let mut round = Self::load_round(&env, round_id)?;
+        if round.status != RoundStatus::Open {
+            return Err(Error::InvalidRoundTransition);
+        }
+        let amount = round.deposits.get(caller.clone()).ok_or(Error::NoDeposit)?;
+        round.deposits.remove(caller.clone());
+        round.pot -= amount;
+        token::Client::new(&env, &round.token).transfer(
+            &env.current_contract_address(),
+            &caller,
+            &amount,
         );
+        Self::save_round(&env, &round);
+        Refunded { round_id, player: caller, amount }.publish(&env);
+        Ok(amount)
+    }
 
+    /// Cancel an open or locked round and refund every depositor exactly once.
+    pub fn cancel_round(env: Env, round_id: u64) -> Result<(), Error> {
+        let config = Self::load_config(&env)?;
+        config.owner.require_auth();
+        let mut round = Self::load_round(&env, round_id)?;
+        if round.status != RoundStatus::Open && round.status != RoundStatus::Locked {
+            return Err(Error::InvalidRoundTransition);
+        }
+        Self::cancel_loaded_round(&env, &mut round)
+    }
+
+    /// Claim a winner's share before the claim deadline.
+    pub fn claim_winnings(env: Env, caller: Address, round_id: u64) -> Result<i128, Error> {
+        caller.require_auth();
+        let mut round = Self::load_round(&env, round_id)?;
+        if round.status != RoundStatus::Settled {
+            return Err(Error::RoundNotSettled);
+        }
+        if round.swept {
+            return Err(Error::AlreadySwept);
+        }
+        if env.ledger().timestamp() >= round.claim_deadline {
+            return Err(Error::ClaimDeadlinePassed);
+        }
+        let winner_index = round
+            .winners
+            .iter()
+            .position(|winner| winner == caller)
+            .ok_or(Error::NotAWinner)? as i128;
+        if round.claimed.iter().any(|claimed| claimed == caller) {
+            return Err(Error::AlreadyClaimed);
+        }
+
+        let payout = Self::payout_for(&round, winner_index);
+        round.claimed.push_back(caller.clone());
+        Self::save_round(&env, &round);
+        if payout > 0 {
+            token::Client::new(&env, &round.token).transfer(
+                &env.current_contract_address(),
+                &caller,
+                &payout,
+            );
+        }
+        Claimed { round_id, player: caller, amount: payout }.publish(&env);
         Ok(payout)
     }
 
-    // -----------------------------------------------------------------------
-    // Views
-    // -----------------------------------------------------------------------
+    /// Sweep any unclaimed winner shares after the deadline to the treasury.
+    pub fn sweep_unclaimed(env: Env, round_id: u64) -> Result<i128, Error> {
+        let config = Self::load_config(&env)?;
+        let mut round = Self::load_round(&env, round_id)?;
+        if round.status != RoundStatus::Settled {
+            return Err(Error::RoundNotSettled);
+        }
+        if round.swept {
+            return Err(Error::AlreadySwept);
+        }
+        if env.ledger().timestamp() < round.claim_deadline {
+            return Err(Error::ClaimDeadlinePassed);
+        }
 
-    /// Return the stored round, or `RoundNotFound`.
+        let distributable = round.pot - round.fee;
+        let mut claimed_total = 0i128;
+        for claimed in round.claimed.iter() {
+            let index = round
+                .winners
+                .iter()
+                .position(|winner| winner == claimed)
+                .ok_or(Error::NotAWinner)? as i128;
+            claimed_total += Self::payout_for(&round, index);
+        }
+        let remaining = distributable - claimed_total;
+        if remaining <= 0 {
+            return Err(Error::NothingToSweep);
+        }
+        token::Client::new(&env, &round.token).transfer(
+            &env.current_contract_address(),
+            &config.treasury,
+            &remaining,
+        );
+        round.swept = true;
+        Self::save_round(&env, &round);
+        Swept { round_id, amount: remaining }.publish(&env);
+        Ok(remaining)
+    }
+
     pub fn get_round(env: Env, round_id: u64) -> Result<Round, Error> {
         Self::load_round(&env, round_id)
     }
 
-    /// Return the current protocol configuration, or `NotInitialized`.
     pub fn get_config(env: Env) -> Result<Config, Error> {
         Self::load_config(&env)
     }
 
-    // -----------------------------------------------------------------------
-    // Helpers
-    // -----------------------------------------------------------------------
+    fn cancel_loaded_round(env: &Env, round: &mut Round) -> Result<(), Error> {
+        let mut refunded_amount = 0i128;
+        let token_client = token::Client::new(env, &round.token);
+        for (player, amount) in round.deposits.iter() {
+            if amount > 0 {
+                token_client.transfer(&env.current_contract_address(), &player, &amount);
+                refunded_amount += amount;
+                Refunded { round_id: round.id, player, amount }.publish(env);
+            }
+        }
+        round.deposits = Map::new(env);
+        round.pot = 0;
+        round.status = RoundStatus::Cancelled;
+        Self::save_round(env, round);
+        Cancelled { round_id: round.id, refunded_amount }.publish(env);
+        Ok(())
+    }
+
+    fn payout_for(round: &Round, winner_index: i128) -> i128 {
+        let distributable = round.pot - round.fee;
+        let winner_count = round.winners.len() as i128;
+        let base = distributable / winner_count;
+        let remainder = distributable - base * winner_count;
+        if winner_index < remainder { base + 1 } else { base }
+    }
 
     fn load_config(env: &Env) -> Result<Config, Error> {
-        env.storage()
-            .instance()
-            .get(&CONFIG)
-            .ok_or(Error::NotInitialized)
+        let config = env.storage().instance().get(&CONFIG).ok_or(Error::NotInitialized)?;
+        bump_instance(env);
+        Ok(config)
     }
 
     fn load_round(env: &Env, round_id: u64) -> Result<Round, Error> {
-        env.storage()
+        let round = env
+            .storage()
             .persistent()
             .get(&(ROUND, round_id))
-            .ok_or(Error::RoundNotFound)
+            .ok_or(Error::RoundNotFound)?;
+        bump_round(env, round_id);
+        Ok(round)
     }
+
+    fn save_round(env: &Env, round: &Round) {
+        env.storage().persistent().set(&(ROUND, round.id), round);
+        bump_round(env, round.id);
+    }
+}
+
+fn bump_instance(env: &Env) {
+    env.storage().instance().extend_ttl(LIFETIME_THRESHOLD, BUMP_AMOUNT);
+}
+
+fn bump_round(env: &Env, round_id: u64) {
+    env.storage()
+        .persistent()
+        .extend_ttl(&(ROUND, round_id), LIFETIME_THRESHOLD, BUMP_AMOUNT);
 }

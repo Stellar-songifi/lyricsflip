@@ -147,6 +147,7 @@ fn settle_round_ok() {
     let creator = Address::generate(&f.env);
     let winner = Address::generate(&f.env);
     f.escrow.create_round(&1u64, &creator, &f.token_id, &1000i128);
+    f.escrow.lock_round(&1u64);
 
     let winners = soroban_sdk::vec![&f.env, winner.clone()];
     f.escrow.settle_round(&1u64, &winners.clone());
@@ -183,9 +184,11 @@ fn settle_round_requires_owner_auth() {
 fn settle_round_rejects_empty_winners() {
     let f = Fixture::new(0);
     let creator = Address::generate(&f.env);
+    f.fund_escrow(&creator, 1000);
     f.escrow.create_round(&1u64, &creator, &f.token_id, &1000i128);
-    let result = f.escrow.try_settle_round(&1u64, &soroban_sdk::vec![&f.env]);
-    assert_eq!(result, Err(Ok(Error::NoWinners)));
+    f.escrow.lock_round(&1u64);
+    f.escrow.settle_round(&1u64, &soroban_sdk::vec![&f.env]);
+    assert_eq!(f.escrow.get_round(&1u64).status, RoundStatus::Cancelled);
 }
 
 #[test]
@@ -194,10 +197,11 @@ fn settle_round_rejects_double_settle() {
     let creator = Address::generate(&f.env);
     let winner = Address::generate(&f.env);
     f.escrow.create_round(&1u64, &creator, &f.token_id, &1000i128);
+    f.escrow.lock_round(&1u64);
     let winners = soroban_sdk::vec![&f.env, winner.clone()];
     f.escrow.settle_round(&1u64, &winners.clone());
     let result = f.escrow.try_settle_round(&1u64, &winners);
-    assert_eq!(result, Err(Ok(Error::RoundAlreadySettled)));
+    assert_eq!(result, Err(Ok(Error::InvalidRoundTransition)));
 }
 
 // ---------------------------------------------------------------------------
@@ -213,6 +217,7 @@ fn claim_winnings_single_winner_no_fee() {
     f.fund_escrow(&creator, 1000);
 
     f.escrow.create_round(&1u64, &creator, &f.token_id, &1000i128);
+    f.escrow.lock_round(&1u64);
     f.escrow.settle_round(&1u64, &soroban_sdk::vec![&f.env, winner.clone()]);
 
     let payout = f.escrow.claim_winnings(&winner, &1u64);
@@ -231,6 +236,7 @@ fn claim_winnings_with_fee() {
     f.fund_escrow(&creator, 1000);
 
     f.escrow.create_round(&1u64, &creator, &f.token_id, &1000i128);
+    f.escrow.lock_round(&1u64);
     f.escrow.settle_round(&1u64, &soroban_sdk::vec![&f.env, winner.clone()]);
 
     let payout = f.escrow.claim_winnings(&winner, &1u64);
@@ -252,6 +258,7 @@ fn claim_winnings_two_winners_equal_split() {
     f.fund_escrow(&creator, 1000);
 
     f.escrow.create_round(&1u64, &creator, &f.token_id, &1000i128);
+    f.escrow.lock_round(&1u64);
     f.escrow.settle_round(
         &1u64,
         &soroban_sdk::vec![&f.env, winner1.clone(), winner2.clone()],
@@ -279,6 +286,7 @@ fn claim_winnings_dust_distributed_to_first_winner() {
     f.fund_escrow(&creator, 1001);
 
     f.escrow.create_round(&1u64, &creator, &f.token_id, &1001i128);
+    f.escrow.lock_round(&1u64);
     f.escrow.settle_round(
         &1u64,
         &soroban_sdk::vec![
@@ -309,6 +317,7 @@ fn claim_winnings_rejects_non_winner() {
     f.fund_escrow(&creator, 1000);
 
     f.escrow.create_round(&1u64, &creator, &f.token_id, &1000i128);
+    f.escrow.lock_round(&1u64);
     f.escrow.settle_round(&1u64, &soroban_sdk::vec![&f.env, winner]);
 
     let result = f.escrow.try_claim_winnings(&outsider, &1u64);
@@ -324,6 +333,7 @@ fn claim_winnings_rejects_double_claim() {
     f.fund_escrow(&creator, 1000);
 
     f.escrow.create_round(&1u64, &creator, &f.token_id, &1000i128);
+    f.escrow.lock_round(&1u64);
     f.escrow.settle_round(&1u64, &soroban_sdk::vec![&f.env, winner.clone()]);
 
     f.escrow.claim_winnings(&winner, &1u64);
@@ -343,4 +353,57 @@ fn claim_winnings_rejects_unsettled_round() {
     // Do NOT settle — round is still Open.
     let result = f.escrow.try_claim_winnings(&caller, &1u64);
     assert_eq!(result, Err(Ok(Error::RoundNotSettled)));
+}
+
+
+#[test]
+fn lock_rejects_deposits_after_open_state_ends() {
+    let f = Fixture::new(0);
+    let creator = Address::generate(&f.env);
+    let player = Address::generate(&f.env);
+    f.escrow.create_round(&1u64, &creator, &f.token_id, &0i128);
+    f.escrow.lock_round(&1u64);
+
+    f.token.mint(&player, &100i128);
+    let result = f.escrow.try_deposit(&player, &1u64, &100i128);
+    assert_eq!(result, Err(Ok(Error::InvalidRoundTransition)));
+}
+
+#[test]
+fn cancel_round_refunds_each_depositor_once() {
+    let f = Fixture::new(0);
+    let creator = Address::generate(&f.env);
+    let player = Address::generate(&f.env);
+    f.escrow.create_round(&1u64, &creator, &f.token_id, &0i128);
+
+    f.token.mint(&creator, &100i128);
+    f.token.mint(&player, &50i128);
+    f.escrow.deposit(&creator, &1u64, &100i128);
+    f.escrow.deposit(&player, &1u64, &50i128);
+    f.escrow.cancel_round(&1u64);
+
+    let token_client = token::Client::new(&f.env, &f.token_id);
+    assert_eq!(token_client.balance(&creator), 100);
+    assert_eq!(token_client.balance(&player), 50);
+    assert_eq!(f.escrow.get_round(&1u64).status, RoundStatus::Cancelled);
+    assert_eq!(
+        f.escrow.try_cancel_round(&1u64),
+        Err(Ok(Error::InvalidRoundTransition))
+    );
+}
+
+#[test]
+fn settlement_pays_fee_before_claims() {
+    let f = Fixture::new(500);
+    let creator = Address::generate(&f.env);
+    let winner = Address::generate(&f.env);
+    f.fund_escrow(&creator, 1000);
+    f.escrow.create_round(&1u64, &creator, &f.token_id, &1000i128);
+    f.escrow.lock_round(&1u64);
+    f.escrow.settle_round(&1u64, &soroban_sdk::vec![&f.env, winner.clone()]);
+
+    let token_client = token::Client::new(&f.env, &f.token_id);
+    assert_eq!(token_client.balance(&f.treasury), 50);
+    assert_eq!(f.escrow.claim_winnings(&winner, &1u64), 950);
+    assert_eq!(token_client.balance(&winner), 950);
 }

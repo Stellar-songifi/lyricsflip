@@ -1,4 +1,4 @@
-use soroban_sdk::{contracttype, Address, Vec};
+use soroban_sdk::{contracttype, Address, Map, Vec};
 
 /// Status of a wagered round.
 #[contracttype]
@@ -10,7 +10,7 @@ pub enum RoundStatus {
     Cancelled,
 }
 
-/// A wagered round with an escrowed pot.
+/// A round with per-player escrow balances.
 #[contracttype]
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Round {
@@ -18,19 +18,24 @@ pub struct Round {
     pub creator: Address,
     pub token: Address,
     pub pot: i128,
+    pub fee: i128,
     pub status: RoundStatus,
     pub winners: Vec<Address>,
     pub claimed: Vec<Address>,
+    pub deposits: Map<Address, i128>,
+    pub claim_deadline: u64,
+    pub swept: bool,
 }
 
-/// Protocol configuration, owner-configurable.
+/// Protocol configuration.
 #[contracttype]
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Config {
-    /// Owner of this escrow contract — must be the game contract address.
-    /// Only the owner is allowed to create and settle rounds.
+    /// Owner of this escrow contract — normally the game contract address.
     pub owner: Address,
     pub treasury: Address,
     /// Protocol fee in basis points (1 bps = 0.01%).
     pub fee_bps: u32,
+    /// Claim window in seconds for newly settled rounds.
+    pub claim_deadline: u64,
 }

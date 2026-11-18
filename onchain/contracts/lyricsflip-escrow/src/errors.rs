@@ -15,4 +15,10 @@ pub enum Error {
     NoWinners = 9,
     RoundAlreadyExists = 10,
     RoundAlreadySettled = 11,
+    InvalidRoundTransition = 12,
+    InvalidAmount = 13,
+    NoDeposit = 14,
+    ClaimDeadlinePassed = 15,
+    AlreadySwept = 16,
+    NothingToSweep = 17,
 }

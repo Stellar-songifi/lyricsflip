@@ -23,14 +23,21 @@ pub struct Round {
     pub claimed: Vec<Address>,
 }
 
-/// Protocol configuration, owner-configurable.
+/// Protocol configuration, admin-configurable.
 #[contracttype]
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Config {
-    /// Owner of this escrow contract — must be the game contract address.
-    /// Only the owner is allowed to create and settle rounds.
-    pub owner: Address,
+    /// Game contract address — only the game contract is allowed to create
+    /// and settle rounds.
+    pub game: Address,
+    /// Admin of this escrow contract — allowed to change the fee, treasury,
+    /// upgrade the contract, and pause/unpause. Transferred via two-step.
+    pub admin: Address,
+    /// Pending admin awaiting acceptance of a two-step transfer.
+    pub pending_admin: Option<Address>,
     pub treasury: Address,
     /// Protocol fee in basis points (1 bps = 0.01%).
     pub fee_bps: u32,
+    /// Whether the contract is paused. Claims and refunds stay open while paused.
+    pub paused: bool,
 }

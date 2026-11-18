@@ -105,4 +105,7 @@ pub enum Error {
     TooManyOpenRounds = 45,
     /// LF-154: `set_max_players` got a value above `MAX_ROUND_PLAYERS`.
     MaxPlayersTooHigh = 46,
+    /// LF-264: the caller is not in the private round's invitee allowlist
+    /// and therefore cannot join it.
+    InvalidInvite = 47,
 }

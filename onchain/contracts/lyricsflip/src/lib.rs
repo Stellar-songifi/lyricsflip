@@ -30,9 +30,9 @@ use soroban_sdk::{
 };
 
 /// Bumped on every release that changes the contract's code; see `upgrade`.
-pub const VERSION: u32 = 1;
+pub const VERSION: u32 = 2;
 /// Current persisted storage layout. Kept separate from the code version.
-pub const SCHEMA_VERSION: u32 = 4;
+pub const SCHEMA_VERSION: u32 = 5;
 
 pub const DEFAULT_ROUND_DURATION_SECONDS: u64 = 300;
 pub const MIN_ROUND_DURATION_SECONDS: u64 = 10;
@@ -149,8 +149,10 @@ const SECONDS_PER_YEAR: u64 = 31_556_952;
 /// Maximum number of cards accepted by one `add_cards` call. See
 /// `onchain/README.md` and `test::add_cards_max_batch_fits_budget`.
 pub const MAX_CARDS_PER_BATCH: u32 = 20;
-/// Maximum number of cards inspected when applying round filters.
-pub const MAX_ROUND_FILTER_SCAN: u32 = 500;
+/// LF-267: bounded number of draw attempts when a filtered round has to
+/// reject non-matching cards. Each attempt costs one PRNG draw plus a card
+/// read, so the loop stays within budget even at 10k cards.
+pub const MAX_FILTER_DRAW_ATTEMPTS: u32 = 64;
 
 /// One of the card index lists (see `DataKey::CardAt` and friends).
 enum Index {
@@ -158,6 +160,9 @@ enum Index {
     Genre(Genre),
     Artist(String),
     Year(u64),
+    Decade(u64),
+    Difficulty(u32),
+    GenreDecade(Genre, u64),
 }
 
 impl Index {
@@ -170,12 +175,25 @@ impl Index {
         ]
     }
 
+    /// LF-267: the filter indexes a card belongs to (decade, difficulty and
+    /// the combined genre+decade index). Maintained alongside `of`.
+    fn filters_of(card: &Card) -> [Index; 3] {
+        [
+            Index::Decade(card.year / 10 * 10),
+            Index::Difficulty(card.difficulty),
+            Index::GenreDecade(card.genre, card.year / 10 * 10),
+        ]
+    }
+
     fn count_key(&self) -> DataKey {
         match self {
             Index::All => DataKey::CardsCount,
             Index::Genre(g) => DataKey::GenreCardCount(*g),
             Index::Artist(a) => DataKey::ArtistCardCount(a.clone()),
             Index::Year(y) => DataKey::YearCardCount(*y),
+            Index::Decade(d) => DataKey::DecadeCardCount(*d),
+            Index::Difficulty(d) => DataKey::DifficultyCardCount(*d),
+            Index::GenreDecade(g, d) => DataKey::GenreDecadeCardCount((*g, *d)),
         }
     }
 
@@ -185,6 +203,9 @@ impl Index {
             Index::Genre(g) => DataKey::GenreCardAt((*g, i)),
             Index::Artist(a) => DataKey::ArtistCardAt((a.clone(), i)),
             Index::Year(y) => DataKey::YearCardAt((*y, i)),
+            Index::Decade(d) => DataKey::DecadeCardAt((*d, i)),
+            Index::Difficulty(d) => DataKey::DifficultyCardAt((*d, i)),
+            Index::GenreDecade(g, d) => DataKey::GenreDecadeCardAt((*g, *d, i)),
         }
     }
 
@@ -194,6 +215,9 @@ impl Index {
             Index::Genre(_) => &mut pos.genre,
             Index::Artist(_) => &mut pos.artist,
             Index::Year(_) => &mut pos.year,
+            Index::Decade(_) => &mut pos.decade,
+            Index::Difficulty(_) => &mut pos.difficulty,
+            Index::GenreDecade(_, _) => &mut pos.genre_decade,
         }
     }
 }
@@ -584,24 +608,19 @@ impl LyricsFlip {
     }
 
     /// Returns the cards of genre.
-    pub fn get_cards_of_genre(env: Env, genre: Genre, seed: u64) -> Vec<Card> {
-        Self::draw_cards(&env, &Index::Genre(genre), seed, Error::EmptyGenreCards)
+    pub fn get_cards_of_genre(env: Env, genre: Genre) -> Vec<Card> {
+        Self::draw_cards(&env, &Index::Genre(genre), Error::EmptyGenreCards)
     }
 
     /// Returns the cards of artist.
-    pub fn get_cards_of_artist(env: Env, artist: String, seed: u64) -> Vec<Card> {
+    pub fn get_cards_of_artist(env: Env, artist: String) -> Vec<Card> {
         let normalized = ascii_lower_string(&env, &artist);
-        Self::draw_cards(
-            &env,
-            &Index::Artist(normalized),
-            seed,
-            Error::ArtistCardsIsZero,
-        )
+        Self::draw_cards(&env, &Index::Artist(normalized), Error::ArtistCardsIsZero)
     }
 
     /// Returns the cards of a year.
-    pub fn get_cards_of_a_year(env: Env, year: u64, seed: u64) -> Vec<Card> {
-        Self::draw_cards(&env, &Index::Year(year), seed, Error::EmptyYearCards)
+    pub fn get_cards_of_a_year(env: Env, year: u64) -> Vec<Card> {
+        Self::draw_cards(&env, &Index::Year(year), Error::EmptyYearCards)
     }
 
     /// Returns the player stat.
@@ -758,14 +777,14 @@ impl LyricsFlip {
         .publish(&env);
     }
 
-    /// Creates a round. `invite_hash` (LF-162) makes the round private: only
-    /// a joiner that presents a code whose sha256 matches may enter.
+    /// Creates a round. `invitees` (LF-264) makes the round private: only
+    /// the listed addresses may join. The allowlist is stored on-chain, so
+    /// nothing secret ever appears in a transaction argument.
     pub fn create_round(
         env: Env,
         caller: Address,
         genre: Option<Genre>,
-        seed: u64,
-        invite_hash: Option<BytesN<32>>,
+        invitees: Vec<Address>,
     ) -> u64 {
         if genre.is_none() {
             panic_with_error!(env, Error::NonExistingGenre);
@@ -778,8 +797,7 @@ impl LyricsFlip {
                 decade: None,
             },
             None,
-            seed,
-            invite_hash,
+            invitees,
             false,
         )
     }
@@ -790,9 +808,9 @@ impl LyricsFlip {
         caller: Address,
         filter: RoundFilter,
         difficulty: Option<u32>,
-        seed: u64,
+        invitees: Vec<Address>,
     ) -> u64 {
-        Self::create_round_internal(&env, caller, filter, difficulty, seed, None, false)
+        Self::create_round_internal(&env, caller, filter, difficulty, invitees, false)
     }
 
     fn create_round_internal(
@@ -800,14 +818,14 @@ impl LyricsFlip {
         caller: Address,
         filter: RoundFilter,
         difficulty: Option<u32>,
-        seed: u64,
-        invite_hash: Option<BytesN<32>>,
+        invitees: Vec<Address>,
         solo: bool,
     ) -> u64 {
         caller.require_auth();
+        let is_private = !invitees.is_empty();
         // LF-175: cap public open lobbies per address. Private and solo
         // rounds never appear in `OpenRounds`, so they are exempt.
-        if !solo && invite_hash.is_none() {
+        if !solo && !is_private {
             let open_count = Self::open_rounds_of(env, &caller);
             if open_count >= MAX_OPEN_ROUNDS_PER_ADDRESS {
                 panic_with_error!(env, Error::TooManyOpenRounds);
@@ -825,48 +843,7 @@ impl LyricsFlip {
         Self::require_not_paused(&env);
 
         let amount = Self::get_cards_per_round((*env).clone()) as u64;
-        let source = filter.genre.map(Index::Genre).unwrap_or(Index::All);
-        let source_count = Self::index_len(env, &source);
-        if source_count == 0 && filter.genre.is_some() {
-            panic_with_error!(env, Error::EmptyGenreCards);
-        }
-
-        let mut cards: Vec<u64> = Vec::new(env);
-        if filter.decade.is_none() && difficulty.is_none() {
-            if (source_count as u64) < amount {
-                panic_with_error!(env, Error::AmountExceedsLimit);
-            }
-            for idx in Self::get_random_numbers(env, seed, amount, source_count as u64, true).iter()
-            {
-                cards.push_back(Self::index_get(env, &source, idx as u32));
-            }
-        } else {
-            let mut eligible = Vec::new(env);
-            let scan_count = source_count.min(MAX_ROUND_FILTER_SCAN);
-            for i in 0..scan_count {
-                let card_id = Self::index_get(env, &source, i);
-                let card = Self::read_card(env, card_id);
-                let matches_decade = filter
-                    .decade
-                    .map(|decade| card.year / 10 * 10 == decade)
-                    .unwrap_or(true);
-                let matches_difficulty = difficulty
-                    .map(|value| card.difficulty == value)
-                    .unwrap_or(true);
-                if matches_decade && matches_difficulty {
-                    eligible.push_back(card_id);
-                }
-            }
-
-            if (eligible.len() as u64) < amount {
-                panic_with_error!(env, Error::AmountExceedsLimit);
-            }
-            for idx in
-                Self::get_random_numbers(env, seed, amount, eligible.len() as u64, true).iter()
-            {
-                cards.push_back(eligible.get(idx as u32).unwrap());
-            }
-        }
+        let cards = Self::draw_round_cards(env, &filter, difficulty, amount);
         if filter.genre.is_none() && cards.is_empty() {
             panic_with_error!(env, Error::InvalidCardsPerRound);
         }
@@ -908,7 +885,7 @@ impl LyricsFlip {
             answer_window,
             lobby_timeout,
             round_duration,
-            is_private: invite_hash.is_some(),
+            is_private,
             solo: false,
         };
 
@@ -924,12 +901,13 @@ impl LyricsFlip {
             .set(&DataKey::RoundCards(round_id), &cards);
         bump_persistent(&env, &DataKey::RoundCards(round_id));
 
-        // LF-162: remember the invite preimage hash for private rounds.
-        if let Some(hash) = invite_hash {
+        // LF-264: remember the allowlist for private rounds. The round
+        // creator is implicitly allowed to join their own round.
+        if is_private {
             env.storage()
                 .persistent()
-                .set(&DataKey::RoundInviteHash(round_id), &hash);
-            bump_persistent(&env, &DataKey::RoundInviteHash(round_id));
+                .set(&DataKey::RoundInvitees(round_id), &invitees);
+            bump_persistent(&env, &DataKey::RoundInvitees(round_id));
         }
 
         // LF-176: track which rounds reference each card so `update_card`
@@ -1051,30 +1029,17 @@ impl LyricsFlip {
         }
     }
 
-    /// Joins round. For a private round (LF-162), `invite_code` must be a
-    /// string whose sha256 equals the round's stored `RoundInviteHash`.
-    pub fn join_round(
-        env: Env,
-        caller: Address,
-        round_id: u64,
-        invite_code: Option<String>,
-    ) {
+    /// Joins round. For a private round (LF-264), `caller` must appear in the
+    /// allowlist the admin supplied at creation. Nothing secret is passed in
+    /// the call, so observing an earlier join reveals nothing reusable.
+    pub fn join_round(env: Env, caller: Address, round_id: u64) {
         caller.require_auth();
-        // LF-162: private rounds require the preimage of RoundInviteHash.
-        if let Some(expected) = env
-            .storage()
-            .persistent()
-            .get::<_, BytesN<32>>(&DataKey::RoundInviteHash(round_id))
-        {
-            let provided = invite_code.unwrap_or_else(|| panic_with_error!(env, Error::NotAuthorized));
-            let bytes = provided.to_bytes();
-            let hash = env.crypto().sha256(&bytes);
-            if hash.to_array() != expected.to_array() {
-                panic_with_error!(env, Error::NotAuthorized); // invite_hash mismatch
-            }
-        }
         Self::require_not_paused(&env);
         let round = Self::read_round(&env, round_id);
+        // LF-264: private rounds are gated by the stored allowlist.
+        if round.is_private && !Self::is_round_invitee(&env, round_id, &caller) {
+            panic_with_error!(env, Error::InvalidInvite);
+        }
 
         if Self::is_round_player(&env, round_id, &caller) {
             panic_with_error!(env, Error::RoundAlreadyJoined);
@@ -1872,30 +1837,25 @@ impl LyricsFlip {
         token_id
     }
 
-    /// Builds a question card.
-    pub fn build_question_card(
-        env: Env,
-        card: Card,
-        seed: u64,
-        kind: QuestionKind,
-    ) -> QuestionCard {
+    /// Builds a question card. LF-268: options are shuffled with the
+    /// contract PRNG, so no caller-supplied seed can steer the layout.
+    pub fn build_question_card(env: Env, card: Card, kind: QuestionKind) -> QuestionCard {
         let cards_count = Self::index_len(&env, &Index::All) as u64;
 
         match kind {
-            QuestionKind::Title => Self::build_title_question(&env, card, seed, cards_count),
-            QuestionKind::Artist => Self::build_artist_question(&env, card, seed, cards_count),
-            QuestionKind::Year => Self::build_year_question(&env, card, seed),
+            QuestionKind::Title => Self::build_title_question(&env, card, cards_count),
+            QuestionKind::Artist => Self::build_artist_question(&env, card, cards_count),
+            QuestionKind::Year => Self::build_year_question(&env, card),
         }
     }
 
     // ---- build_question_card helpers ----
 
-    fn build_title_question(env: &Env, card: Card, seed: u64, cards_count: u64) -> QuestionCard {
+    fn build_title_question(env: &Env, card: Card, cards_count: u64) -> QuestionCard {
         let correct = card.title.clone();
         Self::build_options_question(
             env,
             card,
-            seed,
             cards_count,
             QuestionKind::Title,
             correct,
@@ -1903,12 +1863,11 @@ impl LyricsFlip {
         )
     }
 
-    fn build_artist_question(env: &Env, card: Card, seed: u64, cards_count: u64) -> QuestionCard {
+    fn build_artist_question(env: &Env, card: Card, cards_count: u64) -> QuestionCard {
         let correct = card.artist.clone();
         Self::build_options_question(
             env,
             card,
-            seed,
             cards_count,
             QuestionKind::Artist,
             correct,
@@ -1934,13 +1893,12 @@ impl LyricsFlip {
     fn build_options_question(
         env: &Env,
         card: Card,
-        seed: u64,
         cards_count: u64,
         kind: QuestionKind,
         correct: String,
         get_value: impl Fn(&Card) -> String,
     ) -> QuestionCard {
-        let candidates = Self::distractor_candidate_ids(env, &card, seed, cards_count);
+        let candidates = Self::distractor_candidate_ids(env, &card, cards_count);
         let total = candidates.len() as u64;
         let sample = core::cmp::min(MAX_DISTRACTOR_SAMPLE, total);
         let max_attempts = if sample == 0 {
@@ -1976,7 +1934,7 @@ impl LyricsFlip {
             options.push_back(answer.clone());
         }
 
-        let shuffled = Self::shuffle_strings(env, options, seed);
+        let shuffled = Self::shuffle_strings(env, options);
 
         QuestionCard {
             lyric: card.lyrics.clone(),
@@ -1990,11 +1948,11 @@ impl LyricsFlip {
     }
 
     /// Ordered card ids used to pick distractors for `card`: same-genre cards
-    /// (shuffled with `seed`) first so wrong options stay plausible, then every
-    /// remaining card (shuffled with a derived seed). Each card appears exactly
-    /// once, so a question can always be answered Ã¢â‚¬â€ or fail with
-    /// `NotEnoughDistinctCards` Ã¢â‚¬â€ without ever looping.
-    fn distractor_candidate_ids(env: &Env, card: &Card, seed: u64, cards_count: u64) -> Vec<u64> {
+    /// (shuffled with the PRNG) first so wrong options stay plausible, then
+    /// every remaining card. Each card appears exactly once, so a question can
+    /// always be answered Ã¢â‚¬â€ or fail with `NotEnoughDistinctCards` Ã¢â‚¬â€
+    /// without ever looping.
+    fn distractor_candidate_ids(env: &Env, card: &Card, cards_count: u64) -> Vec<u64> {
         let genre_index = Index::Genre(card.genre);
         let genre_len = Self::index_len(env, &genre_index) as u64;
 
@@ -2002,7 +1960,7 @@ impl LyricsFlip {
 
         if genre_len > 0 {
             let sample_len = core::cmp::min(genre_len, 6);
-            let indices = Self::get_random_numbers(env, seed, sample_len, genre_len, true);
+            let indices = Self::get_random_numbers(env, sample_len, genre_len, true);
             for idx in indices.iter() {
                 candidates.push_back(Self::index_get(env, &genre_index, idx as u32));
             }
@@ -2010,7 +1968,7 @@ impl LyricsFlip {
 
         if candidates.len() < 4 && cards_count > candidates.len() as u64 {
             let needed = core::cmp::min(cards_count, 10);
-            let shuffled_all = Self::get_random_numbers(env, seed + 1, needed, cards_count, false);
+            let shuffled_all = Self::get_random_numbers(env, needed, cards_count, false);
             for id in shuffled_all.iter() {
                 if !candidates.contains(&id) {
                     candidates.push_back(id);
@@ -2024,18 +1982,14 @@ impl LyricsFlip {
     /// deduplicate, and take the first 3. Year options are stored as their
     /// decimal string representation so they fit into the same `Vec<String>`
     /// shuffle as Title and Artist questions.
-    fn build_year_question(env: &Env, card: Card, seed: u64) -> QuestionCard {
-        // Generate offsets deterministically from the seed.
+    fn build_year_question(env: &Env, card: Card) -> QuestionCard {
+        // LF-268: shuffle the offsets with the contract PRNG.
         let offsets: [i64; 10] = [1, -1, 2, -2, 3, -3, 4, -4, 5, -5];
-        let mut current_seed = seed;
-        // Fisher-Yates shuffle of the offsets array using the LCG.
         let mut shuffled_offsets = offsets;
         let mut j = 10usize;
         while j > 1 {
             j -= 1;
-            current_seed =
-                current_seed.wrapping_mul(1664525).wrapping_add(1013904223) % 0xFFFF_FFFFu64;
-            let rand_idx = (current_seed % (j as u64 + 1)) as usize;
+            let rand_idx = env.prng().gen_range(0..(j as u64 + 1)) as usize;
             shuffled_offsets.swap(j, rand_idx);
         }
 
@@ -2108,7 +2062,7 @@ impl LyricsFlip {
             options.push_back(y.clone());
         }
 
-        let shuffled = Self::shuffle_strings(env, options, seed);
+        let shuffled = Self::shuffle_strings(env, options);
 
         QuestionCard {
             lyric: card.lyrics.clone(),
@@ -2180,8 +2134,15 @@ impl LyricsFlip {
             genre: 0,
             artist: 0,
             year: 0,
+            decade: 0,
+            difficulty: 0,
+            genre_decade: 0,
         };
         for index in Index::of(&env, &card).iter() {
+            *index.pos(&mut pos) = Self::index_push(env, index, card_id);
+        }
+        // LF-267: maintain the filter indexes too.
+        for index in Index::filters_of(&card).iter() {
             *index.pos(&mut pos) = Self::index_push(env, index, card_id);
         }
         env.storage()
@@ -2250,16 +2211,70 @@ impl LyricsFlip {
         env.storage().persistent().set(&index.count_key(), &last);
     }
 
-    fn draw_cards(env: &Env, index: &Index, seed: u64, empty: Error) -> Vec<Card> {
+    fn draw_cards(env: &Env, index: &Index, empty: Error) -> Vec<Card> {
         let limit = Self::index_len(env, index) as u64;
         if limit == 0 {
             panic_with_error!(env, empty);
         }
         let amount = Self::get_cards_per_round(env.clone()) as u64;
         let mut cards: Vec<Card> = Vec::new(env);
-        for idx in Self::get_random_numbers(env, seed, amount, limit, true).iter() {
+        for idx in Self::get_random_numbers(env, amount, limit, true).iter() {
             let card_id = Self::index_get(env, index, idx as u32);
             cards.push_back(Self::read_card(env, card_id));
+        }
+        cards
+    }
+
+    /// LF-267: draws `amount` distinct card ids honouring `filter` and
+    /// `difficulty`. The draw starts from the narrowest index that already
+    /// satisfies part of the filter (genre+decade, decade, difficulty, genre
+    /// or all cards) and rejects cards that fail the remaining checks, with a
+    /// bounded number of retries. Every live matching card is reachable.
+    fn draw_round_cards(
+        env: &Env,
+        filter: &RoundFilter,
+        difficulty: Option<u32>,
+        amount: u64,
+    ) -> Vec<u64> {
+        let decade = filter.decade.map(|d| d / 10 * 10);
+        let source = match (filter.genre, decade, difficulty) {
+            (Some(g), Some(d), _) => Index::GenreDecade(g, d),
+            (None, Some(d), _) => Index::Decade(d),
+            (None, None, Some(diff)) => Index::Difficulty(diff),
+            (Some(g), None, _) => Index::Genre(g),
+            (None, None, None) => Index::All,
+        };
+        let source_count = Self::index_len(env, &source);
+        if source_count == 0 {
+            if filter.genre.is_some() {
+                panic_with_error!(env, Error::EmptyGenreCards);
+            }
+            panic_with_error!(env, Error::AmountExceedsLimit);
+        }
+
+        let mut cards: Vec<u64> = Vec::new(env);
+        let mut attempts: u32 = 0;
+        while (cards.len() as u64) < amount && attempts < MAX_FILTER_DRAW_ATTEMPTS {
+            attempts += 1;
+            let idx = env.prng().gen_range(0..(source_count as u64)) as u32;
+            let card_id = Self::index_get(env, &source, idx);
+            if cards.contains(&card_id) {
+                continue;
+            }
+            let card = Self::read_card(env, card_id);
+            let matches_decade = decade
+                .map(|d| card.year / 10 * 10 == d)
+                .unwrap_or(true);
+            let matches_difficulty = difficulty
+                .map(|value| card.difficulty == value)
+                .unwrap_or(true);
+            if matches_decade && matches_difficulty {
+                cards.push_back(card_id);
+            }
+        }
+
+        if (cards.len() as u64) < amount {
+            panic_with_error!(env, Error::AmountExceedsLimit);
         }
         cards
     }
@@ -2437,6 +2452,21 @@ impl LyricsFlip {
             }
         }
         false
+    }
+
+    /// LF-264: true when `player` is on the round's invite allowlist (or is
+    /// the round admin, who may always join their own round).
+    fn is_round_invitee(env: &Env, round_id: u64, player: &Address) -> bool {
+        let round = Self::read_round(env, round_id);
+        if round.admin == *player {
+            return true;
+        }
+        let invitees: Vec<Address> = env
+            .storage()
+            .persistent()
+            .get(&DataKey::RoundInvitees(round_id))
+            .unwrap_or(Vec::new(env));
+        invitees.contains(player)
     }
 
     fn remove_open_round(env: &Env, round_id: u64, admin: &Address) {
@@ -2640,17 +2670,14 @@ impl LyricsFlip {
         false
     }
 
-    /// Fisher-Yates shuffle over a small (4-element) options list, mirroring
-    /// `shuffle_array` in the Cairo contract.
-    fn shuffle_strings(env: &Env, arr: Vec<String>, seed: u64) -> Vec<String> {
+    /// LF-268: Fisher-Yates shuffle over a small (4-element) options list
+    /// using the contract PRNG.
+    fn shuffle_strings(env: &Env, arr: Vec<String>) -> Vec<String> {
         let mut result = arr;
-        let mut current_seed = seed;
         let mut j = result.len();
         while j > 1 {
             j -= 1;
-            current_seed =
-                current_seed.wrapping_mul(1664525).wrapping_add(1013904223) % 0xFFFF_FFFFu64;
-            let rand_idx = (current_seed % (j as u64 + 1)) as u32;
+            let rand_idx = env.prng().gen_range(0..(j + 1));
             if j != rand_idx {
                 let a = result.get(j).unwrap();
                 let b = result.get(rand_idx).unwrap();
@@ -2658,7 +2685,6 @@ impl LyricsFlip {
                 result.set(rand_idx, a);
             }
         }
-        let _ = env;
         result
     }
 

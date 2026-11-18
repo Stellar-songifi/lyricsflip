@@ -1,18 +1,17 @@
-use soroban_sdk::{contracttype, Address, Env};
+use soroban_sdk::{contractevent, Address};
 
-#[contracttype]
+/// Emitted when the escrow fee is updated.
+#[contractevent]
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct WinningsClaimed {
-    pub round_id: u64,
-    pub player: Address,
-    pub amount: i128,
+pub struct FeeUpdated {
+    #[topic]
+    pub fee_bps: u32,
 }
 
-impl WinningsClaimed {
-    pub fn publish(&self, env: &Env) {
-        env.events().publish(
-            (symbol_short!("WinCum"), self.round_id, self.player.clone()),
-            self.amount,
-        );
-    }
+/// Emitted when the escrow treasury address is updated.
+#[contractevent]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct TreasuryUpdated {
+    #[topic]
+    pub treasury: Address,
 }

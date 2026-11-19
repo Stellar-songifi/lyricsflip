@@ -69,17 +69,39 @@ export interface SystemCalls {
    * "not implemented" stubs here rather than invented as part of a chain
    * migration.
    */
-  getCategories: () => Promise<any>;
-  getSongs: () => Promise<any>;
-  getLeaderboard: () => Promise<any>;
-  claimEarnings: () => Promise<any>;
+  getCategories: () => Promise<DashboardCategory[]>;
+  getSongs: () => Promise<DashboardSong[]>;
+  getLeaderboard: () => Promise<DashboardLeaderboardUser[]>;
+  claimEarnings: () => Promise<void>;
+}
+
+/** Placeholder shapes for the legacy MusicDashboard "future backend" stubs. */
+interface DashboardSong {
+  id: string;
+  title: string;
+  artist: string;
+  category: string;
+  plays: number;
+}
+
+interface DashboardCategory {
+  id: string;
+  name: string;
+  songCount: number;
+}
+
+interface DashboardLeaderboardUser {
+  id: string;
+  rank: number;
+  username: string;
+  points: number;
 }
 
 const randomSeed = () => BigInt(Date.now());
 
 const notImplemented =
   (name: string) =>
-  async (): Promise<any> => {
+  async (): Promise<never> => {
     throw new Error(`${name} is not implemented on-chain; wire this to a backend API.`);
   };
 

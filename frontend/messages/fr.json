@@ -122,6 +122,21 @@
       "braavos": "Braavos"
     }
   },
+  "atoms": {
+    "close": "Fermer"
+  },
+  "musicDashboard": {
+    "loading": "Chargement des données musicales...",
+    "noSystemCalls": "Système non initialisé",
+    "failedLoad": "Échec du chargement des données",
+    "errorPrefix": "Erreur :",
+    "title": "Tableau de bord musical",
+    "topSongs": "Top Chansons",
+    "plays": "{count} écoutes",
+    "categories": "Catégories",
+    "leaderboard": "Classement",
+    "points": "{points} pts"
+  },
   "errors": {
     "loadingEngine": "Chargement du moteur de jeu...",
     "initializing": "Veuillez patienter pendant que nous initialisons le jeu",

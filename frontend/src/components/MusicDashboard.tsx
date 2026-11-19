@@ -1,5 +1,6 @@
 'use client';
 import { useStellar } from '@/lib/stellar/hooks/useStellar';
+import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 
 interface LeaderboardUser {
@@ -24,6 +25,7 @@ interface Category {
 }
 
 export default function MusicDashboard() {
+  const t = useTranslations('musicDashboard');
   const { systemCalls } = useStellar();
   const [songs, setSongs] = useState<Song[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -38,7 +40,7 @@ export default function MusicDashboard() {
         setError(null);
         
         if (!systemCalls) {
-          setError('System calls not initialized');
+          setError(t('noSystemCalls'));
           return;
         }
 
@@ -50,34 +52,34 @@ export default function MusicDashboard() {
 
         setSongs(songsData);
         setCategories(categoriesData);
-        setLeaderboard(leaderboardData.map((user: any, index: number) => ({
+        setLeaderboard(leaderboardData.map((user, index: number) => ({
           ...user,
           rank: index + 1,
         })));
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load data');
+        setError(err instanceof Error ? err.message : t('failedLoad'));
       } finally {
         setIsLoading(false);
       }
     };
 
     fetchData();
-  }, [systemCalls]);
+  }, [systemCalls, t]);
 
   if (isLoading) {
-    return <div className="p-4 text-center">Loading music data...</div>;
+    return <div className="p-4 text-center">{t('loading')}</div>;
   }
 
   if (error) {
-    return <div className="p-4 text-red-500">Error: {error}</div>;
+    return <div className="p-4 text-red-500">{t('errorPrefix')} {error}</div>;
   }
 
   return (
     <div className="p-4">
-      <h1 className="text-2xl font-bold mb-6">Music Dashboard</h1>
-      
+      <h1 className="text-2xl font-bold mb-6">{t('title')}</h1>
+
       <section className="mb-8">
-        <h2 className="text-xl font-semibold mb-4">Top Songs</h2>
+        <h2 className="text-xl font-semibold mb-4">{t('topSongs')}</h2>
         <div className="grid gap-4">
           {songs?.map((song) => (
             <div key={song.id} className="p-4 border rounded-lg">
@@ -85,7 +87,7 @@ export default function MusicDashboard() {
               <p className="text-gray-600">{song.artist}</p>
               <div className="flex justify-between mt-2">
                 <span className="text-sm text-gray-500">{song.category}</span>
-                <span className="text-sm font-medium">{song.plays.toLocaleString()} plays</span>
+                <span className="text-sm font-medium">{t('plays', { count: song.plays.toLocaleString() })}</span>
               </div>
             </div>
           ))}
@@ -93,7 +95,7 @@ export default function MusicDashboard() {
       </section>
 
       <section className="mb-8">
-        <h2 className="text-xl font-semibold mb-4">Categories</h2>
+        <h2 className="text-xl font-semibold mb-4">{t('categories')}</h2>
         <div className="flex gap-2 flex-wrap">
           {categories?.map((category) => (
             <span key={category.id} className="px-3 py-1 bg-gray-100 rounded-full text-sm">
@@ -104,7 +106,7 @@ export default function MusicDashboard() {
       </section>
 
       <section>
-        <h2 className="text-xl font-semibold mb-4">Leaderboard</h2>
+        <h2 className="text-xl font-semibold mb-4">{t('leaderboard')}</h2>
         <div className="space-y-3">
           {leaderboard?.map((user) => (
             <div key={user.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
@@ -112,7 +114,7 @@ export default function MusicDashboard() {
                 <span className="font-medium w-6 text-center">{user.rank}</span>
                 <span>{user.username}</span>
               </div>
-              <span className="font-medium">{user.points} pts</span>
+              <span className="font-medium">{t('points', { points: user.points })}</span>
             </div>
           ))}
         </div>

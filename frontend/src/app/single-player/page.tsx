@@ -34,7 +34,6 @@ export default function SinglePlayerGame() {
   const [totalCards, setTotalCards] = useState(0);
   const [answeredCount, setAnsweredCount] = useState(0);
   const [txStatus, setTxStatus] = useState<string | null>(null);
-  const [isGameStarted, setIsGameStarted] = useState(false);
   const [selectedOption, setSelectedOption] = useState<SongOption | null>(null);
   const [correctOption, setCorrectOption] = useState<SongOption | null>(null);
   const [isCardFlipped, setIsCardFlipped] = useState(false);
@@ -88,7 +87,6 @@ export default function SinglePlayerGame() {
         setRound(roundData);
         setTotalCards(cards.length);
         setAnsweredCount(roundData.next_card_index);
-        setIsGameStarted(true);
         if (roundData.next_card_index < cards.length) {
           await loadNextCard();
         }

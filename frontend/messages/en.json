@@ -122,6 +122,21 @@
       "braavos": "Braavos"
     }
   },
+  "atoms": {
+    "close": "Close"
+  },
+  "musicDashboard": {
+    "loading": "Loading music data...",
+    "noSystemCalls": "System calls not initialized",
+    "failedLoad": "Failed to load data",
+    "errorPrefix": "Error:",
+    "title": "Music Dashboard",
+    "topSongs": "Top Songs",
+    "plays": "{count} plays",
+    "categories": "Categories",
+    "leaderboard": "Leaderboard",
+    "points": "{points} pts"
+  },
   "errors": {
     "loadingEngine": "Loading Game Engine...",
     "initializing": "Please wait while we initialize the game",

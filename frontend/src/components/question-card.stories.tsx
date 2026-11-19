@@ -23,7 +23,8 @@ const yearOptions: SongOption[] = [
 ];
 
 // Storybook stories for each question kind (LF-308).
-export default {};
+const meta = {};
+export default meta;
 
 export const TitleKind = () => (
   <QuestionCard kind="Title" options={titleOptions} onSelect={() => {}} />

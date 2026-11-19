@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 
-type ModalType =
+export type ModalType =
   | 'game'
   | 'settings'
   | 'profile'
@@ -9,6 +9,7 @@ type ModalType =
   | 'wager-summary'
   | 'won'
   | 'lost'
+  | 'cancelled'
   | null;
 
 interface ModalState {

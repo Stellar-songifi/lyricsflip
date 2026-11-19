@@ -102,7 +102,10 @@ export function useOpenRounds({
   const createdAtRef = useRef<Map<string, number>>(new Map());
   const eventCursorRef = useRef<string | null>(null);
 
-  const queryKey = queryKeys.openRounds(limit);
+  const queryKey = [
+    ...queryKeys.openRounds(createConfig().lyricsflipContractId),
+    limit,
+  ] as const;
 
   const query = useQuery({
     queryKey,

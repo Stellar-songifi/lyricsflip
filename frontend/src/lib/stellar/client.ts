@@ -13,6 +13,7 @@ import { withTxToast, withTxToastResult, type TxResult } from './toast';
 import {
   type Answer,
   type Card,
+  type CardResult,
   type Genre,
   type Milestone,
   type PlayerStats,
@@ -22,6 +23,7 @@ import {
   type RoundFilter,
   type WireCard,
   type WireRound,
+  type WireCardResult,
   ROLE_ADMIN,
   genreFromWire,
   genreToWire,
@@ -96,6 +98,8 @@ export interface SystemCalls {
   /** Cancels one of your own lobbies and refunds every participant. */
   cancelRound: (roundId: bigint) => Promise<void>;
   getRoundCards: (roundId: bigint) => Promise<bigint[]>;
+  /** LF-293: per-card breakdown of a finalized round, in one read. */
+  getRoundSummary: (roundId: bigint) => Promise<CardResult[]>;
   getRoundPlayers: (roundId: bigint) => Promise<string[]>;
   getPlayerStat: (address: string) => Promise<PlayerStats>;
   getCardsOfGenre: (genre: Genre, seed?: bigint) => Promise<Card[]>;
@@ -207,7 +211,13 @@ type LyricsFlipContract = {
     caller: string;
     round_id: bigint;
   }) => Promise<contract.AssembledTransaction<null>>;
-  get_round_cards: (args: { round_id: bigint }) => Promise<contract.AssembledTransaction<bigint[]>>;
+  get_round_cards: (args: {
+    caller: string;
+    round_id: bigint;
+  }) => Promise<contract.AssembledTransaction<bigint[]>>;
+  get_round_summary: (args: {
+    round_id: bigint;
+  }) => Promise<contract.AssembledTransaction<WireCardResult[]>>;
   get_round_players: (args: { round_id: bigint }) => Promise<contract.AssembledTransaction<string[]>>;
   get_player_stat: (args: { player: string }) => Promise<contract.AssembledTransaction<PlayerStats>>;
   get_cards_of_genre: (args: { genre: number; seed: bigint }) => Promise<contract.AssembledTransaction<WireCard[]>>;
@@ -447,8 +457,25 @@ export function createSystemCalls(config: StellarConfig, publicKey: string | nul
 
     getRoundCards: async (roundId) => {
       const client = await getGameClient(config, publicKey);
-      const res = await client.get_round_cards({ round_id: roundId });
+      // LF-292: no auth needed once the round is finalized or cancelled, so
+      // visitors without a wallet pass the contract id as a placeholder.
+      const res = await client.get_round_cards({
+        caller: publicKey ?? config.lyricsflipContractId,
+        round_id: roundId,
+      });
       return res.result;
+    },
+
+    getRoundSummary: async (roundId) => {
+      const client = await getGameClient(config, publicKey);
+      const res = await client.get_round_summary({ round_id: roundId });
+      return res.result.map(({ card, kind, per_player }) => {
+        const perPlayer: CardResult['perPlayer'] = {};
+        per_player.forEach(([correct, points], player) => {
+          perPlayer[String(player)] = { correct, points: Number(points) };
+        });
+        return { card: cardFromWire(card), kind, perPlayer };
+      });
     },
 
     getRoundPlayers: async (roundId) => {

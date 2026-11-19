@@ -80,6 +80,23 @@ export interface Round {
   answer_window?: bigint;
   lobby_timeout?: bigint;
   round_duration?: bigint;
+  /** LF-291: player cap for this round (≤ the global max). */
+  max_players?: number;
+}
+
+/** LF-293: one card of a finalized round with every player's result. */
+export interface CardResult {
+  card: Card;
+  kind: QuestionKind;
+  /** `{ correct, points }` per player address that answered this card. */
+  perPlayer: Record<string, { correct: boolean; points: number }>;
+}
+
+/** Raw `CardResult` returned by the contract. */
+export interface WireCardResult {
+  card: WireCard;
+  kind: QuestionKind;
+  per_player: Map<string, [boolean, bigint]>;
 }
 
 export interface RoundFilter {

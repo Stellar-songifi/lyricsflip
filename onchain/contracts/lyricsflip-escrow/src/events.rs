@@ -1,18 +1,73 @@
-use soroban_sdk::{contracttype, Address, Env};
+use soroban_sdk::{contractevent, Address, Vec};
 
-#[contracttype]
+#[contractevent]
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct WinningsClaimed {
+pub struct EscrowRoundCreated {
+    #[topic]
     pub round_id: u64,
+    pub token: Address,
+    pub pot: i128,
+}
+
+#[contractevent]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct Deposited {
+    #[topic]
+    pub round_id: u64,
+    #[topic]
     pub player: Address,
     pub amount: i128,
 }
 
-impl WinningsClaimed {
-    pub fn publish(&self, env: &Env) {
-        env.events().publish(
-            (symbol_short!("WinCum"), self.round_id, self.player.clone()),
-            self.amount,
-        );
-    }
+#[contractevent]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct Locked {
+    #[topic]
+    pub round_id: u64,
+}
+
+#[contractevent]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct Settled {
+    #[topic]
+    pub round_id: u64,
+    pub winners: Vec<Address>,
+    pub fee: i128,
+    pub claim_deadline: u64,
+}
+
+#[contractevent]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct Refunded {
+    #[topic]
+    pub round_id: u64,
+    #[topic]
+    pub player: Address,
+    pub amount: i128,
+}
+
+#[contractevent]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct Cancelled {
+    #[topic]
+    pub round_id: u64,
+    pub refunded_amount: i128,
+}
+
+#[contractevent]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct Claimed {
+    #[topic]
+    pub round_id: u64,
+    #[topic]
+    pub player: Address,
+    pub amount: i128,
+}
+
+#[contractevent]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct Swept {
+    #[topic]
+    pub round_id: u64,
+    pub amount: i128,
 }

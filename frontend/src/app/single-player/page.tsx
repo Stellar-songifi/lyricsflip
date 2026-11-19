@@ -93,6 +93,7 @@ export default function SinglePlayerGame() {
   );
   // Only the question (lyric + options) is ever held here, never the card:
   // the answer stays on-chain until `answer_and_next` reveals it (LF-297).
+  const [card, setCard] = useState<QuestionCard | null>(null);
   const [question, setQuestion] = useState<QuestionCard | null>(null);
   const [nextQuestion, setNextQuestion] = useState<QuestionCard | null>(null);
   const questionKind: QuestionKind = question?.kind ?? 'Title';
@@ -153,6 +154,8 @@ export default function SinglePlayerGame() {
   const handleCardTimeout = useCallback(() => {
     // Time ran out – flip the card and count it as a miss. The answer is only
     // revealed by the contract, so nothing is highlighted here.
+    // Time ran out – flip the card to reveal the answer and count as a miss
+    setCorrectOption(null);
     setIsCardFlipped(true);
     setAnswerResult('late');
   }, []);
@@ -185,6 +188,25 @@ export default function SinglePlayerGame() {
     },
     [resetCardTimer],
   );
+  const loadNextCard = useCallback(async () => {
+    if (!systemCalls || !roundId) return;
+    const id = BigInt(roundId);
+    setSelectedOption(null);
+    setCorrectOption(null);
+    setAnswerResult(null);
+    setIsCardFlipped(false);
+    setCardStartedAtMs(null);
+    resetCardTimer();
+    setTxStatus('Drawing next card…');
+    const { result: nextCard, startedAtMs } = await systemCalls.nextCardWithMeta(id);
+    setQuestionKind(nextCard.kind);
+    setCard(nextCard);
+    setQuestion(nextCard);
+    // The contract's 15 s window started when `next_card` closed in a ledger,
+    // which is several seconds before this line runs.
+    setCardStartedAtMs(startedAtMs);
+    setTxStatus(null);
+  }, [answeredCount, kindSetting, roundId, systemCalls, resetCardTimer]);
 
   useEffect(() => {
     const fetchRoundData = async () => {
@@ -288,6 +310,30 @@ export default function SinglePlayerGame() {
   const submitAnswer = useCallback(
     async (answer: Answer, option: SongOption | null) => {
       if (!systemCalls || roundId === null) return;
+  const handleAnswer = useCallback(
+    async (option: SongOption) => {
+      if (!systemCalls || !roundId || !card || selectedOption !== null) return;
+      setSelectedOption(option);
+      setIsCardFlipped(true);
+      setCorrectOption(null);
+      setAnswerResult(null);
+
+      // Build the Answer variant that matches the question kind. Year options
+      // arrive as strings, so parse them safely before hitting the contract.
+      let answer: Answer;
+      if (questionKind === 'Artist') {
+        answer = Answer.artist(option.title);
+      } else if (questionKind === 'Year') {
+        const year = parseYearOption(option.title);
+        if (year === null) {
+          setError(`Invalid year option: ${option.title}`);
+          return;
+        }
+        answer = Answer.year(year);
+      } else {
+        answer = Answer.title(option.title);
+      }
+
       try {
         // Show "Submitting…" until the transaction is included in a ledger;
         // the contract, not the client clock, decides whether it was in time.
@@ -519,6 +565,8 @@ export default function SinglePlayerGame() {
                 text: question.lyric,
                 title: correctOption?.title ?? '',
                 artist: correctOption?.artist ?? '',
+                      title: '',
+                      artist: '',
               },
             ]}
             isFlipped={isCardFlipped}

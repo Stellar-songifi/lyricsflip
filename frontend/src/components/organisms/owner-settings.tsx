@@ -99,7 +99,7 @@ function isValidWasmHash(value: string): boolean {
   return WASM_HASH_REGEX.test(value.trim());
 }
 
-export default function OwnerSettings({
+export function OwnerSettings({
   isOwner,
   walletAddress,
   currentOwner,

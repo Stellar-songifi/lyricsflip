@@ -1,0 +1,6 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+# Type-check the whole frontend before pushing so CI's `tsc --noEmit` step
+# (.github/workflows/frontend.yml) cannot be broken by a push.
+cd frontend && npx --no -- tsc --noEmit

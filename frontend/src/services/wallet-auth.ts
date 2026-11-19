@@ -1,17 +1,21 @@
 import { post } from './api';
-import type { components } from './generated/openapi';
 import { clearAuthTokens } from './api';
 
 // Talks to the backend's wallet-based auth endpoints (backend/src/auth/auth.controller.ts
 // `challenge`/`verify`). NEXT_PUBLIC_API_URL must point at the bare backend
 // origin (e.g. `http://localhost:4000`) - the backend has no `/api` prefix.
 
-type Schemas = components['schemas'];
-
 /** Nonce string to sign with the wallet (e.g. StellarWalletsKit.signMessage). */
-export type WalletChallengeResponse = Schemas['WalletChallengeResponse'];
+export interface WalletChallengeResponse {
+  challenge: string;
+  /** Seconds until the challenge expires. */
+  expiresIn: number;
+}
 
-export type WalletAuthTokens = Schemas['WalletAuthTokens'];
+export interface WalletAuthTokens {
+  accessToken: string;
+  user?: unknown;
+}
 
 /** Requests a one-time challenge for `address` to sign with its Stellar wallet. */
 export const requestWalletChallenge = (

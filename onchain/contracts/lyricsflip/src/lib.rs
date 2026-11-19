@@ -14,7 +14,8 @@ mod test_budget;
 pub use errors::Error;
 pub use events::{
     AnswerSubmitted, AnswerWindowUpdated, CardAdded, CardDrawn, CardRemoved, CardUpdated,
-    CardsPerRoundUpdated, ContractUpgraded, LobbyTimeoutUpdated, OwnershipTransferStarted,
+    CardsPerRoundUpdated, ContractUpgraded, LobbyTimeoutUpdated, MilestoneReset,
+    OwnershipTransferStarted,
     OwnershipTransferred, Paused, PlayerReady, RewardClaimed, RoleUpdated, RoundBufferUpdated,
     RoundCancelled, RoundCompleted, RoundCreated, RoundDurationUpdated, RoundJoined, RoundLeft,
     RoundStarted, SchemaMigrated, Unpaused,
@@ -425,6 +426,24 @@ impl LyricsFlip {
             round_id += 1;
         }
         rounds
+    }
+
+    /// LF-286: ids of the rounds `player` created or joined, newest first.
+    /// `start` is an offset from the newest round and `limit` is clamped to
+    /// `MAX_PAGE_LIMIT`. Rounds the player left are not included.
+    pub fn get_player_rounds(env: Env, player: Address, start: u32, limit: u32) -> Vec<u64> {
+        let count = Self::player_round_count(&env, &player);
+        let end = start.saturating_add(limit.min(MAX_PAGE_LIMIT)).min(count);
+        let mut ids: Vec<u64> = Vec::new(&env);
+        for i in start..end {
+            ids.push_back(
+                env.storage()
+                    .persistent()
+                    .get(&DataKey::PlayerRoundAt((player.clone(), count - 1 - i)))
+                    .unwrap(),
+            );
+        }
+        ids
     }
 
     /// Ids of rounds that are created but not yet started (i.e. joinable),
@@ -918,6 +937,7 @@ impl LyricsFlip {
             .persistent()
             .set(&DataKey::RoundPlayers(round_id), &players);
         bump_persistent(&env, &DataKey::RoundPlayers(round_id));
+        Self::push_player_round(&env, &caller, round_id);
 
         env.storage()
             .persistent()
@@ -1095,6 +1115,7 @@ impl LyricsFlip {
             .persistent()
             .set(&DataKey::RoundPlayers(round_id), &players);
         bump_persistent(&env, &DataKey::RoundPlayers(round_id));
+        Self::push_player_round(&env, &caller, round_id);
 
         RoundJoined {
             round_id,
@@ -1122,6 +1143,7 @@ impl LyricsFlip {
         env.storage()
             .persistent()
             .set(&DataKey::RoundPlayers(round_id), &players);
+        Self::remove_player_round(&env, &caller, round_id);
 
         let ready_key = DataKey::RoundReady((round_id, caller.clone()));
         if env.storage().persistent().get(&ready_key).unwrap_or(false) {
@@ -1827,6 +1849,17 @@ impl LyricsFlip {
         env.storage().instance().set(&DataKey::RoundBuffer, &value);
         bump_instance(&env);
         RoundBufferUpdated { value }.publish(&env);
+    }
+
+    /// LF-284: owner-only. Clears `player`'s claimed flag for `milestone` so
+    /// a badge that was burned or revoked by mistake can be claimed again.
+    pub fn reset_milestone(env: Env, caller: Address, player: Address, milestone: Milestone) {
+        caller.require_auth();
+        Self::assert_owner(&env, &caller);
+        env.storage()
+            .persistent()
+            .remove(&DataKey::MilestoneClaimed((player.clone(), milestone)));
+        MilestoneReset { player, milestone }.publish(&env);
     }
 
     /// Mints the NFT for `milestone` to `caller` through a cross-contract
@@ -2590,6 +2623,58 @@ impl LyricsFlip {
             .unwrap_or(false);
         if paused {
             panic_with_error!(env, Error::Paused);
+        }
+    }
+
+    fn player_round_count(env: &Env, player: &Address) -> u32 {
+        env.storage()
+            .persistent()
+            .get(&DataKey::PlayerRoundCount(player.clone()))
+            .unwrap_or(0)
+    }
+
+    /// LF-286: appends `round_id` to `player`'s round-history index.
+    fn push_player_round(env: &Env, player: &Address, round_id: u64) {
+        let count = Self::player_round_count(env, player);
+        let at_key = DataKey::PlayerRoundAt((player.clone(), count));
+        env.storage().persistent().set(&at_key, &round_id);
+        bump_persistent(env, &at_key);
+        let count_key = DataKey::PlayerRoundCount(player.clone());
+        env.storage().persistent().set(&count_key, &(count + 1));
+        bump_persistent(env, &count_key);
+    }
+
+    /// LF-286: removes `round_id` from `player`'s index, keeping order. Only
+    /// called on leave, before the round starts, so the entry is near the end.
+    fn remove_player_round(env: &Env, player: &Address, round_id: u64) {
+        let count = Self::player_round_count(env, player);
+        let mut i = count;
+        while i > 0 {
+            i -= 1;
+            let id: u64 = env
+                .storage()
+                .persistent()
+                .get(&DataKey::PlayerRoundAt((player.clone(), i)))
+                .unwrap();
+            if id == round_id {
+                for j in i..count - 1 {
+                    let next: u64 = env
+                        .storage()
+                        .persistent()
+                        .get(&DataKey::PlayerRoundAt((player.clone(), j + 1)))
+                        .unwrap();
+                    env.storage()
+                        .persistent()
+                        .set(&DataKey::PlayerRoundAt((player.clone(), j)), &next);
+                }
+                env.storage()
+                    .persistent()
+                    .remove(&DataKey::PlayerRoundAt((player.clone(), count - 1)));
+                env.storage()
+                    .persistent()
+                    .set(&DataKey::PlayerRoundCount(player.clone()), &(count - 1));
+                return;
+            }
         }
     }
 

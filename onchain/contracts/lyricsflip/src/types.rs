@@ -379,6 +379,10 @@ pub enum DataKey {
     /// Caps how many free (0-wager) lobbies one account can park in
     /// `OpenRounds`; decremented on start, cancel, and expiry.
     OpenRoundsOf(Address),
+    /// LF-286: number of rounds in a player's round-history index.
+    PlayerRoundCount(Address),
+    /// LF-286: the player's `n`th round id, in join order (oldest first).
+    PlayerRoundAt((Address, u32)),
 }
 
 #[contracttype]

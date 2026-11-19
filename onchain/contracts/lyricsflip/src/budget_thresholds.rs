@@ -49,3 +49,11 @@ pub const FINALIZE_ROUND_MAX_MEM: u64 = 15_000_000;
 /// contract.
 pub const CLAIM_REWARD_MAX_CPU: u64 = 15_000_000;
 pub const CLAIM_REWARD_MAX_MEM: u64 = 3_000_000;
+
+// LF-283: `create_round_with_filter` with genre + decade + difficulty set,
+// which scans the whole 500-card genre index. Like the LF-181 values above,
+// this is a conservative unmeasured ceiling, set at 70% of the Soroban
+// per-transaction limits (100M CPU instructions, 40 MB memory) so the test
+// fails before the call gets within 30% of the network limit.
+pub const CREATE_ROUND_WITH_FILTER_MAX_CPU: u64 = 70_000_000;
+pub const CREATE_ROUND_WITH_FILTER_MAX_MEM: u64 = 28_000_000;

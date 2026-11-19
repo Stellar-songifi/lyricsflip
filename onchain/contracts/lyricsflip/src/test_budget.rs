@@ -6,7 +6,7 @@ extern crate std;
 
 use crate::budget_thresholds::*;
 use crate::{
-    Answer, Card, Genre, LyricsFlip, LyricsFlipClient, Milestone, QuestionKind,
+    Answer, Card, Genre, LyricsFlip, LyricsFlipClient, Milestone, QuestionKind, RoundFilter,
     MAX_CARDS_PER_ROUND, MAX_ROUND_PLAYERS,
 };
 use soroban_sdk::{
@@ -104,6 +104,27 @@ fn create_round_budget() {
         CREATE_ROUND_MAX_MEM,
         || {
             client.create_round(&owner, &Some(Genre::Pop), &42u64, &None);
+        },
+    );
+}
+
+/// LF-283: worst-case filtered create, with every filter set so the whole
+/// 500-card catalogue is scanned for matches.
+#[test]
+fn create_round_with_filter_budget() {
+    let (env, client, owner) = setup_catalogue();
+    client.set_cards_per_round(&owner, &MAX_CARDS_PER_ROUND);
+    let filter = RoundFilter {
+        genre: Some(Genre::Pop),
+        decade: Some(1990),
+    };
+    measure(
+        &env,
+        "create_round_with_filter",
+        CREATE_ROUND_WITH_FILTER_MAX_CPU,
+        CREATE_ROUND_WITH_FILTER_MAX_MEM,
+        || {
+            client.create_round_with_filter(&owner, &filter, &Some(2u32), &42u64);
         },
     );
 }

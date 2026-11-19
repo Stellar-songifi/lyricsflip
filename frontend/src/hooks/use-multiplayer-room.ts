@@ -17,12 +17,12 @@ export interface UseMultiplayerRoomProps {
   token?: string | null;
 }
 
-// Define WebSocket message event type
-interface WebSocketMessageEvent {
-  data: string;
-}
+type RoomSocket = Socket<ServerToClientEvents, ClientToServerEvents>;
 
-// Mock data for demonstration
+const WS_URL = process.env.NEXT_PUBLIC_WS_URL || 'http://localhost:4000';
+
+// Mock data used as a fallback when the realtime backend is unreachable, so
+// the lobby keeps a usable shape during local development.
 const mockRoomData: RoomData = {
   id: '',
   name: 'Wager (Multi Player)',
@@ -52,17 +52,6 @@ const mockRoomData: RoomData = {
   ],
 };
 
-// Mock WebSocket class for demonstration
-class MockWebSocket {
-  onopen: (() => void) | null = null;
-  onmessage: ((event: WebSocketMessageEvent) => void) | null = null;
-  onclose: (() => void) | null = null;
-  onerror: ((error: any) => void) | null = null;
-  readyState = 1; // WebSocket.OPEN
-type RoomSocket = Socket<ServerToClientEvents, ClientToServerEvents>;
-
-const WS_URL = process.env.NEXT_PUBLIC_WS_URL || 'http://localhost:4000';
-
 export function useMultiplayerRoom({
   roomId,
   playerName,
@@ -88,26 +77,6 @@ export function useMultiplayerRoom({
     const update = (fn: (prev: RoomData) => RoomData) =>
       setRoomData((prev) => (prev ? fn(prev) : prev));
 
-    ws.onclose = () => {
-      setIsConnected(false);
-    };
-
-    ws.onerror = (err) => {
-      console.error('WebSocket error:', err);
-      setError('Failed to connect to the game server');
-    };
-
-    // Store the WebSocket instance in the ref
-    socketRef.current = ws;
-
-    // For testing, directly set mock data after a short delay
-    // This ensures we have data even if the WebSocket fails
-    const fallbackTimer = setTimeout(() => {
-      if (!roomData) {
-        setIsConnected(true);
-        setRoomData({ ...mockRoomData, id: roomId });
-      }
-    }, 2000);
     socket.on('connect', () => {
       setIsConnected(true);
       setError(null);
@@ -149,10 +118,17 @@ export function useMultiplayerRoom({
     );
     socket.on('room_error', ({ message }) => setError(message));
 
+    // Fallback mock data so the lobby stays usable when the backend is down.
+    const fallbackTimer = setTimeout(() => {
+      setRoomData((prev) => prev ?? { ...mockRoomData, id: roomId });
+      setIsConnected(true);
+    }, 2000);
+
     return () => {
       socket.removeAllListeners();
       socket.disconnect();
       socketRef.current = null;
+      clearTimeout(fallbackTimer);
     };
   }, [roomId, playerName, token]);
 

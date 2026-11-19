@@ -3,10 +3,11 @@
 import type React from 'react';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import { ArrowLeft, CircleCheck, CircleX } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 export default function SetUsername() {
+  const t = useTranslations('auth');
   const [username, setUsername] = useState('');
   const [status, setStatus] = useState<
     'idle' | 'available' | 'taken' | 'invalid'
@@ -45,20 +46,20 @@ export default function SetUsername() {
             className="flex gap-x-1 items-center text-gray-700 hover:text-gray-900"
           >
             <ArrowLeft className="w-5 h-5" />
-            Back
+            {t('back')}
           </Link>
         </div>
         <div className="flex justify-center items-center flex-1">
           <div className="justify-between flex flex-col md:min-w-[300px] lg:min-w-[400px] gap-y-12 md:gap-y-24 lg:gap-y-32">
             <div className="flex flex-col justify-center mx-auto w-full">
-              <h1 className="text-2xl font-bold mb-2">Create Username</h1>
+              <h1 className="text-2xl font-bold mb-2">{t('createUsername')}</h1>
               <p className="text-gray-600 mb-6 text-sm">
-                Choose a unique username that represents you.
+                {t('chooseUsername')}
               </p>
 
               <div className="space-y-2 mb-4">
                 <label htmlFor="username" className="block text-sm font-medium">
-                  Enter Username
+                  {t('enterUsername')}
                 </label>
                 <input
                   id="username"
@@ -78,14 +79,14 @@ export default function SetUsername() {
                       <div className="flex items-center text-green-600 mt-2 gap-x-1">
                         <CircleCheck className="w-5 h-5" />
 
-                        <span>{username} is available</span>
+                        <span>{t('usernameAvailable', { username })}</span>
                       </div>
                     )}
                     {status === 'taken' && username.length > 0 && (
                       <div className="flex items-center text-red-600 mt-2 gap-x-2">
                         <CircleX className="w-5 h-5" />
                         <span>
-                          {username} has been taken, please try another name
+                          {t('usernameTaken', { username })}
                         </span>
                       </div>
                     )}
@@ -93,8 +94,7 @@ export default function SetUsername() {
                       <div className="flex items-center text-red-600 mt-2 gap-x-2">
                         <CircleX className="w-5 h-5" />
                         <span>
-                          Username must be 4-15 characters & use only letters,
-                          numbers, or _
+                          {t('usernameInvalid')}
                         </span>
                       </div>
                     )}
@@ -111,7 +111,7 @@ export default function SetUsername() {
                     : 'bg-gray-400 text-gray-700 cursor-not-allowed'
                 }`}
               >
-                Create Username
+                {t('createUsername')}
               </button>
             </div>
           </div>
@@ -120,8 +120,8 @@ export default function SetUsername() {
       <div className="w-full col-span-1 relative hidden md:flex">
         <div className="absolute inset-0 bg-purplePrimary5/[.98] z-10 flex items-center justify-center">
           <div className="text-white text-5xl md:text-6xl font-bold">
-            <span className="text-white">Lyric</span>
-            <span className="text-tealPrimary1">Flip</span>
+            <span className="text-white">{t('brandLyric')}</span>
+            <span className="text-tealPrimary1">{t('brandFlip')}</span>
           </div>
         </div>
         <div

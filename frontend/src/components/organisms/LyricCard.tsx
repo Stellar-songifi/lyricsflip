@@ -1,6 +1,7 @@
 'use client';
 
 import { usePrefersReducedMotion } from '@/hooks/use-prefers-reduced-motion';
+import { useTranslations } from 'next-intl';
 
 interface Lyric {
   text: string;
@@ -26,6 +27,7 @@ function CardFace({
   style?: React.CSSProperties;
   className?: string;
 }) {
+  const t = useTranslations('lyricCard');
   const bg = tone === 'purple' ? 'bg-purplePrimary3' : 'bg-tealPrimary1';
   return (
     <div className={`absolute inset-0 ${className ?? ''}`} style={style} aria-hidden={ariaHidden}>
@@ -47,7 +49,7 @@ function CardFace({
                     {lyric.text}
                   </p>
                   <p className="text-center text-sm2 pb-2 font-medium text-purplePrimary1">
-                    LyricFlip...join the fun🎶🩵
+                    {t('footer')}
                   </p>
                 </div>
               </div>
@@ -68,6 +70,7 @@ export const LyricCard = ({
 }) => {
   const currentLyric = lyrics[0];
   const reducedMotion = usePrefersReducedMotion();
+  const t = useTranslations('lyricCard');
 
   // With reduced motion, swap the 3D flip for an opacity crossfade and skip
   // the 3D transform entirely (LF-311). Both faces carry the same lyric, so the

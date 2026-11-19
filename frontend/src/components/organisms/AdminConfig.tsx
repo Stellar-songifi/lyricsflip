@@ -1,9 +1,11 @@
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { Button } from "@/components/atoms/button";
 import { Input } from "@/components/atoms/input";
 import { useStellar } from "@/lib/stellar/hooks/useStellar";
 
 export const AdminConfig = () => {
+    const t = useTranslations('adminConfig');
     const { systemCalls } = useStellar();
     const [cardsPerRound, setCardsPerRoundValue] = useState<string>("");
     const [isLoading, setIsLoading] = useState(false);
@@ -13,23 +15,23 @@ export const AdminConfig = () => {
         e.preventDefault();
         const numCards = parseInt(cardsPerRound);
         if (isNaN(numCards) || numCards <= 0) {
-            setError("Please enter a valid number of cards");
+            setError(t('invalidCount'));
             return;
         }
-        
+
         if (!systemCalls) {
-            setError("System calls not initialized");
+            setError(t('noSystem'));
             return;
         }
 
         setIsLoading(true);
         setError(null);
-        
+
         try {
             await systemCalls.setCardsPerRound(numCards);
             setCardsPerRoundValue("");
         } catch (err) {
-            setError(err instanceof Error ? err.message : "Failed to set cards per round");
+            setError(err instanceof Error ? err.message : t('failed'));
         } finally {
             setIsLoading(false);
         }
@@ -37,11 +39,11 @@ export const AdminConfig = () => {
 
     return (
         <div className="p-4 bg-white rounded-lg shadow">
-            <h2 className="text-xl font-bold mb-4">Admin Configuration</h2>
+            <h2 className="text-xl font-bold mb-4">{t('title')}</h2>
             <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
                     <label htmlFor="cardsPerRound" className="block text-sm font-medium text-gray-700">
-                        Cards Per Round
+                        {t('cardsPerRound')}
                     </label>
                     <Input
                         id="cardsPerRound"
@@ -53,10 +55,10 @@ export const AdminConfig = () => {
                     />
                 </div>
                 <Button type="submit" disabled={isLoading}>
-                    {isLoading ? "Saving..." : "Save Configuration"}
+                    {isLoading ? t('saving') : t('save')}
                 </Button>
                 {error && <p className="text-red-500 mt-2">{error}</p>}
             </form>
         </div>
     );
-}; 
+};

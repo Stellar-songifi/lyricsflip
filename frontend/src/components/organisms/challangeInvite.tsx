@@ -1,6 +1,7 @@
 import { Copy, Lightbulb, X } from 'lucide-react';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import type { Round } from '@/lib/stellar/types';
 
 interface ChallengeInviteProps {
@@ -18,6 +19,7 @@ export default function ChallengeInvite({
   isBusy,
   onReady,
 }: ChallengeInviteProps) {
+  const t = useTranslations('challengeInvite');
   const router = useRouter();
   const [isCopied, setIsCopied] = useState(false);
 
@@ -47,19 +49,19 @@ export default function ChallengeInvite({
     if (navigator.share) {
       navigator
         .share({
-          title: 'Join my challenge!',
-          text: `Join my LyricsFlip challenge (round ${inviteCode})`,
+          title: t('shareTitle'),
+          text: t('shareText', { roundId: inviteCode }),
           url: inviteLink,
         })
         .catch((err) => console.warn('Error sharing:', err));
     } else {
       handleCopyCode();
-      alert('Invite link copied to clipboard!');
+      alert(t('inviteCopied'));
     }
   };
 
   const challengeData = {
-    gameMode: `Wager (Multi Player) · ${round.genre}`,
+    gameMode: `${t('gameModeValue')} · ${round.genre}`,
     participants: players.length,
     wagerAmount: round.wager_amount.toString(),
   };
@@ -77,13 +79,13 @@ export default function ChallengeInvite({
         </div>
         <div className="w-full flex flex-col gap-[4px]">
           <h1
-            aria-label="Your wager challenge has been created "
+            aria-label={t('title')}
             className="text-[24px] font-[600]"
           >
-            Your wager challenge has been created
+            {t('title')}
           </h1>
           <p className="text-[14px] font-[400] text-[#120029]">
-            Share the invite code below for others to join in
+            {t('subtitle')}
           </p>
         </div>
 
@@ -97,26 +99,26 @@ export default function ChallengeInvite({
           <span
             className="hover:cursor-pointer w-fit"
             onClick={handleCopyCode}
-            title={isCopied ? 'Copied!' : 'Copy to clipboard'}
+            title={isCopied ? t('copied') : t('copyToClipboard')}
           >
             <Copy color="#9747FF" />
-            {isCopied && <span className="sr-only">Copied!</span>}
+            {isCopied && <span className="sr-only">{t('copied')}</span>}
           </span>
         </div>
 
         <div className="flex flex-col gap-[12px]">
           <div className="flex w-full border-b border-black/30 justify-between text-[16px] font-[400]">
-            <span className="p-[12px] text-[#636363]">Game Mode</span>
+            <span className="p-[12px] text-[#636363]">{t('gameMode')}</span>
             <span className="font-[500]">{challengeData.gameMode}</span>
           </div>
           <div className="flex w-full border-b border-black/30 justify-between text-[16px] font-[400]">
             <span className="p-[12px] text-[#636363]">
-              Number of Participants
+              {t('participants')}
             </span>
             <span className="font-[500]">{challengeData.participants}</span>
           </div>
           <div className="flex w-full border-b border-black/30 justify-between text-[16px] font-[400]">
-            <span className="p-[12px] text-[#636363]">Wager Amount</span>
+            <span className="p-[12px] text-[#636363]">{t('wagerAmount')}</span>
             <span className="font-[500]">{challengeData.wagerAmount}</span>
           </div>
         </div>
@@ -124,12 +126,10 @@ export default function ChallengeInvite({
         <div className="border-[0.5px] p-[16px] rounded-[12px] gap-[17px] bg-[#F0F0F0] flex flex-col mt-5">
           <div className="flex space-x-1 items-center text-[#9747FF]">
             <Lightbulb size={16} />
-            <span className="text-[12px] font-[500]">INSTRUCTION</span>
+            <span className="text-[12px] font-[500]">{t('instructionHeading')}</span>
           </div>
           <p className="text-[16px] bg-white font-[400] text-[#08090A] border p-[16px] rounded-[8px] border-[#DBE1E7]">
-            A card displaying a lyric from a song will appear along with a list
-            of possible answers. Your goal is to score the highest point amongst
-            your challengers.
+            {t('instructionText')}
           </p>
         </div>
 
@@ -139,7 +139,7 @@ export default function ChallengeInvite({
             onClick={handleShareInvite}
             className="w-full rounded-full bg-transparent border border-[#9747FF] hover:bg-[#9747FF] text-[#9747FF] py-[24px] hover:text-white text-[16px] font-[600] transition-all duration-200"
           >
-            Share Invite Link
+            {t('shareInviteLink')}
           </button>
           <button
             type="button"
@@ -148,10 +148,10 @@ export default function ChallengeInvite({
             className="w-full rounded-full bg-[#9747FF] border border-[#9747FF] hover:bg-transparent text-white py-[24px] hover:text-[#9747FF] text-[16px] font-[600] transition-all duration-200"
           >
             {isReady
-              ? 'Waiting for players…'
+              ? t('waitingForPlayers')
               : isBusy
-                ? 'Submitting…'
-                : 'Ready'}
+                ? t('submitting')
+                : t('ready')}
           </button>
         </div>
       </div>

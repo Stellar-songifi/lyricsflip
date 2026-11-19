@@ -2,6 +2,7 @@
 
 import React, { useMemo, useState } from 'react'
 import Image from 'next/image'
+import { useTranslations } from 'next-intl'
 
 type NotificationCategory = 'all' | 'mentions' | 'system'
 
@@ -55,6 +56,7 @@ const sampleNotifications: NotificationItem[] = [
 ]
 
 export default function NotificationsPage() {
+  const t = useTranslations('notifications')
   const [activeTab, setActiveTab] = useState<NotificationCategory>('all')
   const [items, setItems] = useState<NotificationItem[]>(sampleNotifications)
 
@@ -80,10 +82,10 @@ export default function NotificationsPage() {
           <div className="rounded-full border p-2.5 border-e-whiteSecondary2 ">
             <Image src="/bell.svg" alt="bell" width={20} height={20} priority className="object-cover" />
           </div>
-          <h1 className="text-textdark font-interv text-xl md:text-2xl font-semibold">Notifications</h1>
+          <h1 className="text-textdark font-interv text-xl md:text-2xl font-semibold">{t('title')}</h1>
           {unreadCount > 0 && (
             <span className="ml-1 inline-flex items-center justify-center rounded-full bg-purplePrimary5/10 text-purplePrimary5 text-xs px-2 py-0.5">
-              {unreadCount} new
+              {t('unreadCount', { count: unreadCount })}
             </span>
           )}
         </div>
@@ -92,7 +94,7 @@ export default function NotificationsPage() {
           onClick={handleMarkAllAsRead}
           className="text-sm text-purplePrimary5 hover:underline"
         >
-          Mark all as read
+          {t('markAllAsRead')}
         </button>
       </div>
 
@@ -122,7 +124,7 @@ export default function NotificationsPage() {
       {filtered.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-16 border rounded-lg bg-white">
           <Image src="/Noise.png" alt="empty" width={64} height={64} className="opacity-60" />
-          <p className="mt-4 text-sm text-[#909090]">No notifications here yet.</p>
+          <p className="mt-4 text-sm text-[#909090]">{t('none')}</p>
         </div>
       ) : (
         <ul className="space-y-3 md:space-y-4">
@@ -155,14 +157,14 @@ export default function NotificationsPage() {
                 <div className="mt-3 flex items-center gap-3">
                   {n.unread && (
                     <span className="inline-flex items-center rounded-full bg-purplePrimary5/10 text-purplePrimary5 text-xs px-2 py-0.5">
-                      Unread
+                      {t('unread')}
                     </span>
                   )}
                   <button
                     onClick={() => handleDismiss(n.id)}
                     className="text-xs text-[#909090] hover:text-textdark"
                   >
-                    Dismiss
+                    {t('dismiss')}
                   </button>
                 </div>
               </div>

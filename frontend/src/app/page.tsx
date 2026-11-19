@@ -1,5 +1,6 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import Welcome from '@/components/atoms/welcome';
 import { GameModal } from '@/components/organisms/game-modal';
 import { GameOptions } from '@/components/organisms/game-mode-selection';
@@ -8,6 +9,7 @@ import { useModalStore } from '@/store/modal-store';
 import { useStellar, type UseStellarResult } from '@/lib/stellar/hooks/useStellar';
 
 export default function Home() {
+  const t = useTranslations('home');
   const { openModal } = useModalStore();
   const { systemCalls, account, isLoading, error } = useStellar();
 
@@ -20,13 +22,12 @@ export default function Home() {
     // Add handlers for other game types as needed
   };
 
-
   // Show loading state while Stellar is initializing
   if (isLoading) {
     return (
       <main className="lg:max-w-[53rem] mt-4 mx-auto h-fit w-full mb-20 lg:mb-12 p-4 lg:p-0 md:mt-24 lg:mt-32">
         <div className="flex items-center justify-center">
-          <div className="text-lg">Loading game...</div>
+          <div className="text-lg">{t('loading')}</div>
         </div>
       </main>
     );
@@ -37,7 +38,7 @@ export default function Home() {
     return (
       <main className="lg:max-w-[53rem] mt-4 mx-auto h-fit w-full mb-20 lg:mb-12 p-4 lg:p-0 md:mt-24 lg:mt-32">
         <div className="flex items-center justify-center">
-          <div className="text-lg text-red-500">Error: {error.message}</div>
+          <div className="text-lg text-red-500">{t('errorPrefix')} {error.message}</div>
         </div>
       </main>
     );
@@ -47,8 +48,6 @@ export default function Home() {
     <main className="lg:max-w-[53rem] mt-4 mx-auto h-fit w-full mb-20 lg:mb-12 p-4 lg:p-0 md:mt-24 lg:mt-32">
       <Welcome />
       <GameOptions onSelectGame={handleGameSelect} />
-
-      {/* Modals */}
       <GameModal />
       <WagerModal />
     </main>

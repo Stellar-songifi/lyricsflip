@@ -1,3 +1,4 @@
+import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { StrKey } from "@stellar/stellar-sdk";
 import { Button } from "@/components/atoms/button";
@@ -5,6 +6,7 @@ import { Input } from "@/components/atoms/input";
 import { useStellar } from "@/lib/stellar/hooks/useStellar";
 
 export const AdminRoles = () => {
+    const t = useTranslations('adminRoles');
     const { account, systemCalls } = useStellar();
     const [isOwner, setIsOwner] = useState(false);
     const [address, setAddress] = useState("");
@@ -32,7 +34,7 @@ export const AdminRoles = () => {
     const updateRole = async (isEnable: boolean) => {
         const recipient = address.trim();
         if (!StrKey.isValidEd25519PublicKey(recipient)) {
-            setError("Please enter a valid Stellar address (G...)");
+            setError(t('invalidAddress'));
             return;
         }
 
@@ -43,7 +45,7 @@ export const AdminRoles = () => {
             await systemCalls.setRole(recipient, isEnable);
             setAddress("");
         } catch (err) {
-            setError(err instanceof Error ? err.message : "Failed to update admin role");
+            setError(err instanceof Error ? err.message : t('failed'));
         } finally {
             setIsLoading(false);
         }
@@ -51,11 +53,11 @@ export const AdminRoles = () => {
 
     return (
         <div className="p-4 bg-white rounded-lg shadow mt-4">
-            <h2 className="text-xl font-bold mb-4">Admins</h2>
+            <h2 className="text-xl font-bold mb-4">{t('title')}</h2>
             <div className="space-y-4">
                 <div>
                     <label htmlFor="adminAddress" className="block text-sm font-medium text-gray-700">
-                        Wallet Address
+                        {t('walletAddress')}
                     </label>
                     <Input
                         id="adminAddress"
@@ -66,10 +68,10 @@ export const AdminRoles = () => {
                 </div>
                 <div className="flex gap-2">
                     <Button type="button" disabled={isLoading} onClick={() => updateRole(true)}>
-                        Grant Admin
+                        {t('grant')}
                     </Button>
                     <Button type="button" variant="outline" disabled={isLoading} onClick={() => updateRole(false)}>
-                        Revoke Admin
+                        {t('revoke')}
                     </Button>
                 </div>
                 {error && <p className="text-red-500 mt-2">{error}</p>}

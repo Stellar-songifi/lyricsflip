@@ -9,6 +9,7 @@ import { ArrowLeft } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 import { Answer, type Card, type QuestionCard, type Round } from '@/lib/stellar/types';
+import { useTranslations } from 'next-intl';
 
 interface SongOption {
   title: string;
@@ -16,6 +17,7 @@ interface SongOption {
 }
 
 export default function SinglePlayerGame() {
+  const t = useTranslations('singlePlayer');
   const router = useRouter();
   const searchParams = useSearchParams();
   const roundId = searchParams.get('roundId');
@@ -45,19 +47,19 @@ export default function SinglePlayerGame() {
     setIsCardFlipped(false);
     setLastAnswerCorrect(null);
     setResultAnnouncement(null);
-    setTxStatus('Drawing next card…');
+    setTxStatus(t('drawingCard'));
     const nextCard = await systemCalls.nextCard(id);
-    setTxStatus('Building question…');
+    setTxStatus(t('buildingQuestion'));
     const questionCard = await systemCalls.buildQuestionCard(nextCard, 'Title');
     setCard(nextCard);
     setQuestion(questionCard);
     setTxStatus(null);
-  }, [roundId, systemCalls]);
+  }, [roundId, systemCalls, t]);
 
   useEffect(() => {
     const fetchRoundData = async () => {
       if (!systemCalls) {
-        setError('System calls not initialized');
+        setError(t('noSystemCalls'));
         return;
       }
 
@@ -71,7 +73,7 @@ export default function SinglePlayerGame() {
         let roundData = await systemCalls.getRound(id);
         if (!roundData.is_started) {
           // Single-player rounds start as soon as the creator is ready.
-          setTxStatus('Starting round…');
+          setTxStatus(t('startingRound'));
           await systemCalls.startRound(id);
           roundData = await systemCalls.getRound(id);
         }
@@ -84,7 +86,7 @@ export default function SinglePlayerGame() {
           await loadNextCard();
         }
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to get round data');
+        setError(err instanceof Error ? err.message : t('failedFetch'));
       } finally {
         setTxStatus(null);
         setIsLoading(false);
@@ -92,7 +94,7 @@ export default function SinglePlayerGame() {
     };
 
     fetchRoundData();
-  }, [roundId, systemCalls, loadNextCard]);
+  }, [roundId, systemCalls, loadNextCard, t]);
 
   useEffect(() => {
     if (isGameStarted && timeLeft > 0) {
@@ -115,14 +117,14 @@ export default function SinglePlayerGame() {
 
     setSelectedOption(option);
     try {
-      setTxStatus('Submitting answer…');
+      setTxStatus(t('submittingAnswer'));
       const isCorrect = await systemCalls.submitAnswer(round.round_id, Answer.title(option.title));
       setCorrectOption(isCorrect ? option : { title: card.title, artist: card.artist });
       setLastAnswerCorrect(isCorrect);
       setResultAnnouncement(
         isCorrect
-          ? 'Correct!'
-          : `Wrong! The answer was ${card.title} by ${card.artist}`,
+          ? t('correct')
+          : t('wrong', { title: card.title, artist: card.artist }),
       );
       if (isCorrect) {
         setScore(prev => prev + 1);
@@ -131,7 +133,7 @@ export default function SinglePlayerGame() {
       setIsCardFlipped(true);
     } catch (err) {
       setSelectedOption(null);
-      setError(err instanceof Error ? err.message : 'Failed to submit answer');
+      setError(err instanceof Error ? err.message : t('failedSubmit'));
     } finally {
       setTxStatus(null);
     }
@@ -141,7 +143,7 @@ export default function SinglePlayerGame() {
     try {
       await loadNextCard();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load next card');
+      setError(err instanceof Error ? err.message : t('failedNextCard'));
       setTxStatus(null);
     }
   };
@@ -153,7 +155,7 @@ export default function SinglePlayerGame() {
   if (isLoading) {
     return (
       <div className="container mt-4 mx-auto h-fit w-full mb-20 lg:mb-12 p-4 lg:p-0 md:mt-24 lg:mt-32">
-        <p>{txStatus || 'Loading game...'}</p>
+        <p>{txStatus || t('loading')}</p>
       </div>
     );
   }
@@ -161,12 +163,12 @@ export default function SinglePlayerGame() {
   if (error || !round) {
     return (
       <div className="container mt-4 mx-auto h-fit w-full mb-20 lg:mb-12 p-4 lg:p-0 md:mt-24 lg:mt-32">
-        <p>{error || 'No round found'}</p>
+        <p>{error || t('noRound')}</p>
         <button
           onClick={handleBack}
           className="mt-4 px-4 py-2 bg-purple-500 text-white rounded"
         >
-          Return to Home
+          {t('returnHome')}
         </button>
       </div>
     );
@@ -181,11 +183,11 @@ export default function SinglePlayerGame() {
           className="flex items-center text-gray-600 mb-4"
         >
           <ArrowLeft className="h-4 w-4 mr-2" />
-          Back
+          {t('back')}
         </button>
-        <h1 className="text-2xl font-bold">Wager (Single Player)</h1>
+        <h1 className="text-2xl font-bold">{t('title')}</h1>
         <p className="text-gray-600 text-sm">
-          {`${round.genre.toString()} Genre | Expert Difficulty`}
+          {`${round.genre.toString()} | ${t('genreHeader')}`}
         </p>
       </div>
 
@@ -194,7 +196,7 @@ export default function SinglePlayerGame() {
           <LyricCard
             lyrics={[
               {
-                text: question?.lyric || 'Loading...',
+                text: question?.lyric || t('loading'),
                 title: card?.title || '',
                 artist: card?.artist || '',
               }
@@ -218,21 +220,23 @@ export default function SinglePlayerGame() {
         onSelect={handleSongSelect}
         selectedOption={selectedOption}
         correctOption={correctOption}
-        groupLabel="Song options"
+        groupLabel={t('optionsLabel')}
         resultAnnouncement={resultAnnouncement}
       />
 
       {isCardFlipped && (
         <div className="mt-6 flex justify-center">
           {isRoundFinished ? (
-            <p className="font-semibold">{`Round complete: ${score} / ${totalCards} correct`}</p>
+            <p className="font-semibold">
+              {t('roundComplete', { score, total: totalCards })}
+            </p>
           ) : (
             <button
               onClick={handleNextCard}
               disabled={!!txStatus}
               className="px-4 py-2 bg-purple-500 text-white rounded disabled:opacity-50"
             >
-              Next card
+              {t('nextCard')}
             </button>
           )}
         </div>

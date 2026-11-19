@@ -6,10 +6,12 @@ import { AdminRoles } from "@/components/organisms/AdminRoles";
 import { useStellar } from "@/lib/stellar/hooks/useStellar";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { useTranslations } from 'next-intl';
 
 const REDIRECT_DELAY_MS = 2000;
 
 export default function AdminPage() {
+  const t = useTranslations('admin');
   const { account, systemCalls } = useStellar();
   const router = useRouter();
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
@@ -47,7 +49,7 @@ export default function AdminPage() {
   if (isAdmin === null) {
     return (
       <main className="container mx-auto p-4 flex items-center justify-center min-h-screen">
-        <p className="text-gray-600">Checking admin access...</p>
+        <p className="text-gray-600">{t('checkingAccess')}</p>
       </main>
     );
   }
@@ -58,14 +60,14 @@ export default function AdminPage() {
         role="alert"
         className="fixed top-4 right-4 z-50 rounded-lg bg-red-600 px-4 py-3 text-white shadow-lg"
       >
-        Admin access required. Redirecting...
+        {t('accessRequired')}
       </div>
     );
   }
 
   return (
     <main className="container mx-auto p-4">
-      <h1 className="text-2xl font-bold mb-4">Admin Dashboard</h1>
+      <h1 className="text-2xl font-bold mb-4">{t('dashboard')}</h1>
       <AdminConfig />
       <AdminCards />
       <AdminRoles />

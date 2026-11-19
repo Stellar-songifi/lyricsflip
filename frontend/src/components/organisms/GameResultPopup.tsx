@@ -8,30 +8,44 @@ import { Button } from '@/components/atoms/button';
 import { Modal } from './modal';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useStellar } from '@/lib/stellar/hooks/useStellar';
+import { useTranslations } from 'next-intl';
 
 interface GameResultPopupProps {
   isWin: boolean;
   isMultiplayer: boolean;
 }
 
+interface GameResultData {
+  score?: number;
+  maxRounds?: number;
+  odds?: string | number;
+  wagerAmount?: string;
+  potentialWin?: string;
+  winner?: string;
+  prize?: string;
+  secondPlace?: string;
+  thirdPlace?: string;
+}
+
 const GameResultPopup: React.FC<GameResultPopupProps> = ({
   isWin,
   isMultiplayer,
 }) => {
+  const t = useTranslations('results');
   const [isModalOpen, setIsModalOpen] = useState(true);
   const router = useRouter();
   const searchParams = useSearchParams();
   const { systemCalls } = useStellar();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [roundData, setRoundData] = useState<any>(null);
+  const [roundData, setRoundData] = useState<GameResultData | null>(null);
 
   const roundId = searchParams.get('roundId');
 
   useEffect(() => {
     const fetchRoundData = async () => {
       if (!systemCalls) {
-        setError('System calls not initialized');
+        setError(t('noSystemCalls'));
         return;
       }
 
@@ -42,14 +56,14 @@ const GameResultPopup: React.FC<GameResultPopupProps> = ({
         const data = await systemCalls.getRound(BigInt(roundId));
         setRoundData(data);
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to get round data');
+        setError(err instanceof Error ? err.message : t('failedFetch'));
       } finally {
         setIsLoading(false);
       }
     };
 
     fetchRoundData();
-  }, [roundId, systemCalls]);
+  }, [roundId, systemCalls, t]);
 
   const handleCloseModal = () => {
     setIsModalOpen(false);
@@ -59,20 +73,20 @@ const GameResultPopup: React.FC<GameResultPopupProps> = ({
   const handleShare = () => {
     if (navigator.share) {
       navigator.share({
-        title: 'Check out my game result!',
-        text: `I scored ${roundData?.score || 0} points in LyricsFlip!`,
+        title: t('shareTitle'),
+        text: t('shareText', { score: roundData?.score || 0 }),
         url: window.location.href,
       }).catch((err) => console.warn('Error sharing:', err));
     } else {
       navigator.clipboard.writeText(window.location.href)
-        .then(() => alert('Link copied to clipboard!'))
+        .then(() => alert(t('linkCopied')))
         .catch((err) => console.error('Failed to copy:', err));
     }
   };
 
   const handleClaimEarnings = async () => {
     if (!systemCalls) {
-      setError('System calls not initialized');
+      setError(t('noSystemCalls'));
       return;
     }
 
@@ -81,9 +95,9 @@ const GameResultPopup: React.FC<GameResultPopupProps> = ({
     try {
       setIsLoading(true);
       await systemCalls.claimEarnings();
-      alert('Earnings claimed successfully!');
+      alert(t('claimSuccess'));
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to claim earnings');
+      setError(err instanceof Error ? err.message : t('claimFail'));
     } finally {
       setIsLoading(false);
     }
@@ -93,7 +107,7 @@ const GameResultPopup: React.FC<GameResultPopupProps> = ({
     if (isLoading) {
       return (
         <div className="flex justify-center items-center h-64">
-          <p className="text-[24px] font-[600]">Loading...</p>
+          <p className="text-[24px] font-[600]">{t('loading')}</p>
         </div>
       );
     }
@@ -109,7 +123,7 @@ const GameResultPopup: React.FC<GameResultPopupProps> = ({
     if (!roundData) {
       return (
         <div className="flex justify-center items-center h-64">
-          <p className="text-[24px] font-[600]">No round data available</p>
+          <p className="text-[24px] font-[600]">{t('noRound')}</p>
         </div>
       );
     }
@@ -136,13 +150,13 @@ const GameResultPopup: React.FC<GameResultPopupProps> = ({
             />
           </div>
           <p className="font-bold text-[32px]">
-            <span className="text-[#70E3C7]">{score} Points</span> -{' '}
+            <span className="text-[#70E3C7]">{score} {t('points')}</span> -{' '}
             {isWin && isMultiplayer ? (
-              <span>You won🥇</span>
+              <span>{t('youWonMultiplayer')}</span>
             ) : isWin ? (
-              <span>You are amazing🔥</span>
+              <span>{t('youAreAmazing')}</span>
             ) : (
-              <span>You lost😞</span>
+              <span>{t('youLost')}</span>
             )}
           </p>
         </div>
@@ -150,15 +164,15 @@ const GameResultPopup: React.FC<GameResultPopupProps> = ({
         {!isMultiplayer ? (
           <div className="space-y-3">
             <div className="flex justify-between items-center border-b py-[12px]">
-              <span className="text-gray-600">Score</span>
+              <span className="text-gray-600">{t('score')}</span>
               <span className="font-medium">
                 {`${score} / ${maxRounds}`} ({percent.toFixed()}%)
               </span>
             </div>
             <div className="flex justify-between items-center border-b py-[12px]">
-              <span className="text-gray-600">Odds</span>
+              <span className="text-gray-600">{t('odds')}</span>
               <span className="font-medium flex items-center gap-2">
-                {roundData.odds} odds (Get everything right){' '}
+                {roundData.odds} {t('oddsUnit')} {t('getEverythingRight')}{' '}
                 <span>
                   {isWin ? (
                     <FaCircleCheck className="text-green-600 size-5" />
@@ -169,16 +183,14 @@ const GameResultPopup: React.FC<GameResultPopupProps> = ({
               </span>
             </div>
             <div className="flex justify-between items-center border-b py-[12px]">
-              <span className="text-gray-600">Wager Amount</span>
-              <span className="font-medium">
-                {roundData.wagerAmount} STRK
-              </span>
+              <span className="text-gray-600">{t('wagerAmount')}</span>
+              <span className="font-medium">{`${roundData.wagerAmount} ${t('strk')}`}</span>
             </div>
             {isWin && (
               <div className="flex justify-between items-center border-b py-[12px]">
-                <span className="text-gray-600">You Win</span>
+                <span className="text-gray-600">{t('youWin')}</span>
                 <span className="font-medium text-[#9747FF]">
-                  {roundData.potentialWin} STRK
+                  {`${roundData.potentialWin} ${t('strk')}`}
                 </span>
               </div>
             )}
@@ -186,29 +198,29 @@ const GameResultPopup: React.FC<GameResultPopupProps> = ({
         ) : (
           <div className="space-y-3">
             <div className="flex justify-between items-center border-b py-[12px]">
-              <span className="text-gray-600">Winner</span>
+              <span className="text-gray-600">{t('winner')}</span>
               <span className="font-medium">
-                {isWin ? 'You' : roundData.winner}
+                {isWin ? t('you') : roundData.winner}
               </span>
             </div>
             <div className="flex justify-between items-center border-b py-[12px]">
-              <span className="text-gray-600">Prize Won</span>
+              <span className="text-gray-600">{t('prizeWon')}</span>
               <span className="font-medium text-[#9747FF]">
-                {roundData.prize} STRK
+                {`${roundData.prize} ${t('strk')}`}
               </span>
             </div>
             <div className="flex justify-between items-center border-b py-[12px]">
-              <span className="text-gray-600">Wager Amount</span>
-              <span className="font-medium">{roundData.wagerAmount} STRK</span>
+              <span className="text-gray-600">{t('wagerAmount')}</span>
+              <span className="font-medium">{`${roundData.wagerAmount} ${t('strk')}`}</span>
             </div>
             <div className="flex justify-between items-center border-b py-[12px]">
-              <span className="text-gray-600">Second Place</span>
+              <span className="text-gray-600">{t('secondPlace')}</span>
               <span className="font-medium">
-                {isWin ? roundData.secondPlace : 'You'}
+                {isWin ? roundData.secondPlace : t('you')}
               </span>
             </div>
             <div className="flex justify-between items-center border-b py-[12px]">
-              <span className="text-gray-600">Third Place</span>
+              <span className="text-gray-600">{t('thirdPlace')}</span>
               <span className="font-medium">{roundData.thirdPlace}</span>
             </div>
           </div>
@@ -226,7 +238,7 @@ const GameResultPopup: React.FC<GameResultPopupProps> = ({
           className="w-[238px] px-2 py-6 border-[#9747FF] h-[72px] flex justify-center items-center rounded-full font-medium text-md text-[#9747FF]"
           onClick={handleShare}
         >
-          Share
+          {t('share')}
         </Button>
         <Button
           variant="purple"
@@ -235,7 +247,7 @@ const GameResultPopup: React.FC<GameResultPopupProps> = ({
           onClick={handleClaimEarnings}
           disabled={isLoading}
         >
-          {isLoading ? 'Claiming...' : 'Claim Earning'}
+          {isLoading ? t('claiming') : t('claimEarning')}
         </Button>
       </div>
     );

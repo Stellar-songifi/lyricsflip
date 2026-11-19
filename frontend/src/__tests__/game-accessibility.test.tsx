@@ -8,6 +8,9 @@
 // - Confetti: skipped under `prefers-reduced-motion: reduce`.
 import { axe } from 'jest-axe';
 import { act, fireEvent, render, screen } from '@testing-library/react';
+import { NextIntlClientProvider } from 'next-intl';
+import enMessages from '../../messages/en.json';
+import type { ReactElement } from 'react';
 import { LyricCard } from '@/components/organisms/LyricCard';
 import { SongOptions } from '@/components/molecules/song-options';
 import { StatisticsPanel } from '@/components/molecules/statistics-panel';
@@ -43,6 +46,17 @@ const expectNoSeriousViolations = async (container: HTMLElement) => {
     violations.filter((violation) => ['serious', 'critical'].includes(violation.impact)),
   ).toEqual([]);
 };
+
+/**
+ * Renders a game component inside the `NextIntlClientProvider` the app's
+ * layout provides (the components use `useTranslations`).
+ */
+const renderWithProvider = (ui: ReactElement) =>
+  render(
+    <NextIntlClientProvider messages={enMessages} locale="en">
+      {ui}
+    </NextIntlClientProvider>,
+  );
 
 /** Runs `fn` with `prefers-reduced-motion: reduce` mocked as active. */
 function withReducedMotion(fn: () => void) {
@@ -83,7 +97,7 @@ describe('game accessibility (LF-311)', () => {
     ];
 
     it('renders a radiogroup whose options are focusable radios with focus rings', () => {
-      render(<SongOptions options={options} onSelect={jest.fn()} />);
+      renderWithProvider(<SongOptions options={options} onSelect={jest.fn()} />);
       const group = screen.getByRole('radiogroup', { name: 'Answer options' });
       const radios = screen.getAllByRole('radio');
       expect(radios).toHaveLength(4);
@@ -96,13 +110,13 @@ describe('game accessibility (LF-311)', () => {
 
     it('selects an option with a number key', () => {
       const onSelect = jest.fn();
-      render(<SongOptions options={options} onSelect={onSelect} />);
+      renderWithProvider(<SongOptions options={options} onSelect={onSelect} />);
       fireEvent.keyDown(screen.getAllByRole('radio')[2], { key: '3' });
       expect(onSelect).toHaveBeenCalledWith(options[2], 2);
     });
 
     it('moves focus between options with the arrow keys', () => {
-      render(<SongOptions options={options} onSelect={jest.fn()} />);
+      renderWithProvider(<SongOptions options={options} onSelect={jest.fn()} />);
       const radios = screen.getAllByRole('radio');
       fireEvent.keyDown(radios[0], { key: 'ArrowDown' });
       expect(document.activeElement).toBe(radios[1]);
@@ -111,7 +125,7 @@ describe('game accessibility (LF-311)', () => {
     });
 
     it('announces the selection through an aria-live region', () => {
-      render(
+      renderWithProvider(
         <SongOptions
           options={options}
           onSelect={jest.fn()}
@@ -123,14 +137,14 @@ describe('game accessibility (LF-311)', () => {
     });
 
     it('reports no serious violations with axe', async () => {
-      const { container } = render(<SongOptions options={options} onSelect={jest.fn()} />);
+      const { container } = renderWithProvider(<SongOptions options={options} onSelect={jest.fn()} />);
       await expectNoSeriousViolations(container);
     });
   });
 
   describe('LyricCard', () => {
     it('flips the card and exposes the lyric to screen readers', () => {
-      render(<LyricCard lyrics={[LYRIC]} isFlipped={false} />);
+      renderWithProvider(<LyricCard lyrics={[LYRIC]} isFlipped={false} />);
       expect(screen.getByTestId('lyric-card')).toBeInTheDocument();
       // Both faces render the lyric; the back face is `aria-hidden`.
       expect(screen.getAllByText(LYRIC.text)).toHaveLength(2);
@@ -138,7 +152,7 @@ describe('game accessibility (LF-311)', () => {
 
     it('uses a crossfade instead of the 3D flip under prefers-reduced-motion', () => {
       withReducedMotion(() => {
-        const { container } = render(<LyricCard lyrics={[LYRIC]} isFlipped />);
+        const { container } = renderWithProvider(<LyricCard lyrics={[LYRIC]} isFlipped />);
         // The 3D-flip wrapper is absent; the two faces crossfade.
         expect(screen.queryByTestId('lyric-card')).toBeNull();
         // The two CardFace roots carry the inline opacity; inner wrappers
@@ -155,7 +169,7 @@ describe('game accessibility (LF-311)', () => {
     });
 
     it('reports no serious violations with axe', async () => {
-      const { container } = render(<LyricCard lyrics={[LYRIC]} isFlipped={false} />);
+      const { container } = renderWithProvider(<LyricCard lyrics={[LYRIC]} isFlipped={false} />);
       await expectNoSeriousViolations(container);
     });
   });
@@ -163,7 +177,7 @@ describe('game accessibility (LF-311)', () => {
   describe('StatisticsPanel', () => {
     it('announces the time left at 10 s and 5 s through a live region', () => {
       jest.useFakeTimers();
-      render(<StatisticsPanel time="20" potWin="10 STRK" scores="0/5" />);
+      renderWithProvider(<StatisticsPanel time="20" potWin="10 STRK" scores="0/5" />);
       act(() => {
         jest.advanceTimersByTime(10000);
       });
@@ -175,20 +189,20 @@ describe('game accessibility (LF-311)', () => {
     });
 
     it('reports no serious violations with axe', async () => {
-      const { container } = render(<StatisticsPanel time="20" potWin="10 STRK" scores="0/5" />);
+      const { container } = renderWithProvider(<StatisticsPanel time="20" potWin="10 STRK" scores="0/5" />);
       await expectNoSeriousViolations(container);
     });
   });
 
   describe('Confetti', () => {
     it('renders confetti pieces by default', () => {
-      render(<Confetti />);
+      renderWithProvider(<Confetti />);
       expect(screen.getByTestId('confetti')).toBeInTheDocument();
     });
 
     it('renders nothing under prefers-reduced-motion', () => {
       withReducedMotion(() => {
-        const { container } = render(<Confetti />);
+        const { container } = renderWithProvider(<Confetti />);
         expect(container.firstChild).toBeNull();
       });
     });

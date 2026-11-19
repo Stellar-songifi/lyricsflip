@@ -16,19 +16,21 @@ import { WagerDetails, useStore } from '@/store';
 import { useRouter } from 'next/navigation';
 import { useStellar } from '@/lib/stellar/hooks/useStellar';
 import type { Genre } from '@/lib/stellar/types';
+import { useTranslations } from 'next-intl';
 
-// Map form genre values to contract Genre enum variants and their display names
-export const GENRE_MAPPING: Record<string, { variant: Genre; display: string }> = {
-  pop: { variant: 'Pop', display: 'Pop' },
-  rock: { variant: 'Rock', display: 'Rock' },
-  hiphop: { variant: 'HipHop', display: 'Hip Hop' },
-  rnb: { variant: 'RnB', display: 'R&B' },
+// Map form genre values to contract Genre enum variants (display labels live
+// in messages and are rendered via `t('genres.<value>')`).
+export const GENRE_MAPPING: Record<string, { variant: Genre }> = {
+  pop: { variant: 'Pop' },
+  rock: { variant: 'Rock' },
+  hiphop: { variant: 'HipHop' },
+  rnb: { variant: 'RnB' },
 };
 
-// Type for genre keys
 export type GenreKey = keyof typeof GENRE_MAPPING;
 
 export function WagerModal() {
+  const t = useTranslations('wagerModal');
   const router = useRouter();
   const { isOpen, closeModal, modalType } = useModalStore();
   const [stage, setStage] = useState<'form' | 'summary'>('form');
@@ -45,8 +47,7 @@ export function WagerModal() {
   const startGame = useStore((state) => state.game.startGame);
   const isModalOpen = isOpen && modalType === 'wager';
 
-  // Initialize Stellar setup
-  const { setup, account, isLoading, error } = useStellar();
+  const { setup, account } = useStellar();
 
   useEffect(() => {
     const oddsValue = parseFloat(wagerDetails.odds);
@@ -64,15 +65,14 @@ export function WagerModal() {
   const validateForm = () => {
     const errors: { [key: string]: string } = {};
 
-    if (!wagerDetails.genre) errors.genre = 'Genre is required';
+    if (!wagerDetails.genre) errors.genre = t('required.genre');
     else if (!GENRE_MAPPING[wagerDetails.genre as keyof typeof GENRE_MAPPING]) {
-      errors.genre = 'Invalid genre selected';
+      errors.genre = t('required.invalidGenre');
     }
-    if (!wagerDetails.difficulty) errors.difficulty = 'Difficulty is required';
-    if (!wagerDetails.duration) errors.duration = 'Duration is required';
-    if (!wagerDetails.odds) errors.odds = 'Odds are required';
-    if (!wagerDetails.wagerAmount)
-      errors.wagerAmount = 'Wager amount is required';
+    if (!wagerDetails.difficulty) errors.difficulty = t('required.difficulty');
+    if (!wagerDetails.duration) errors.duration = t('required.duration');
+    if (!wagerDetails.odds) errors.odds = t('required.odds');
+    if (!wagerDetails.wagerAmount) errors.wagerAmount = t('required.wagerAmount');
 
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
@@ -89,29 +89,26 @@ export function WagerModal() {
     setSubmissionError(null);
     try {
       if (!account) {
-        setSubmissionError('No account connected. Please connect your wallet.');
+        setSubmissionError(t('errors.account'));
         return;
       }
 
       if (!setup?.systemCalls) {
-        setSubmissionError('Game system not initialized. Please try again.');
+        setSubmissionError(t('errors.system'));
         return;
       }
 
-      // Map form genre key to the contract's Genre variant
       const genreKey = wagerDetails.genre as GenreKey;
       const genreInfo = GENRE_MAPPING[genreKey];
 
       if (!genreInfo) {
-        setSubmissionError('Invalid genre selected.');
+        setSubmissionError(t('errors.invalidGenre'));
         return;
       }
 
       try {
-
         const result = await setup.systemCalls.createRound(genreInfo.variant);
 
-        // Start game in store
         startGame({
           genre: wagerDetails.genre,
           difficulty: wagerDetails.difficulty,
@@ -133,11 +130,11 @@ export function WagerModal() {
         setStage('form');
       } catch (err) {
         console.error('Error creating round:', err);
-        setSubmissionError('Failed to create round. Please try again.');
+        setSubmissionError(t('errors.createRound'));
       }
     } catch (err) {
       console.error('Error creating round:', err);
-      setSubmissionError('Failed to create round. Please try again.');
+      setSubmissionError(t('errors.createRound'));
     }
   };
 
@@ -145,7 +142,7 @@ export function WagerModal() {
     <div className="grid gap-4">
       <div className="grid gap-2">
         <label htmlFor="genre" className="text-sm font-medium">
-          Genre
+          {t('genre')}
         </label>
         <Select
           value={wagerDetails.genre}
@@ -154,13 +151,13 @@ export function WagerModal() {
           }
         >
           <SelectTrigger className={formErrors.genre ? 'border-red-500' : ''}>
-            <SelectValue placeholder="Select genre" />
+            <SelectValue placeholder={t('selectGenre')} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="pop">Pop</SelectItem>
-            <SelectItem value="rock">Rock</SelectItem>
-            <SelectItem value="hiphop">Hip Hop</SelectItem>
-            <SelectItem value="rnb">R&B</SelectItem>
+            <SelectItem value="pop">{t('genres.pop')}</SelectItem>
+            <SelectItem value="rock">{t('genres.rock')}</SelectItem>
+            <SelectItem value="hiphop">{t('genres.hiphop')}</SelectItem>
+            <SelectItem value="rnb">{t('genres.rnb')}</SelectItem>
           </SelectContent>
         </Select>
         {formErrors.genre && (
@@ -170,7 +167,7 @@ export function WagerModal() {
 
       <div className="grid gap-2">
         <label htmlFor="difficulty" className="text-sm font-medium">
-          Difficulty Level
+          {t('difficulty')}
         </label>
         <Select
           value={wagerDetails.difficulty}
@@ -181,12 +178,12 @@ export function WagerModal() {
           <SelectTrigger
             className={formErrors.difficulty ? 'border-red-500' : ''}
           >
-            <SelectValue placeholder="Select difficulty" />
+            <SelectValue placeholder={t('selectDifficulty')} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="easy">Easy</SelectItem>
-            <SelectItem value="medium">Medium</SelectItem>
-            <SelectItem value="hard">Hard</SelectItem>
+            <SelectItem value="easy">{t('difficulties.easy')}</SelectItem>
+            <SelectItem value="medium">{t('difficulties.medium')}</SelectItem>
+            <SelectItem value="hard">{t('difficulties.hard')}</SelectItem>
           </SelectContent>
         </Select>
         {formErrors.difficulty && (
@@ -196,7 +193,7 @@ export function WagerModal() {
 
       <div className="grid gap-2">
         <label htmlFor="duration" className="text-sm font-medium">
-          Duration
+          {t('duration')}
         </label>
         <Select
           value={wagerDetails.duration}
@@ -207,12 +204,12 @@ export function WagerModal() {
           <SelectTrigger
             className={formErrors.duration ? 'border-red-500' : ''}
           >
-            <SelectValue placeholder="Select duration" />
+            <SelectValue placeholder={t('selectDuration')} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="5 mins">5 minutes</SelectItem>
-            <SelectItem value="10 mins">10 minutes</SelectItem>
-            <SelectItem value="15 mins">15 minutes</SelectItem>
+            <SelectItem value="5min">{t('durations.5min')}</SelectItem>
+            <SelectItem value="10min">{t('durations.10min')}</SelectItem>
+            <SelectItem value="15min">{t('durations.15min')}</SelectItem>
           </SelectContent>
         </Select>
         {formErrors.duration && (
@@ -222,7 +219,7 @@ export function WagerModal() {
 
       <div className="grid gap-2">
         <label htmlFor="odds" className="text-sm font-medium">
-          Odds
+          {t('odds')}
         </label>
         <Select
           value={wagerDetails.odds}
@@ -231,12 +228,12 @@ export function WagerModal() {
           }
         >
           <SelectTrigger className={formErrors.odds ? 'border-red-500' : ''}>
-            <SelectValue placeholder="Select odds" />
+            <SelectValue placeholder={t('selectOdds')} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="5">5 odds</SelectItem>
-            <SelectItem value="10">10 odds</SelectItem>
-            <SelectItem value="15">15 odds</SelectItem>
+            <SelectItem value="5">{t('oddsOptions.5')}</SelectItem>
+            <SelectItem value="10">{t('oddsOptions.10')}</SelectItem>
+            <SelectItem value="15">{t('oddsOptions.15')}</SelectItem>
           </SelectContent>
         </Select>
         {formErrors.odds && (
@@ -246,12 +243,12 @@ export function WagerModal() {
 
       <div className="bg-[#F0F0F0] p-4 rounded-lg flex flex-col gap-3">
         <p className="text-xs font-medium">
-          Wallet Balance:{' '}
-          <span className="text-[#9747FF]">18,678 STRK (5,678 USD)</span>
+          {t('walletBalance')}{' '}
+          <span className="text-[#9747FF]">{t('walletBalanceValue')}</span>
         </p>
         <div className="text-sm flex flex-col gap-2">
           <label className="text-sm font-medium" htmlFor="your-wager">
-            Your Wager
+            {t('yourWager')}
           </label>
           <div className="flex bg-white focus-within:outline-none focus-within:ring-1 focus-within:ring-ring disabled:cursor-not-allowed disabled:opacity-50 p-3 rounded-[4px]">
             <Input
@@ -266,11 +263,11 @@ export function WagerModal() {
                 }))
               }
               className={`border-none shadow-none focus-visible:ring-0 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 ${formErrors.wagerAmount ? 'border-red-500' : ''}`}
-              placeholder="Enter amount"
+              placeholder={t('enterAmount')}
             />
             <Select value={'STRK'}>
               <SelectTrigger className="rounded-full w-full max-w-[66px] border-[#DBE2E8] text-[10px] font-light">
-                <SelectValue placeholder="Select currency" />
+                <SelectValue placeholder={t('selectCurrency')} />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="STRK">STRK</SelectItem>
@@ -282,7 +279,7 @@ export function WagerModal() {
           )}
         </div>
         <div className="text-sm flex flex-col gap-2">
-          <label className="text-sm font-medium">You Win</label>
+          <label className="text-sm font-medium">{t('youWin')}</label>
           <Input
             disabled
             value={wagerDetails.potentialWin}
@@ -300,14 +297,12 @@ export function WagerModal() {
     <Modal
       isOpen={isModalOpen}
       onClose={closeModal}
-      title={stage === 'form' ? 'Wager (Single Player)' : 'Wager Summary'}
+      title={stage === 'form' ? t('title') : t('summaryTitle')}
       description={
-        stage === 'form'
-          ? 'Quisque ipsum dolor sit amet, consectetur adipiscing elit. Nunc vulputate libero et velit interdum.'
-          : undefined
+        stage === 'form' ? t('description') : undefined
       }
       primaryActionLabel={
-        stage === 'form' ? 'Proceed to Summary' : 'Start Game'
+        stage === 'form' ? t('proceedToSummary') : t('startGame')
       }
       onPrimaryAction={
         stage === 'form' ? handleProceedToSummary : handleStartGame

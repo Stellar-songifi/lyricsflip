@@ -18,13 +18,12 @@
     "lint:backend": "npm --prefix backend run lint",
     "lint": "npm run lint:frontend && npm run lint:backend",
     "test:backend": "npm --prefix backend run test",
-    "test:e2e:frontend": "npm --prefix frontend run test:e2e"
+    "test:e2e:frontend": "npm --prefix frontend run test:e2e",
+    "prepare": "husky"
+  },
   "private": true,
   "engines": {
     "node": ">=20.18.0 <21"
-  },
-  "scripts": {
-    "prepare": "husky"
   },
   "dependencies": {
     "@nestjs/platform-socket.io": "^11.0.10",

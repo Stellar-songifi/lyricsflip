@@ -2,11 +2,10 @@
 
 import { useModalStore } from '@/store/modal-store';
 import { Modal } from './modal';
-import { Button } from '@/components/atoms/button';
 import { useStellar } from '@/lib/stellar/hooks/useStellar';
 import { useEffect, useState } from 'react';
-import { GENRE_MAPPING, GenreKey } from './WagerModal';
 import { WagerDetails } from '@/store';
+import { useTranslations } from 'next-intl';
 
 interface WagerSummaryContentProps extends WagerDetails {}
 
@@ -18,44 +17,45 @@ export function WagerSummaryContent({
   wagerAmount,
   potentialWin,
 }: WagerSummaryContentProps) {
+  const t = useTranslations('wagerSummary');
   // Map genre to display name using the new structure
-  const displayGenre = genre ? GENRE_MAPPING[genre as GenreKey]?.display || genre : 'Unknown';
+  const displayGenre = genre ? t(`genres.${genre}`) : t('unknown');
 
   return (
     <div className="space-y-6">
       <div className="space-y-4">
         <div className="flex justify-between">
-          <span className="text-gray-500">Genre:</span>
+          <span className="text-gray-500">{t('genre')}</span>
           <span className="font-medium">{displayGenre}</span>
         </div>
         <div className="flex justify-between">
-          <span className="text-gray-500">Difficulty:</span>
+          <span className="text-gray-500">{t('difficulty')}</span>
           <span className="font-medium">{difficulty}</span>
         </div>
         <div className="flex justify-between">
-          <span className="text-gray-500">Duration:</span>
+          <span className="text-gray-500">{t('duration')}</span>
           <span className="font-medium">{duration}</span>
         </div>
         <div className="flex justify-between">
-          <span className="text-gray-500">Odds:</span>
-          <span className="font-medium">{odds}x</span>
+          <span className="text-gray-500">{t('odds')}</span>
+          <span className="font-medium">{odds}{t('oddsUnit')}</span>
         </div>
         <div className="flex justify-between">
-          <span className="text-gray-500">Wager Amount:</span>
+          <span className="text-gray-500">{t('wagerAmount')}</span>
           <span className="font-medium">{wagerAmount} STRK</span>
         </div>
         <div className="flex justify-between">
-          <span className="text-gray-500">Potential Win:</span>
+          <span className="text-gray-500">{t('potentialWin')}</span>
           <span className="font-medium text-green-500">{potentialWin}</span>
         </div>
       </div>
 
       <div className="space-y-4">
-        <h3 className="font-medium">Instructions:</h3>
+        <h3 className="font-medium">{t('instructions')}</h3>
         <ul className="list-disc list-inside space-y-2 text-sm text-gray-500">
-          <li>Complete the round within the specified duration</li>
-          <li>Score points by correctly identifying lyrics</li>
-          <li>Your winnings will be calculated based on your score and the odds</li>
+          <li>{t('instruction1')}</li>
+          <li>{t('instruction2')}</li>
+          <li>{t('instruction3')}</li>
         </ul>
       </div>
     </div>
@@ -63,6 +63,7 @@ export function WagerSummaryContent({
 }
 
 export function WagerSummaryModal() {
+  const t = useTranslations('wagerSummary');
   const { isOpen, closeModal, modalType } = useModalStore();
   const { setup } = useStellar();
   const [wagerDetails, setWagerDetails] = useState<WagerDetails | null>(null);
@@ -71,7 +72,7 @@ export function WagerSummaryModal() {
 
   const fetchRoundDetails = async () => {
     if (!setup) {
-      setError('Stellar setup not initialized');
+      setError(t('setupNotInitialized'));
       return;
     }
 
@@ -90,7 +91,7 @@ export function WagerSummaryModal() {
       };
       setWagerDetails(round);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to get round details');
+      setError(err instanceof Error ? err.message : t('failedFetch'));
     } finally {
       setIsLoading(false);
     }
@@ -108,16 +109,16 @@ export function WagerSummaryModal() {
     <Modal
       isOpen={isOpen}
       onClose={closeModal}
-      title="Wager Summary"
+      title={t('title')}
     >
       {isLoading ? (
-        <div className="text-center">Loading round details...</div>
+        <div className="text-center">{t('loading')}</div>
       ) : error ? (
         <div className="text-red-500 text-center">{error}</div>
       ) : wagerDetails ? (
         <WagerSummaryContent {...wagerDetails} />
       ) : (
-        <div className="text-center">No round details available</div>
+        <div className="text-center">{t('noDetails')}</div>
       )}
     </Modal>
   );

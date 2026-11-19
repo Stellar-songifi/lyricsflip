@@ -7,39 +7,21 @@ import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { FiHome, FiCreditCard, FiGrid } from 'react-icons/fi';
 import { IoTrophyOutline } from 'react-icons/io5';
+import { LocaleSwitcher } from './locale-switcher';
+import { useTranslations } from 'next-intl';
 
-// Navigation items array
+// Navigation items array — labels are translated through `t('nav.<id>')`.
 const navItems = [
-  { href: '/', label: 'Home' },
-  { href: '/wallet', label: 'Wallet' },
-  { href: '/leaderboard', label: 'Leaderboard' },
-  { href: '/notifications', label: 'Notifications' },
-  { href: '/profile', label: 'Profile' },
-  { href: '/more', label: 'More' },
+  { href: '/', id: 'home' },
+  { href: '/wallet', id: 'wallet' },
+  { href: '/leaderboard', id: 'leaderboard' },
+  { href: '/notifications', id: 'notifications' },
+  { href: '/profile', id: 'profile' },
+  { href: '/more', id: 'more' },
 ];
-const mobileNavItems = [
-  {
-    href: '/',
-    label: 'Home',
-    icon: <FiHome className="h-6 w-6" />,
-  },
-  {
-    href: '/wallet',
-    label: 'Wallet',
-    icon: <FiCreditCard className="h-6 w-6" />,
-  },
-  {
-    href: '/leaderboard',
-    label: 'Leaderboard',
-    icon: <IoTrophyOutline className="h-6 w-6" />,
-  },
-  {
-    href: '/more',
-    label: 'More',
-    icon: <FiGrid className="h-6 w-6" />,
-  },
-];
+
 const Navbar = () => {
+  const t = useTranslations('nav');
   const pathname = usePathname();
 
   return (
@@ -70,7 +52,7 @@ const Navbar = () => {
                           : 'text-gray hover:text-purplePrimary5 '
                       }`}
                     >
-                      {item.label}
+                      {t(item.id)}
                     </Link>
                   </li>
                 );
@@ -79,6 +61,8 @@ const Navbar = () => {
           </nav>
         </div>
         <div className="flex items-center gap-3">
+          <LocaleSwitcher />
+
           <div className="flex w-10 h-10 p-2 justify-center items-center aspect-square rounded border border-[#DBE2E8] bg-white cursor-pointer">
             <Settings className="h-5 w-5" />
           </div>
@@ -116,7 +100,15 @@ const Navbar = () => {
 export default Navbar;
 
 export const MobileNav = () => {
+  const t = useTranslations('nav');
   const pathname = usePathname();
+
+  const mobileNavItems = [
+    { href: '/', id: 'home', icon: <FiHome className="h-6 w-6" /> },
+    { href: '/wallet', id: 'wallet', icon: <FiCreditCard className="h-6 w-6" /> },
+    { href: '/leaderboard', id: 'leaderboard', icon: <IoTrophyOutline className="h-6 w-6" /> },
+    { href: '/more', id: 'more', icon: <FiGrid className="h-6 w-6" /> },
+  ];
 
   return (
     <nav className="md:hidden flex items-center justify-around border-t py-3 fixed bottom-0 z-12 inset-x-0 bg-white">
@@ -133,7 +125,7 @@ export const MobileNav = () => {
             }`}
           >
             {item.icon}
-            <span className="text-xs mt-1 font-interv">{item.label}</span>
+            <span className="text-xs mt-1 font-interv">{t(item.id)}</span>
           </Link>
         );
       })}

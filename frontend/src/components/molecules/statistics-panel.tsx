@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useGameTimer } from '@/features/game/hooks/useGameTimer';
 import GameResultPopup from '../organisms/GameResultPopup';
 import { formatTime } from '@/lib/utils';
+import { useTranslations } from 'next-intl';
 
 interface StatisticsPanelProps {
   time: string;
@@ -21,6 +22,7 @@ export function StatisticsPanel({
   scores,
   multiplayer = false,
 }: StatisticsPanelProps) {
+  const t = useTranslations('statistics');
   const [remainingTime, setRemainingTime] = useState<string>(time);
   const [showGameResult, setShowGameResult] = useState<boolean>(false);
   const [announcement, setAnnouncement] = useState<string>('');
@@ -42,24 +44,24 @@ export function StatisticsPanel({
       setRemainingTime(formatTime(seconds));
       if (ANNOUNCE_AT.includes(seconds) && !announcedRef.current.has(seconds)) {
         announcedRef.current.add(seconds);
-        setAnnouncement(`${seconds} seconds left`);
+        setAnnouncement(t('secondsLeft', { count: seconds }));
       }
     } else {
-      setAnnouncement("Time's up");
+      setAnnouncement(t('timeUp'));
       endGame();
       setShowGameResult(true);
     }
-  }, [timeLeft, endGame]);
+  }, [timeLeft, endGame, t]);
 
   return (
     <div className="relative">
       <div className="bg-[#F5F5F5] rounded-2xl shadow-sm p-4">
-        <h3 className="text-purple-500 text-lg font-medium mb-3">STATISTICS</h3>
+        <h3 className="text-purple-500 text-lg font-medium mb-3">{t('title')}</h3>
 
         <div className="bg-white rounded-xl p-4">
           <div className="space-y-5">
             <div className="flex justify-between items-center">
-              <span className="text-gray-400 text-base">Time Left:</span>
+              <span className="text-gray-400 text-base">{t('timeLeft')}</span>
               <span
                 aria-live="off"
                 className={`text-lg font-medium ${
@@ -71,12 +73,12 @@ export function StatisticsPanel({
             </div>
 
             <div className="flex justify-between items-center">
-              <span className="text-gray-400 text-base">Pot. Win</span>
+              <span className="text-gray-400 text-base">{t('potWin')}</span>
               <span className="text-black text-lg font-bold">{potWin}</span>
             </div>
 
             <div className="flex justify-between items-center">
-              <span className="text-gray-400 text-base">Scores</span>
+              <span className="text-gray-400 text-base">{t('scores')}</span>
               <span className="text-black text-lg font-bold">{scores}</span>
             </div>
           </div>

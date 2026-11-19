@@ -38,6 +38,7 @@ jobs:
 
       - run: npm ci
       - run: npm run lint
+      - run: npm run check:i18n
       - run: npx tsc --noEmit
       - run: npm test -- --ci
       - run: npm run build

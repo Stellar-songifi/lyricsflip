@@ -26,8 +26,13 @@ export const LYRICSFLIP_ERRORS: Record<number, ContractErrorInfo> = {
   15: { name: 'AmountExceedsLimit', message: 'Not enough cards to build a round.' },
   16: { name: 'LimitMustBeGreaterThanZero', message: 'No cards have been added yet.' },
   17: { name: 'NonExistingCard', message: 'That card does not exist.' },
+  // NOTE: the on-chain `Error` enum assigns discriminant 20 to BOTH
+  // `NotEnoughDistinctCards` and `RoundCancelled` (see errors.rs), so the wire
+  // code 20 is ambiguous. We surface the round-lifecycle message here; the
+  // build-question-card message ("Not enough distinct answers to build a
+  // question card.") is unreachable by code until that collision is fixed
+  // on-chain.
   20: { name: 'RoundCancelled', message: 'That round was cancelled.' },
-  20: { name: 'NotEnoughDistinctCards', message: 'Not enough distinct answers to build a question card.' },
   21: { name: 'RoundFull', message: 'That round is full.' },
   22: { name: 'InvalidMaxPlayers', message: 'A round needs room for at least 2 players.' },
   23: { name: 'NftContractNotSet', message: 'NFT rewards are not configured yet.' },

@@ -1,6 +1,7 @@
 'use client';
 
 import { useId, useRef, type KeyboardEvent } from 'react';
+import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
 
 interface SongOption {
@@ -33,12 +34,14 @@ export function SongOptions({
   onSelect,
   selectedOption = null,
   correctOption = null,
-  groupLabel = 'Answer options',
+  groupLabel,
   resultAnnouncement = null,
 }: SongOptionsProps) {
+  const t = useTranslations('songOptions');
   const baseId = useId();
   const radiosRef = useRef<Array<HTMLButtonElement | null>>([]);
   const disabled = selectedOption !== null;
+  const ariaLabel = groupLabel ?? t('answerOptions');
 
   const focusRadio = (index: number) => {
     const wrapped = (index + options.length) % options.length;
@@ -84,7 +87,7 @@ export function SongOptions({
     <div>
       <div
         role="radiogroup"
-        aria-label={groupLabel}
+        aria-label={ariaLabel}
         className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-8"
       >
         {options.map((option, index) => {

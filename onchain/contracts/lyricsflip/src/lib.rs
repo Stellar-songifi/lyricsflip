@@ -14,6 +14,10 @@ mod test_budget;
 pub use errors::Error;
 pub use events::{
     AnswerSubmitted, AnswerWindowUpdated, CardAdded, CardDrawn, CardRemoved, CardUpdated,
+    CardsPerRoundUpdated, ContractUpgraded, LobbyTimeoutUpdated, MaxPlayersUpdated,
+    NftContractUpdated, OwnershipTransferStarted, OwnershipTransferred, Paused, PlayerReady,
+    RewardClaimed, RoleUpdated, RoundBufferUpdated, RoundCancelled, RoundCompleted, RoundCreated,
+    RoundDurationUpdated, RoundJoined, RoundLeft, RoundStarted, SchemaMigrated, Unpaused,
     CardsPerRoundUpdated, ContractUpgraded, LobbyTimeoutUpdated, OwnershipTransferStarted,
     OwnershipTransferred, Paused, PlayerReady, RewardClaimed, RoleUpdated, RoundBufferUpdated,
     RoundCancelled, RoundCompleted, RoundCreated, RoundDurationUpdated, RoundJoined, RoundLeft,
@@ -672,6 +676,26 @@ impl LyricsFlip {
         Self::build_question_card(env, card, round_id, kind)
     }
 
+    /// LF-279: Admin-only page of the catalogue, walking `Index::All` from
+    /// `start` and returning up to `limit` (clamped to `MAX_PAGE_LIMIT`)
+    /// cards. Soft-removed cards are skipped.
+    pub fn get_cards(env: Env, caller: Address, start: u32, limit: u32) -> Vec<Card> {
+        Self::assert_admin(&env, &caller);
+        Self::page_cards(&env, &Index::All, start, limit)
+    }
+
+    /// LF-279: Admin-only page of the cards of `genre`; see `get_cards`.
+    pub fn get_cards_by_genre(
+        env: Env,
+        caller: Address,
+        genre: Genre,
+        start: u32,
+        limit: u32,
+    ) -> Vec<Card> {
+        Self::assert_admin(&env, &caller);
+        Self::page_cards(&env, &Index::Genre(genre), start, limit)
+    }
+
     /// Returns the cards of genre.
     pub fn get_cards_of_genre(env: Env, genre: Genre) -> Vec<Card> {
         Self::draw_cards(&env, &Index::Genre(genre), Error::EmptyGenreCards)
@@ -776,6 +800,12 @@ impl LyricsFlip {
             let key = DataKey::Admin(address.clone());
             if let Some(enabled) = env.storage().instance().get::<_, bool>(&key) {
                 env.storage().instance().remove(&key);
+                RoleUpdated {
+                    account: address.clone(),
+                    role: Role::Admin,
+                    enabled,
+                }
+                .publish(&env);
                 if enabled {
                     set_persistent(&env, &key, &true);
                     let mut found = false;
@@ -1786,7 +1816,9 @@ impl LyricsFlip {
         if value > MAX_ROUND_PLAYERS {
             panic_with_error!(env, Error::MaxPlayersTooHigh);
         }
+        let old = Self::get_max_players(env.clone());
         env.storage().instance().set(&DataKey::MaxPlayers, &value);
+        MaxPlayersUpdated { old, new: value }.publish(&env);
     }
 
     /// Sets the nft contract.
@@ -1800,9 +1832,15 @@ impl LyricsFlip {
     pub fn set_nft_contract(env: Env, caller: Address, nft_contract: Address) {
         caller.require_auth();
         Self::assert_owner(&env, &caller);
+        let old = Self::get_nft_contract(env.clone());
         env.storage()
             .instance()
             .set(&DataKey::NftContract, &nft_contract);
+        NftContractUpdated {
+            old,
+            new: nft_contract,
+        }
+        .publish(&env);
     }
 
     /// Sets the answer window in seconds.
@@ -2264,6 +2302,19 @@ impl LyricsFlip {
             .persistent()
             .get(&index.at_key(i))
             .unwrap_or_else(|| panic_with_error!(env, Error::NonExistingCard))
+    }
+
+    fn page_cards(env: &Env, index: &Index, start: u32, limit: u32) -> Vec<Card> {
+        let len = Self::index_len(env, index);
+        let end = start.saturating_add(limit.min(MAX_PAGE_LIMIT)).min(len);
+        let mut out = Vec::new(env);
+        for i in start..end {
+            let card_id = Self::index_get(env, index, i);
+            if !Self::is_card_disabled(env, card_id) {
+                out.push_back(Self::read_card(env, card_id));
+            }
+        }
+        out
     }
 
     /// Appends `card_id` and returns its position.

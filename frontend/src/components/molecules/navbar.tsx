@@ -7,6 +7,7 @@ import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { FiHome, FiCreditCard, FiGrid } from 'react-icons/fi';
 import { IoTrophyOutline } from 'react-icons/io5';
+import { TxTrayTrigger } from './tx-tray';
 
 // Navigation items array
 const navItems = [
@@ -79,6 +80,7 @@ const Navbar = () => {
           </nav>
         </div>
         <div className="flex items-center gap-3">
+          <TxTrayTrigger />
           <div className="flex w-10 h-10 p-2 justify-center items-center aspect-square rounded border border-[#DBE2E8] bg-white cursor-pointer">
             <Settings className="h-5 w-5" />
           </div>

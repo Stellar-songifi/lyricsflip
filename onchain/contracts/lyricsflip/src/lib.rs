@@ -13,7 +13,7 @@ mod test_budget;
 
 pub use errors::Error;
 pub use events::{
-    AnswerSubmitted, AnswerWindowUpdated, CardAdded, CardDrawn, CardRemoved, CardUpdated,
+    AnswerSubmitted, AnswerWindowUpdated, CardAdded, CardDrawn, CardRemoved, CardRevealed, CardUpdated,
     CardsPerRoundUpdated, ContractUpgraded, LobbyTimeoutUpdated, OwnershipTransferStarted,
     OwnershipTransferred, Paused, PlayerReady, RewardClaimed, RoleUpdated, RoundBufferUpdated,
     RoundCancelled, RoundCompleted, RoundCreated, RoundDurationUpdated, RoundJoined, RoundLeft,
@@ -383,6 +383,16 @@ impl LyricsFlip {
         }
         .publish(&env);
 
+        // LF-278: reveal which card sat at each index now that the round is over.
+        for (index, card_id) in Self::read_round_cards(&env, round_id).iter().enumerate() {
+            CardRevealed {
+                round_id,
+                index: index as u32,
+                card_id,
+            }
+            .publish(&env);
+        }
+
         env.storage()
             .persistent()
             .set(&DataKey::RoundFinalized(round_id), &true);
@@ -510,12 +520,25 @@ impl LyricsFlip {
 
     /// Returns the card. A soft-removed card (LF-176) is reported as
     /// `NonExistingCard`: it is gone from the catalogue even though rounds
-    /// that already drew it keep a readable copy for grading.
+    /// that already drew it keep a readable copy for grading. LF-278: a card
+    /// in a live round comes back redacted (empty title/artist, year 0).
     pub fn get_card(env: Env, card_id: u64) -> Card {
         if Self::is_card_disabled(&env, card_id) {
             panic_with_error!(env, Error::NonExistingCard);
         }
-        Self::read_card(&env, card_id)
+        Self::redact_if_live(&env, Self::read_card(&env, card_id))
+    }
+
+    /// LF-278: strips the answer fields from a card that a live round still
+    /// references, so public catalogue reads can't map a live card to its
+    /// answer.
+    fn redact_if_live(env: &Env, mut card: Card) -> Card {
+        if Self::card_has_live_round(env, card.card_id) {
+            card.title = String::from_str(env, "");
+            card.artist = String::from_str(env, "");
+            card.year = 0;
+        }
+        card
     }
 
     /// LF-176: true when `remove_card` has soft-removed this card.
@@ -1060,35 +1083,36 @@ impl LyricsFlip {
         invite_code: Option<String>,
     ) {
         caller.require_auth();
-        // LF-162: private rounds require the preimage of RoundInviteHash.
-        if let Some(expected) = env
-            .storage()
-            .persistent()
-            .get::<_, BytesN<32>>(&DataKey::RoundInviteHash(round_id))
-        {
-            let provided = invite_code.unwrap_or_else(|| panic_with_error!(env, Error::NotAuthorized));
-            let bytes = provided.to_bytes();
-            let hash = env.crypto().sha256(&bytes);
-            if hash.to_array() != expected.to_array() {
-                panic_with_error!(env, Error::NotAuthorized); // invite_hash mismatch
-            }
-        }
+        // LF-277: paused, exists, cancelled, started, joined, full, invite.
         Self::require_not_paused(&env);
         let round = Self::read_round(&env, round_id);
 
-        if Self::is_round_player(&env, round_id, &caller) {
-            panic_with_error!(env, Error::RoundAlreadyJoined);
-        }
         if round.is_cancelled {
             panic_with_error!(env, Error::RoundCancelled);
         }
         if round.is_started {
             panic_with_error!(env, Error::RoundAlreadyStarted);
         }
+        if Self::is_round_player(&env, round_id, &caller) {
+            panic_with_error!(env, Error::RoundAlreadyJoined);
+        }
 
         let mut players = Self::read_round_players(&env, round_id);
         if players.len() >= Self::get_max_players(env.clone()) {
             panic_with_error!(env, Error::RoundFull);
+        }
+        // LF-162: private rounds require the preimage of RoundInviteHash.
+        if let Some(expected) = env
+            .storage()
+            .persistent()
+            .get::<_, BytesN<32>>(&DataKey::RoundInviteHash(round_id))
+        {
+            let provided =
+                invite_code.unwrap_or_else(|| panic_with_error!(env, Error::InvalidInvite));
+            let hash = env.crypto().sha256(&provided.to_bytes());
+            if hash.to_array() != expected.to_array() {
+                panic_with_error!(env, Error::InvalidInvite);
+            }
         }
         players.push_back(caller.clone());
         env.storage()
@@ -1111,7 +1135,7 @@ impl LyricsFlip {
         let round = Self::read_round(&env, round_id);
         Self::assert_round_pending(&env, &round);
         if round.admin == caller {
-            panic_with_error!(env, Error::NotAuthorized);
+            panic_with_error!(env, Error::AdminCannotLeave);
         }
 
         let mut players = Self::read_round_players(&env, round_id);
@@ -1161,7 +1185,7 @@ impl LyricsFlip {
                 .get(&DataKey::RoundCreatedAt(round_id))
                 .unwrap_or(0);
             if env.ledger().timestamp() < created_at + round.lobby_timeout {
-                panic_with_error!(env, Error::NotAuthorized);
+                panic_with_error!(env, Error::LobbyTimeoutNotReached);
             }
         }
 
@@ -1236,7 +1260,6 @@ impl LyricsFlip {
         CardDrawn {
             round_id,
             index: player_index,
-            card_id,
         }
         .publish(env);
 
@@ -2259,7 +2282,7 @@ impl LyricsFlip {
         let mut cards: Vec<Card> = Vec::new(env);
         for idx in Self::get_random_numbers(env, seed, amount, limit, true).iter() {
             let card_id = Self::index_get(env, index, idx as u32);
-            cards.push_back(Self::read_card(env, card_id));
+            cards.push_back(Self::redact_if_live(env, Self::read_card(env, card_id)));
         }
         cards
     }
@@ -2801,7 +2824,6 @@ impl LyricsFlip {
         CardDrawn {
             round_id,
             index: 0,
-            card_id,
         }
         .publish(&env);
 

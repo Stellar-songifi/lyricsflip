@@ -107,7 +107,7 @@ stellar contract invoke \
 - Signer: any round participant.
 - State changes: marks the round completed, records final score winners, increments `rounds_won` for winners, marks round finalization.
 - Errors: `NotAParticipant`, `RoundCancelled`, `RoundAlreadyFinalized`, `RoundNotReady`.
-- Events: `RoundCompleted { round_id, winners, scores }`.
+- Events: `RoundCompleted { round_id, winners, scores }`, then one `CardRevealed { round_id, index, card_id }` per round card (LF-278).
 - Example:
 
 ```bash
@@ -452,7 +452,7 @@ stellar contract invoke \
 ### `join_round(env: Env, caller: Address, round_id: u64)`
 - Signer: wallet of the joining player.
 - State changes: appends the player to the round, subject to capacity and pending status.
-- Errors: `RoundAlreadyJoined`, `RoundCancelled`, `RoundAlreadyStarted`, `RoundFull`.
+- Errors (in check order): `Paused`, `NonExistingRound`, `RoundCancelled`, `RoundAlreadyStarted`, `RoundAlreadyJoined`, `RoundFull`, `InvalidInvite`.
 - Events: `RoundJoined`.
 - Example:
 
@@ -467,7 +467,7 @@ stellar contract invoke \
 ### `leave_round(env: Env, caller: Address, round_id: u64)`
 - Signer: active non-admin participant.
 - State changes: removes the player, clears ready state, refunds the wager stub.
-- Errors: `NotAuthorized`, `NotAParticipant`, `RoundCancelled` and pending-state rejections.
+- Errors: `AdminCannotLeave`, `NotAParticipant`, `RoundCancelled` and pending-state rejections.
 - Events: `RoundLeft`.
 - Example:
 
@@ -482,7 +482,7 @@ stellar contract invoke \
 ### `cancel_round(env: Env, caller: Address, round_id: u64)`
 - Signer: round admin, or any player after lobby timeout.
 - State changes: marks round cancelled, removes it from open rounds, refunds players.
-- Errors: `NotAuthorized`, `RoundCancelled`.
+- Errors: `LobbyTimeoutNotReached`, `RoundCancelled`.
 - Events: `RoundCancelled`.
 - Example:
 
@@ -498,7 +498,7 @@ stellar contract invoke \
 - Signer: none (read-like action, but it mutates stored round state).
 - State changes: advances `next_card_index` and sets the current card start time.
 - Errors: `RoundNotStarted`, `RoundCompleted`.
-- Events: `CardDrawn`.
+- Events: `CardDrawn { round_id, index }` (no card id; see `CardRevealed`).
 - Example:
 
 ```bash

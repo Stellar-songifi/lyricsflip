@@ -112,6 +112,17 @@ pub struct CardDrawn {
     #[topic]
     pub round_id: u64,
     pub index: u32,
+}
+
+/// LF-278: emitted by `finalize_round`, once per card in the round. The
+/// card id is only published after the round can no longer be played, so
+/// `CardDrawn` never maps a live card to its answer.
+#[contractevent]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct CardRevealed {
+    #[topic]
+    pub round_id: u64,
+    pub index: u32,
     pub card_id: u64,
 }
 

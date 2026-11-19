@@ -24,7 +24,25 @@ There are no fixed game modes. A round is a generic container for **1 to 8 playe
 - A round with a single player is a solo practice round; any number of players from 2 to
   `get_max_players()` compete in the same round.
 
-> **Planned:** tournaments and brackets are not implemented. Tracked in LF-135.
+## Tournaments
+
+Tournaments are a backend-run bracket layered on top of ordinary on-chain rounds. The
+contract has no tournament concept; the backend (`backend/src/tournament/**`) owns the
+bracket and schedules each match as a regular round.
+
+- A tournament has **participants** (seeded into the bracket) and **matches**. Each match
+  is a single-elimination pairing of two participants.
+- Every match is created as a **private round** using the LF-264 allowlist, so only the
+  two matched participants can join it.
+- When a match's round is finalized, the backend reads the indexed `RoundCompleted`
+  event, records the winner, and advances them into the next bracket slot
+automatically — no manual database edits are required.
+- The bracket generator supports **single elimination** first; an 8-player bracket runs
+  through three rounds (quarterfinals, semifinals, final) to a single winner.
+- Winner selection within a match follows the normal round rules below (score, then total
+  answer time, then shared co-winners).
+
+> **Planned:** frontend bracket pages are tracked separately.
 
 ## Round Lifecycle
 
@@ -143,71 +161,4 @@ Notes:
 - Admin changes emit `FeeUpdated` and `TreasuryUpdated` events.
 
 Escrow lifecycle is implemented by `onchain/contracts/lyricsflip-escrow`: rounds move
-`Open → Locked → Settled`, or `Open|Locked → Cancelled`; deposits are rejected after
-locking, and cancellation/refund paths return each depositor's recorded amount.
-
-## Worked Example
-
-Three players — **Ada**, **Bo**, and **Cy** — play a 3-card round. The pool is
-**1,000** tokens, the fee is **500 bps (5%)**, and the treasury is `T`.
-
-### Answers
-
-| Player | Card 1 | Card 2 | Card 3 |
-| --- | --- | --- | --- |
-| Ada | correct @ 4s | correct @ 9s | wrong |
-| Bo | correct @ 6s | correct @ 12s | wrong |
-| Cy | correct @ 10s | wrong | wrong |
-
-### Scoring (time decay)
-
-- **Ada:** Card 1 = 100 (within 6s). Card 2 = 100 − (9−6)×5 = **85**. Card 3 = 0.
-  Total = **185**. Total answer time = 4 + 9 = **13s**.
-- **Bo:** Card 1 = 100 (exactly 6s). Card 2 = 100 − (12−6)×5 = **70**. Card 3 = 0.
-  Total = **170**. Total answer time = 6 + 12 = **18s**.
-- **Cy:** Card 1 = 100 − (10−6)×5 = **80**. Cards 2 and 3 = 0. Total = **80**.
-  Total answer time = **10s**.
-
-### Winner
-
-Ada has the highest score (**185**), so Ada wins outright. `RoundCompleted` is emitted
-with `winners = [Ada]` and `scores = {Ada: 185, Bo: 170, Cy: 80}`. Ada's `rounds_won`
-increases by 1.
-
-### Tie-break illustration
-
-Suppose Ada and Bo had both scored **185**. Ada's total answer time is **13s** and Bo's
-is **18s**, so Ada still wins on the lower total answer time (decision table row 2). If
-both had scored 185 *and* both had a total answer time of 13s, they would be **shared
-co-winners** (row 3): each would gain +1 `rounds_won`, and the 950-token payout would be
-split 475 / 475. Had the payout been 951, Ada (lower index) would receive 476 and Bo 475.
-
-### Fee & payout
-
-- Fee = 1,000 × 500 / 10,000 = **50** tokens, sent to the snapshotted treasury `T`.
-- Payout = 1,000 − 50 = **950** tokens, sent to Ada.
-
-## Glossary
-
-| UI term | Meaning | Contract behaviour |
-| --- | --- | --- |
-| **Odds** | Not a contract concept. | **Remove from the UI.** There is no contract value to map it to. |
-| **Pot / Pool** | Total tokens staked for a round. | Escrowed balance tracked per depositor; `settle_round` splits it into payout + fee. |
-| **Potential win** | Amount a player would receive if they win. | `pool − fee`, split equally with deterministic remainder distribution. |
-| **Difficulty** | How hard a card is. | **Not implemented** (LF-177). Cards have no difficulty; points depend only on answer time. |
-| **Duration** | How long a player has to answer a card. | `CARD_ANSWER_WINDOW_SECONDS` = **15s**. Late answers are accepted but scored as wrong. |
-| **Round deadline** | When the round closes. | `start_time + ROUND_DURATION_SECONDS` = **300s**. |
-| **Streak** | Consecutive correct answers. | Tracked in `PlayerStats` only; does **not** affect points. |
-
-## References
-
-- LF-005 — `rounds_won` tracking (not escrow)
-- LF-013 — scoring
-- LF-014 — payouts and fees
-- LF-259 — escrow cancellation and refunds
-- LF-260 — no-winner full refunds
-- LF-261 — claim deadlines, sweeps, and typed escrow events
-- LF-262 — escrow storage TTL extension
-- LF-177 — card difficulty (**planned**)
-- LF-246 — this document rewrite
-- LF-271 — tie-breaking and edge-case decision table
+`Open → Locked → Settled`, or `Open|Locked → Cancelled`.

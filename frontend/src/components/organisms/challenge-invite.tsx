@@ -10,6 +10,8 @@ interface ChallengeInviteProps {
   isReady: boolean;
   isBusy: boolean;
   onReady: () => void;
+  /** LF-305: private rounds share the code in the URL fragment. */
+  inviteCode?: string;
 }
 
 export default function ChallengeInvite({
@@ -18,6 +20,7 @@ export default function ChallengeInvite({
   isReady,
   isBusy,
   onReady,
+  inviteCode: privateCode,
 }: ChallengeInviteProps) {
   const router = useRouter();
   const [isCopied, setIsCopied] = useState(false);
@@ -25,7 +28,9 @@ export default function ChallengeInvite({
   const inviteCode = round.round_id.toString();
   const inviteLink =
     typeof window !== 'undefined'
-      ? `${window.location.origin}/multiplayer/${inviteCode}`
+      ? `${window.location.origin}/multiplayer/${inviteCode}${
+          privateCode ? `#invite=${encodeURIComponent(privateCode)}` : ''
+        }`
       : '';
 
   const handleCopyCode = () => {

@@ -23,6 +23,8 @@ declare global {
       NEXT_PUBLIC_STELLAR_NETWORK_PASSPHRASE?: string;
       NEXT_PUBLIC_LYRICSFLIP_CONTRACT_ID?: string;
       NEXT_PUBLIC_LYRICSFLIP_NFT_CONTRACT_ID?: string;
+      NEXT_PUBLIC_LYRICSFLIP_ESCROW_CONTRACT_ID?: string;
+      NEXT_PUBLIC_WAGERING_ENABLED?: string;
     };
   }
 }
@@ -32,6 +34,13 @@ export interface StellarConfig {
   networkPassphrase: string;
   lyricsflipContractId: string;
   lyricsflipNftContractId: string;
+  /** LF-303: escrow contract that holds wagers and pays out winnings. */
+  lyricsflipEscrowContractId: string;
+  /**
+   * LF-303: wager/claim UI stays hidden until escrow is wired end to end
+   * (LF-256). Requires `NEXT_PUBLIC_WAGERING_ENABLED=true` and an escrow id.
+   */
+  wageringEnabled: boolean;
 }
 
 export const createConfig = (): StellarConfig => ({
@@ -48,4 +57,8 @@ export const createConfig = (): StellarConfig => ({
     'NEXT_PUBLIC_LYRICSFLIP_NFT_CONTRACT_ID',
     testnetDeployment.lyricsflipNft || '',
   ),
+  lyricsflipEscrowContractId: getEnvVar('NEXT_PUBLIC_LYRICSFLIP_ESCROW_CONTRACT_ID'),
+  wageringEnabled:
+    getEnvVar('NEXT_PUBLIC_WAGERING_ENABLED') === 'true' &&
+    getEnvVar('NEXT_PUBLIC_LYRICSFLIP_ESCROW_CONTRACT_ID') !== '',
 });

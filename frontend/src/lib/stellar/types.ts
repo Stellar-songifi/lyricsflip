@@ -80,6 +80,8 @@ export interface Round {
   answer_window?: bigint;
   lobby_timeout?: bigint;
   round_duration?: bigint;
+  /** LF-162: true when joining requires the invite code. */
+  is_private?: boolean;
   /** LF-291: player cap for this round (≤ the global max). */
   max_players?: number;
 }

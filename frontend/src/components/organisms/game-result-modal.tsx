@@ -6,6 +6,7 @@ import Image from 'next/image';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Check } from 'lucide-react';
 import { useStellar } from '@/lib/stellar/hooks/use-stellar';
+import { createConfig } from '@/lib/stellar/stellar-config';
 import { useState, useEffect } from 'react';
 import { formatAmount, WAGER_ASSET_CODE } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -32,6 +33,7 @@ export const GameResultModal = (props: GameResultModalProps = {}) => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { systemCalls, account } = useStellar();
+  const { wageringEnabled } = createConfig();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fetchedRoundData, setFetchedRoundData] = useState<any>(null);
@@ -303,7 +305,7 @@ export const GameResultModal = (props: GameResultModalProps = {}) => {
     return (
       <div className="flex flex-col gap-3 justify-center mt-6 w-full">
         {/* Claim Winnings button for winners - disappears once claimed */}
-        {isWon && !isClaimed && (
+        {wageringEnabled && isWon && !isClaimed && (
           <button
             onClick={handleClaimWinnings}
             disabled={isClaiming}

@@ -6,7 +6,7 @@
 // method below just calls through with the same argument names as the Rust
 // contract (see `onchain/contracts/lyricsflip/src/lib.rs`).
 
-import { contract } from '@stellar/stellar-sdk';
+import { contract, nativeToScVal, rpc, scValToNative, xdr } from '@stellar/stellar-sdk';
 import { StellarWalletsKit } from '@creit.tech/stellar-wallets-kit';
 import type { StellarConfig } from './stellar-config';
 import { withTxToast, withTxToastResult, type TxResult } from './toast';
@@ -52,13 +52,31 @@ export interface NextCardResult extends TimedResult<QuestionCard> {
 }
 
 export interface SystemCalls {
+  /**
+   * `inviteCode` makes the round private (LF-305): only its SHA-256 hash is
+   * sent on-chain, and joiners must present the code itself.
+   */
+  createRound: (
+    genre: Genre,
+    seed?: bigint,
+    wagerAmount?: bigint,
+    inviteCode?: string,
+  ) => Promise<bigint>;
   createRound: (genre: Genre, wagerAmount?: bigint) => Promise<bigint>;
   createRoundWithFilter: (
     filter: RoundFilter,
     difficulty?: number,
     wagerAmount?: bigint,
   ) => Promise<bigint>;
-  joinRound: (roundId: bigint) => Promise<void>;
+  joinRound: (roundId: bigint, inviteCode?: string) => Promise<void>;
+  /** Leaves a lobby you joined (non-hosts only) and refunds your stake (LF-306). */
+  leaveRound: (roundId: bigint) => Promise<void>;
+  /**
+   * Unix seconds at which the round was created, read from its `RoundCreated`
+   * event. `null` when the event is older than the lookback window, which
+   * means the lobby timeout has long passed (LF-306).
+   */
+  getRoundCreatedAt: (roundId: bigint, lobbyTimeoutSeconds: bigint) => Promise<bigint | null>;
   startRound: (roundId: bigint) => Promise<void>;
   nextCard: (roundId: bigint) => Promise<QuestionCard>;
   /**
@@ -116,10 +134,8 @@ export interface SystemCalls {
    */
   isMilestoneClaimed: (player: string, milestone: Milestone) => Promise<boolean>;
   /**
-   * LF-183: there is no `claim_winnings` on the deployed contract —
-   * `create_round` always sets `wager_amount: 0`, so no pot ever accrues to
-   * claim. Kept as an explicit "not implemented" stub (see `getCategories`
-   * above) rather than silently removed, in case wagering comes back.
+   * LF-303: calls the escrow contract's `claim_winnings`. The claim UI is
+   * hidden unless `config.wageringEnabled` is true.
    */
   claimWinnings: (roundId: bigint) => Promise<bigint>;
   /**
@@ -146,8 +162,22 @@ export interface SystemCalls {
   getCategories: () => Promise<any>;
   getSongs: () => Promise<any>;
   getLeaderboard: () => Promise<any>;
-  /** Legacy alias for `claimWinnings` — also not implemented on-chain (LF-183). */
+  /** Legacy alias for `claimWinnings`. */
   claimEarnings: (roundId: bigint) => Promise<bigint>;
+}
+
+const randomSeed = () => BigInt(Date.now());
+
+/** SHA-256 of an invite code, matching the contract's `sha256(code.to_bytes())`. */
+export async function hashInviteCode(code: string): Promise<Buffer> {
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(code));
+  return Buffer.from(digest);
+}
+
+/** Random URL-safe invite code for private rounds (LF-305). */
+export function generateInviteCode(): string {
+  const bytes = crypto.getRandomValues(new Uint8Array(12));
+  return Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
 }
 
 const notImplemented =
@@ -167,13 +197,24 @@ function makeSignTransaction(defaultNetworkPassphrase: string) {
 }
 
 type LyricsFlipContract = {
+  create_round: (args: {
+    caller: string;
+    genre: number;
+    seed: bigint;
+    invite_hash: Buffer | null;
+  }) => Promise<contract.AssembledTransaction<bigint>>;
   create_round: (args: { caller: string; genre: number }) => Promise<contract.AssembledTransaction<bigint>>;
   create_round_with_filter: (args: {
     caller: string;
     filter: { genre: number | null; decade: bigint | null };
     difficulty: number | null;
   }) => Promise<contract.AssembledTransaction<bigint>>;
-  join_round: (args: { caller: string; round_id: bigint }) => Promise<contract.AssembledTransaction<null>>;
+  join_round: (args: {
+    caller: string;
+    round_id: bigint;
+    invite_code: string | null;
+  }) => Promise<contract.AssembledTransaction<null>>;
+  leave_round: (args: { caller: string; round_id: bigint }) => Promise<contract.AssembledTransaction<null>>;
   cancel_round: (args: { caller: string; round_id: bigint }) => Promise<contract.AssembledTransaction<null>>;
   get_open_rounds: (args: {
     start: number;
@@ -224,6 +265,10 @@ type LyricsFlipContract = {
   build_question_card: (args: { card: WireCard; kind: number }) => Promise<contract.AssembledTransaction<QuestionCard>>;
   claim_reward: (args: { caller: string; milestone: number }) => Promise<contract.AssembledTransaction<bigint>>;
   is_milestone_claimed: (args: { player: string; milestone: number }) => Promise<contract.AssembledTransaction<boolean>>;
+};
+
+type EscrowContract = {
+  claim_winnings: (args: { caller: string; round_id: bigint }) => Promise<contract.AssembledTransaction<bigint>>;
 };
 
 type GameClientInstance = Awaited<ReturnType<typeof contract.Client.from<LyricsFlipContract>>>;
@@ -287,9 +332,20 @@ export function createSystemCalls(config: StellarConfig, publicKey: string | nul
     return publicKey;
   };
 
-  const claimWinnings = async (_roundId: bigint): Promise<bigint> => {
-    requireAccount();
-    return notImplemented('claimWinnings')();
+  /** LF-303: pays the caller's share of a settled round out of escrow. */
+  const claimWinnings = async (roundId: bigint): Promise<bigint> => {
+    const caller = requireAccount();
+    if (!config.lyricsflipEscrowContractId) {
+      throw new Error('Wagering is not enabled: no escrow contract is configured.');
+    }
+    const escrow = await contract.Client.from<EscrowContract>({
+      contractId: config.lyricsflipEscrowContractId,
+      networkPassphrase: config.networkPassphrase,
+      rpcUrl: config.rpcUrl,
+      publicKey: caller,
+      signTransaction: makeSignTransaction(config.networkPassphrase),
+    });
+    return submit(() => escrow.claim_winnings({ caller, round_id: roundId }));
   };
 
   /** Signs + submits a mutating call and also reports the ledger close time. */
@@ -329,6 +385,16 @@ export function createSystemCalls(config: StellarConfig, publicKey: string | nul
   };
 
   return {
+    // LF-304: the deployed contract has no wager parameters yet (LF-256), so
+    // `_wagerAmount` cannot be forwarded; the wager UI stays behind
+    // `wageringEnabled` until it can.
+    createRound: async (genre, seed = randomSeed(), _wagerAmount, inviteCode) => {
+      const caller = requireAccount();
+      const client = await getGameClient(config, caller);
+      const invite_hash = inviteCode ? await hashInviteCode(inviteCode) : null;
+      return submit(() =>
+        client.create_round({ caller, genre: genreToWire(genre), seed, invite_hash }),
+      );
     createRound: async (genre, _wagerAmount) => {
       const caller = requireAccount();
       const client = await getGameClient(config, caller);
@@ -350,10 +416,47 @@ export function createSystemCalls(config: StellarConfig, publicKey: string | nul
       );
     },
 
-    joinRound: async (roundId) => {
+    joinRound: async (roundId, inviteCode) => {
       const caller = requireAccount();
       const client = await getGameClient(config, caller);
-      await submit(() => client.join_round({ caller, round_id: roundId }));
+      await submit(() =>
+        client.join_round({ caller, round_id: roundId, invite_code: inviteCode ?? null }),
+      );
+    },
+
+    leaveRound: async (roundId) => {
+      const caller = requireAccount();
+      const client = await getGameClient(config, caller);
+      await submit(() => client.leave_round({ caller, round_id: roundId }));
+    },
+
+    getRoundCreatedAt: async (roundId, lobbyTimeoutSeconds) => {
+      const server = new rpc.Server(config.rpcUrl, {
+        allowHttp: config.rpcUrl.startsWith('http://'),
+      });
+      const { sequence } = await server.getLatestLedger();
+      // ~5 s per ledger; look back twice the timeout so a live lobby is found.
+      const lookback = Number(lobbyTimeoutSeconds) * 2 / 5 + 100;
+      const res = await server.getEvents({
+        startLedger: Math.max(1, sequence - Math.ceil(lookback)),
+        filters: [
+          {
+            type: 'contract',
+            contractIds: [config.lyricsflipContractId],
+            topics: [
+              [
+                xdr.ScVal.scvSymbol('round_created').toXDR('base64'),
+                nativeToScVal(roundId, { type: 'u64' }).toXDR('base64'),
+                '*',
+              ],
+            ],
+          },
+        ],
+      });
+      const event = res.events[0];
+      if (!event) return null;
+      const data = scValToNative(event.value) as { created_time?: bigint } | bigint;
+      return typeof data === 'bigint' ? data : BigInt(data.created_time ?? 0);
     },
 
     startRound: async (roundId) => {

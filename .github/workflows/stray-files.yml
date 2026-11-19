@@ -28,3 +28,25 @@ jobs:
             exit 1
           fi
           echo "✅ No stray TypeScript files found."
+
+  no-ts-outside-frontend-src:
+    name: No .ts/.tsx under frontend/ outside src/ (except config)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Reject TypeScript files under frontend/ outside src/
+        shell: bash
+        run: |
+          # Config files (e.g. *.config.ts, jest.setup.ts, .storybook/) are allowed.
+          mapfile -t stray < <(
+            git ls-files 'frontend/*.ts' 'frontend/*.tsx' \
+              | grep -Ev '^frontend/(src|\.storybook)/' \
+              | grep -Ev '^frontend/[^/]+\.(config|setup)\.ts$'
+          )
+          if [[ ${#stray[@]} -gt 0 ]]; then
+            echo "::error::TypeScript files found under frontend/ outside src/:"
+            printf '  %s\n' "${stray[@]}"
+            exit 1
+          fi
+          echo "✅ No stray frontend TypeScript files found."

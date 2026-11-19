@@ -107,5 +107,12 @@
     "unauthorized": "Accès non autorisé",
     "gameLoadFailed": "Impossible de charger la partie",
     "walletRequired": "Un portefeuille connecté est requis"
+  },
+  "contributors": {
+    "title": "Contributeurs",
+    "subtitle": "Merci à toutes les personnes qui ont contribué à LyricsFlip.",
+    "empty": "Aucun contributeur à afficher pour le moment.",
+    "avatarAlt": "Avatar de {login}",
+    "contributions": "{count, plural, one {# contribution} other {# contributions}}"
   }
 }

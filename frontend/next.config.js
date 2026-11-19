@@ -25,6 +25,16 @@ if (
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  // LF-204: the page moved from the doubled path to /notifications.
+  async redirects() {
+    return [
+      {
+        source: '/notifications/notifications',
+        destination: '/notifications',
+        permanent: true,
+      },
+    ];
+  },
   webpack: (config, { isServer }) => {
     if (!isServer) {
       config.resolve = config.resolve ?? {};

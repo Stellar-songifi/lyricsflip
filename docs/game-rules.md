@@ -10,7 +10,7 @@ backed by a named function or constant in the contract. Source files:
 If this document and the contract disagree, the contract wins — please open an issue.
 
 Related issues: LF-005 (`rounds_won` tracking), LF-013 (scoring), LF-014 (payouts),
-LF-135 (wager escrow — **planned**), LF-177 (card difficulty — **planned**),
+LF-259–LF-262 (escrow lifecycle), LF-177 (card difficulty — **planned**),
 LF-246 (this rewrite).
 
 ## Rounds
@@ -94,22 +94,57 @@ Winners are chosen by `complete_round(...)` / `settle_round(...)` in this order:
 2. If scores tie, the player with the **lowest total answer time** wins.
 3. If both score and total answer time tie, the round has **shared co-winners** — every
    tied player is recorded as a winner.
-4. If **every** player scores zero, the round has **no winners**.
+4. If **every** player scores zero, the round has **no winners** and the escrow owner
+   cancels the escrow round, refunding every depositor in full with no protocol fee.
 
 Each winner's `rounds_won` in `PlayerStats` is incremented by **1** (see LF-005).
+Shared co-winners **each** receive the increment — a tie does not divide the win.
+
+### Decision Table
+
+The table below is the normative specification for `determine_round_winners` and
+`finalize_round`. Every row has a corresponding test in
+[`contracts/game/src/lib.rs`](../contracts/game/src/lib.rs).
+
+| # | Scenario | Winner selection | `rounds_won` | Pot payout |
+| --- | --- | --- | --- | --- |
+| 1 | One player has the strictly highest score | That player alone | +1 to the winner | Entire payout to the winner |
+| 2 | Two or more players tie on the highest score, but one has a strictly lower total answer time | The fastest of the tied players alone | +1 to that player | Entire payout to that player |
+| 3 | Two or more players tie on both the highest score **and** total answer time | All tied players are co-winners | +1 to **each** co-winner | Payout split **evenly**; integer-division dust goes to the co-winners with the **lowest player index**, one token each, in index order |
+| 4 | Every player scores zero | No winners | No change | No payout; the pool stays in escrow (refund path is LF-135) |
+| 5 | A player never submits any answer | Scores zero and total answer time counts only submitted answers (0s if none) | Only changes if they win | Only paid if they win |
+| 6 | A player answers every card correctly but slowly, another answers fewer cards quickly | Highest **total score** wins; slowness only breaks ties, it never overrides a higher score | +1 to the higher scorer | Entire payout to the higher scorer |
+| 7 | Solo round (one player) with a non-zero score | The solo player wins | +1 | Entire payout to the solo player |
+| 8 | Solo round (one player) with a zero score | No winners (row 4 applies) | No change | No payout |
+| 9 | A winner has left / is no longer a registered player at finalization | The winner is still recorded in `winners` and still gets `rounds_won`; the payout is skipped for that entry and remains in escrow | +1 to the departed winner | Departed winner's share is **not** transferred; it stays in escrow |
+
+Notes:
+
+- **Ties are common.** Total answer time comes from ledger timestamps, which advance in
+  roughly 5s steps, so row 3 is the normal outcome for equally fast players.
+- **Dust rule.** With `n` co-winners and payout `P`, each receives `P / n`; the remaining
+  `P % n` tokens are handed out one at a time to co-winners in ascending player-index
+  order. This matches the escrow split in `finalize_round`.
+- **Non-answering players** are never rejected from the round; they simply score zero
+  (row 5) and can still win a round in which everyone scores zero only if row 4 did not
+  apply — it always does, so they never win a zero-score round.
 
 ## Fees & Payouts
 
 - `settle_round(...)` splits the round pool into a **payout** and a **protocol fee**.
-- The fee rate is snapshotted when the round is created, so later fee changes do not
-  affect rounds already in flight.
+- The fee is transferred to the treasury at settlement, never on the first claim.
+- Winners have a configurable claim deadline (90 days by default). After the deadline,
+  `sweep_unclaimed(...)` sends all remaining winner shares to the treasury.
+- The fee rate is read and charged when the round is settled; later fee changes do not
+  affect a round after settlement.
 - `MAX_FEE_BPS` = **1000** basis points (**10%**). `set_fee_bps(admin, bps)` rejects
   values above this cap.
-- The fee is sent to the **treasury address snapshotted at round creation**.
+- The fee is sent to the configured treasury address at settlement.
 - Admin changes emit `FeeUpdated` and `TreasuryUpdated` events.
 
-> **Planned:** wager escrow and staking are not implemented. Tracked in LF-135.
-> (Note: LF-005 was about `rounds_won`, not escrow.)
+Escrow lifecycle is implemented by `onchain/contracts/lyricsflip-escrow`: rounds move
+`Open → Locked → Settled`, or `Open|Locked → Cancelled`; deposits are rejected after
+locking, and cancellation/refund paths return each depositor's recorded amount.
 
 ## Worked Example
 
@@ -142,9 +177,10 @@ increases by 1.
 ### Tie-break illustration
 
 Suppose Ada and Bo had both scored **185**. Ada's total answer time is **13s** and Bo's
-is **18s**, so Ada still wins on the lower total answer time. If both had scored 185
-*and* both had a total answer time of 13s, they would be **shared co-winners** and each
-would gain +1 `rounds_won`.
+is **18s**, so Ada still wins on the lower total answer time (decision table row 2). If
+both had scored 185 *and* both had a total answer time of 13s, they would be **shared
+co-winners** (row 3): each would gain +1 `rounds_won`, and the 950-token payout would be
+split 475 / 475. Had the payout been 951, Ada (lower index) would receive 476 and Bo 475.
 
 ### Fee & payout
 
@@ -156,8 +192,8 @@ would gain +1 `rounds_won`.
 | UI term | Meaning | Contract behaviour |
 | --- | --- | --- |
 | **Odds** | Not a contract concept. | **Remove from the UI.** There is no contract value to map it to. |
-| **Pot / Pool** | Total tokens staked for a round. | **Planned** (LF-135). When implemented, `settle_round` splits it into payout + fee. |
-| **Potential win** | Amount a player would receive if they win. | **Planned** (LF-135). Will be `pool − fee`, computed from the snapshotted fee rate. |
+| **Pot / Pool** | Total tokens staked for a round. | Escrowed balance tracked per depositor; `settle_round` splits it into payout + fee. |
+| **Potential win** | Amount a player would receive if they win. | `pool − fee`, split equally with deterministic remainder distribution. |
 | **Difficulty** | How hard a card is. | **Not implemented** (LF-177). Cards have no difficulty; points depend only on answer time. |
 | **Duration** | How long a player has to answer a card. | `CARD_ANSWER_WINDOW_SECONDS` = **15s**. Late answers are accepted but scored as wrong. |
 | **Round deadline** | When the round closes. | `start_time + ROUND_DURATION_SECONDS` = **300s**. |
@@ -168,6 +204,10 @@ would gain +1 `rounds_won`.
 - LF-005 — `rounds_won` tracking (not escrow)
 - LF-013 — scoring
 - LF-014 — payouts and fees
-- LF-135 — wager escrow (**planned**)
+- LF-259 — escrow cancellation and refunds
+- LF-260 — no-winner full refunds
+- LF-261 — claim deadlines, sweeps, and typed escrow events
+- LF-262 — escrow storage TTL extension
 - LF-177 — card difficulty (**planned**)
 - LF-246 — this document rewrite
+- LF-271 — tie-breaking and edge-case decision table

@@ -228,4 +228,9 @@ pub struct MaxPlayersUpdated {
 pub struct NftContractUpdated {
     pub old: Option<Address>,
     pub new: Address,
+pub struct EscrowContractUpdated {
+    #[topic]
+    pub owner: Address,
+    #[topic]
+    pub escrow: Address,
 }

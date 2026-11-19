@@ -224,4 +224,21 @@ pub struct MilestoneReset {
     #[topic]
     pub player: Address,
     pub milestone: Milestone,
+#[contractevent]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct MaxPlayersUpdated {
+    pub old: u32,
+    pub new: u32,
+}
+
+#[contractevent]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct NftContractUpdated {
+    pub old: Option<Address>,
+    pub new: Address,
+pub struct EscrowContractUpdated {
+    #[topic]
+    pub owner: Address,
+    #[topic]
+    pub escrow: Address,
 }

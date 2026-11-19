@@ -121,6 +121,11 @@ export interface QuestionCard {
   option_four: string;
 }
 
+/** Raw QuestionCard shape returned by Soroban before kind conversion. */
+export interface WireQuestionCard extends Omit<QuestionCard, 'kind'> {
+  kind: number;
+}
+
 /**
  * Mirrors `QuestionKind` in `onchain/contracts/lyricsflip/src/types.rs`.
  * Ordering must match the explicit discriminants there.

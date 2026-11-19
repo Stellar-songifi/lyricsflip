@@ -34,6 +34,17 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
       - run: cargo build --target wasm32v1-none --release
         working-directory: onchain
+      - name: Persistent writes must bump TTL (LF-274)
+        working-directory: onchain
+        run: |
+          # Every persistent write must go through the set_persistent helper so
+          # the entry's TTL is extended. Allow only the helper's own body.
+          if grep -n 'persistent()\.set(' contracts/lyricsflip/src/lib.rs \
+              | grep -v 'fn set_persistent' \
+              | grep -v 'set_persistent'; then
+            echo "::error::persistent().set( found outside the set_persistent helper"
+            exit 1
+          fi
       - uses: actions/upload-artifact@v4
         with:
           name: contracts-wasm

@@ -26,8 +26,8 @@ pub use events::{
     RoundStarted, SchemaMigrated, Unpaused, EscrowContractUpdated,
 };
 pub use types::{
-    Answer, AnswerResult, Card, CardPos, DataKey, Genre, LegacyCard, LegacyRound, Milestone,
-    PlayerStats, QuestionCard, QuestionKind, Role, Round, RoundFilter, RoundV3,
+    Answer, AnswerResult, Card, CardPos, CardResult, DataKey, Genre, LegacyCard, LegacyRound,
+    Milestone, PlayerStats, QuestionCard, QuestionKind, Role, Round, RoundFilter, RoundV3, RoundV4,
 };
 
 use soroban_sdk::{
@@ -325,21 +325,61 @@ impl LyricsFlip {
 
     /// Returns the round cards.
     ///
-    /// LF-142: while a round is active (started and not finalized), only an
-    /// admin may read the card ids, so a modified client cannot look up the
-    /// answers ahead of time. After finalization the list is public again.
+    /// LF-292: free to read (no auth) once the round is finalized or
+    /// cancelled. Before that only an admin may read the ids, so a modified
+    /// client cannot look up the answers ahead of time; any other caller gets
+    /// `RoundNotReady`.
     pub fn get_round_cards(env: Env, caller: Address, round_id: u64) -> Vec<u64> {
-        caller.require_auth();
         let round = Self::read_round(&env, round_id);
         let finalized: bool = env
             .storage()
             .persistent()
             .get(&DataKey::RoundFinalized(round_id))
             .unwrap_or(false);
-        if round.is_started && !finalized && !Self::is_admin(env.clone(), Role::Admin, caller) {
-            panic_with_error!(env, Error::NotAuthorized);
+        if !finalized && !round.is_cancelled {
+            if !Self::is_admin(env.clone(), Role::Admin, caller.clone()) {
+                panic_with_error!(env, Error::RoundNotReady);
+            }
+            caller.require_auth();
         }
         Self::read_round_cards(&env, round_id)
+    }
+
+    /// LF-293: every card of a finalized round with each player's
+    /// `(correct, points)`, read from storage so it never depends on events.
+    pub fn get_round_summary(env: Env, round_id: u64) -> Vec<CardResult> {
+        let finalized: bool = env
+            .storage()
+            .persistent()
+            .get(&DataKey::RoundFinalized(round_id))
+            .unwrap_or(false);
+        if !finalized {
+            panic_with_error!(env, Error::RoundNotReady);
+        }
+        let players = Self::read_round_players(&env, round_id);
+        let mut summary = Vec::new(&env);
+        for card_id in Self::read_round_cards(&env, round_id).iter() {
+            let mut per_player = Map::new(&env);
+            for player in players.iter() {
+                if let Some(result) =
+                    env.storage()
+                        .persistent()
+                        .get::<_, (bool, u64)>(&DataKey::RoundAnswer((
+                            round_id,
+                            player.clone(),
+                            card_id,
+                        )))
+                {
+                    per_player.set(player, result);
+                }
+            }
+            summary.push_back(CardResult {
+                card: Self::read_card(&env, card_id),
+                kind: QuestionKind::Title,
+                per_player,
+            });
+        }
+        summary
     }
 
     /// Returns the round players.
@@ -912,6 +952,36 @@ impl LyricsFlip {
             None,
             invitees,
             false,
+            None,
+        )
+    }
+
+    /// LF-291: like `create_round`, but caps this round at `max_players`
+    /// (e.g. 2 for a duel). Must be at least 2 and at most the global
+    /// `get_max_players`; `None` uses the global value.
+    pub fn create_round_with_max_players(
+        env: Env,
+        caller: Address,
+        genre: Option<Genre>,
+        seed: u64,
+        invite_hash: Option<BytesN<32>>,
+        max_players: Option<u32>,
+    ) -> u64 {
+        if genre.is_none() {
+            panic_with_error!(env, Error::NonExistingGenre);
+        }
+        Self::create_round_internal(
+            &env,
+            caller,
+            RoundFilter {
+                genre,
+                decade: None,
+            },
+            None,
+            seed,
+            invite_hash,
+            false,
+            max_players,
             wager_token,
             wager_amount,
         )
@@ -925,10 +995,12 @@ impl LyricsFlip {
         difficulty: Option<u32>,
         invitees: Vec<Address>,
     ) -> u64 {
+        Self::create_round_internal(&env, caller, filter, difficulty, seed, None, false, None)
         Self::create_round_internal(&env, caller, filter, difficulty, invitees, false)
         Self::create_round_internal(&env, caller, filter, difficulty, seed, None, false, None, 0)
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn create_round_internal(
         env: &Env,
         caller: Address,
@@ -936,6 +1008,18 @@ impl LyricsFlip {
         difficulty: Option<u32>,
         invitees: Vec<Address>,
         solo: bool,
+        max_players: Option<u32>,
+    ) -> u64 {
+        caller.require_auth();
+        let global_max = Self::get_max_players((*env).clone());
+        let max_players = match max_players {
+            Some(value) if value < 2 => panic_with_error!(env, Error::InvalidMaxPlayers),
+            Some(value) if value > global_max => {
+                panic_with_error!(env, Error::MaxPlayersTooHigh)
+            }
+            Some(value) => value,
+            None => global_max,
+        };
         wager_token: Option<Address>,
         wager_amount: i128,
     ) -> u64 {
@@ -1008,6 +1092,7 @@ impl LyricsFlip {
             round_duration,
             is_private,
             solo: false,
+            max_players,
         };
 
         let mut players: Vec<Address> = Vec::new(&env);
@@ -1191,7 +1276,7 @@ impl LyricsFlip {
         }
 
         let mut players = Self::read_round_players(&env, round_id);
-        if players.len() >= Self::get_max_players(env.clone()) {
+        if players.len() >= round.max_players {
             panic_with_error!(env, Error::RoundFull);
         }
         players.push_back(caller.clone());
@@ -2464,28 +2549,32 @@ impl LyricsFlip {
                 Ok(m) => m,
                 Err(_) => panic_with_error!(env, Error::NonExistingRound),
             };
-        let round = if map.len() == 10 {
+        let mut round = if map.len() == 10 {
             let legacy = LegacyRound::try_from_val(env, &stored)
                 .unwrap_or_else(|_| panic_with_error!(env, Error::NonExistingRound));
-            let round = Round::from(legacy);
-            env.storage()
-                .persistent()
-                .set(&DataKey::Round(round_id), &round);
-            round
+            Round::from(legacy)
         } else if map.len() == 13 {
             // Lazy upgrade of schema-v3 rounds (pre LF-162/163) to the
             // current layout: missing flags default to false.
             let v3 = RoundV3::try_from_val(env, &stored)
                 .unwrap_or_else(|_| panic_with_error!(env, Error::NonExistingRound));
-            let round = Round::from(v3);
-            env.storage()
-                .persistent()
-                .set(&DataKey::Round(round_id), &round);
-            round
+            Round::from(v3)
+        } else if map.len() == 15 {
+            // Lazy upgrade of schema-v4 rounds (pre LF-291).
+            let v4 = RoundV4::try_from_val(env, &stored)
+                .unwrap_or_else(|_| panic_with_error!(env, Error::NonExistingRound));
+            Round::from(v4)
         } else {
             Round::try_from_val(env, &stored)
                 .unwrap_or_else(|_| panic_with_error!(env, Error::NonExistingRound))
         };
+        // LF-291: migrated rounds default to the global player cap.
+        if round.max_players == 0 {
+            round.max_players = Self::get_max_players(env.clone());
+            env.storage()
+                .persistent()
+                .set(&DataKey::Round(round_id), &round);
+        }
         bump_persistent(env, &DataKey::Round(round_id));
         round
     }
@@ -3211,6 +3300,12 @@ impl LyricsFlip {
         } else {
             0
         };
+
+        let answer_key = DataKey::RoundAnswer((round_id, caller.clone(), current_card_id));
+        env.storage()
+            .persistent()
+            .set(&answer_key, &(is_correct, points));
+        bump_persistent(env, &answer_key);
 
         if is_correct {
             let mut scores = Self::read_round_scores(env, round_id);

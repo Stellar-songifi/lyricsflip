@@ -168,5 +168,12 @@
     "notFound": "Page not found",
     "unauthorized": "You are not authorized to view this page.",
     "walletRequired": "Please connect your wallet to continue."
+  },
+  "contributors": {
+    "title": "Contributors",
+    "subtitle": "Thanks to everyone who has contributed to LyricsFlip.",
+    "empty": "No contributors to display yet.",
+    "avatarAlt": "{login}'s avatar",
+    "contributions": "{count, plural, one {# contribution} other {# contributions}}"
   }
 }

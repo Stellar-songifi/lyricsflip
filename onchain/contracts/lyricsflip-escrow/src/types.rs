@@ -1,26 +1,39 @@
-use soroban_sdk::{contracttype, Address, Vec};
+use soroban_sdk::{contracttype, Address, Map, Vec};
 
-/// Status of a wagered round.
 #[contracttype]
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum RoundStatus {
     Open,
-    Locked,
     Settled,
     Cancelled,
 }
 
-/// A wagered round with an escrowed pot.
+/// A round with per-player escrow balances.
 #[contracttype]
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Round {
     pub id: u64,
     pub creator: Address,
     pub token: Address,
+    /// Unspent tokens currently reserved for this round.
     pub pot: i128,
+    pub fee: i128,
     pub status: RoundStatus,
     pub winners: Vec<Address>,
     pub claimed: Vec<Address>,
+    pub deposits: Map<Address, i128>,
+    pub claim_deadline: u64,
+    pub swept: bool,
+}
+
+/// Protocol configuration.
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct Config {
+    /// Owner of this escrow contract — normally the game contract address.
+    pub depositors: Vec<Address>,
+    pub fee_paid: bool,
+    pub paid: i128,
 }
 
 /// Protocol configuration, admin-configurable.
@@ -35,9 +48,15 @@ pub struct Config {
     pub admin: Address,
     /// Pending admin awaiting acceptance of a two-step transfer.
     pub pending_admin: Option<Address>,
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct Config {
+    pub owner: Address,
     pub treasury: Address,
-    /// Protocol fee in basis points (1 bps = 0.01%).
     pub fee_bps: u32,
     /// Whether the contract is paused. Claims and refunds stay open while paused.
     pub paused: bool,
+}
+    /// Claim window in seconds for newly settled rounds.
+    pub claim_deadline: u64,
 }

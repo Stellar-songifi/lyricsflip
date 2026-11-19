@@ -108,4 +108,7 @@ pub enum Error {
     /// LF-264: the caller is not in the private round's invitee allowlist
     /// and therefore cannot join it.
     InvalidInvite = 47,
+    /// LF-265: the lobby is older than `round.lobby_timeout`; it can only be
+    /// cancelled, not joined, started, or listed.
+    LobbyExpired = 47,
 }

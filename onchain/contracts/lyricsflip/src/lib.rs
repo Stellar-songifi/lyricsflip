@@ -17,7 +17,7 @@ pub use events::{
     CardsPerRoundUpdated, ContractUpgraded, LobbyTimeoutUpdated, OwnershipTransferStarted,
     OwnershipTransferred, Paused, PlayerReady, RewardClaimed, RoleUpdated, RoundBufferUpdated,
     RoundCancelled, RoundCompleted, RoundCreated, RoundDurationUpdated, RoundJoined, RoundLeft,
-    RoundStarted, SchemaMigrated, Unpaused,
+    RoundStarted, SchemaMigrated, Unpaused, EscrowContractUpdated,
 };
 pub use types::{
     Answer, AnswerResult, Card, CardPos, DataKey, Genre, LegacyCard, LegacyRound, Milestone,
@@ -28,6 +28,16 @@ use soroban_sdk::{
     contract, contractclient, contractimpl, panic_with_error, Address, Bytes, BytesN, Env, Map,
     String, TryFromVal, Val, Vec,
 };
+
+#[contractclient(name = "EscrowClient")]
+pub trait EscrowInterface {
+    fn create_round(env: Env, round_id: u64, creator: Address, token: Address);
+    fn deposit(env: Env, round_id: u64, from: Address, amount: i128);
+    fn refund(env: Env, round_id: u64, player: Address) -> i128;
+    fn cancel_round(env: Env, round_id: u64, players: Vec<Address>);
+    fn settle_round(env: Env, round_id: u64, winners: Vec<Address>);
+    fn claim_winnings(env: Env, caller: Address, round_id: u64) -> i128;
+}
 
 /// Bumped on every release that changes the contract's code; see `upgrade`.
 pub const VERSION: u32 = 2;
@@ -120,6 +130,21 @@ where
     K: soroban_sdk::IntoVal<Env, soroban_sdk::Val>,
     soroban_sdk::Val: soroban_sdk::TryFromVal<Env, K>,
 {
+    env.storage()
+        .persistent()
+        .extend_ttl(key, LIFETIME_THRESHOLD, BUMP_AMOUNT);
+}
+
+/// LF-274: write a persistent entry and extend its TTL in one call. Every
+/// persistent write must go through this helper so no key can be archived
+/// while the round it belongs to is still in use.
+#[inline]
+fn set_persistent<K, V>(env: &Env, key: &K, value: &V)
+where
+    K: soroban_sdk::IntoVal<Env, soroban_sdk::Val>,
+    soroban_sdk::Val: soroban_sdk::TryFromVal<Env, K>,
+{
+    env.storage().persistent().set(key, value);
     env.storage()
         .persistent()
         .extend_ttl(key, LIFETIME_THRESHOLD, BUMP_AMOUNT);
@@ -272,15 +297,11 @@ impl LyricsFlip {
         }
         env.storage().instance().set(&DataKey::Owner, &owner);
         // LF-156: Store admins in persistent storage, not instance storage.
-        env.storage()
-            .persistent()
-            .set(&DataKey::Admin(owner.clone()), &true);
-        bump_persistent(&env, &DataKey::Admin(owner.clone()));
+        set_persistent(&env, &DataKey::Admin(owner.clone()), &true);
 
         let mut admins = Vec::new(&env);
         admins.push_back(owner);
-        env.storage().persistent().set(&DataKey::Admins, &admins);
-        bump_persistent(&env, &DataKey::Admins);
+        set_persistent(&env, &DataKey::Admins, &admins);
 
         env.storage().instance().set(&DataKey::Paused, &false);
         env.storage()
@@ -339,32 +360,31 @@ impl LyricsFlip {
         scores
     }
 
-    /// Finalizes a round.
+    /// Finalizes a round after authenticating and checking participation/readiness.
     pub fn finalize_round(env: Env, caller: Address, round_id: u64) {
         caller.require_auth();
-        let round = Self::read_round(&env, round_id);
         if !Self::is_round_player(&env, round_id, &caller) {
             panic_with_error!(env, Error::NotAParticipant);
         }
+        Self::finalize_round_internal(&env, round_id);
+    }
+
+    /// Auth-free finalization used by combined entry points after their single
+    /// caller authentication frame has already been established.
+    fn finalize_round_internal(env: &Env, round_id: u64) {
+        let round = Self::read_round(env, round_id);
         if round.is_cancelled {
             panic_with_error!(env, Error::RoundCancelled);
         }
-        if env
-            .storage()
-            .persistent()
-            .get(&DataKey::RoundFinalized(round_id))
-            .unwrap_or(false)
-        {
+        if env.storage().persistent().get(&DataKey::RoundFinalized(round_id)).unwrap_or(false) {
             panic_with_error!(env, Error::RoundAlreadyFinalized);
         }
-
         let now = env.ledger().timestamp();
-        let is_all_cards_answered = Self::are_all_required_answers_submitted(&env, round_id);
+        let is_all_cards_answered = Self::are_all_required_answers_submitted(env, round_id);
         let is_past_deadline = round.end_time != 0 && now >= round.end_time;
         if !is_all_cards_answered && !is_past_deadline {
             panic_with_error!(env, Error::RoundNotReady);
         }
-
         // Record when the round actually ended: now if everyone finished
         // early, otherwise the (already passed) deadline.
         let mut round = round;
@@ -374,11 +394,39 @@ impl LyricsFlip {
         } else {
             now
         };
-        env.storage()
-            .persistent()
-            .set(&DataKey::Round(round_id), &round);
+        set_persistent(&env, &DataKey::Round(round_id), &round);
 
+        // LF-272: a player who let a card time out without submitting never
+        // gets a `RoundPlayerAnswered` entry, so the streak reset that a
+        // wrong answer performs never fires. Reset it here for every player
+        // that left at least one card unanswered.
+        let round_cards = Self::read_round_cards(&env, round_id);
+        for player in Self::read_round_players(&env, round_id).iter() {
+            let mut has_unanswered = false;
+            for card_id in round_cards.iter() {
+                let answered: bool = env
+                    .storage()
+                    .persistent()
+                    .get(&DataKey::RoundPlayerAnswered((
+                        round_id,
+                        player.clone(),
+                        card_id,
+                    )))
+                    .unwrap_or(false);
+                if !answered {
+                    has_unanswered = true;
+                    break;
         let winners = Self::determine_round_winners(&env, round_id);
+        if round.wager_amount > 0 {
+            let escrow = env.storage().instance().get::<_, Address>(&DataKey::EscrowContract)
+                .unwrap_or_else(|| panic_with_error!(env, Error::NotAuthorized));
+            let escrow_client = EscrowClient::new(&env, &escrow);
+            if winners.is_empty() {
+                escrow_client.cancel_round(&round_id, &Self::read_round_players(&env, round_id));
+            } else {
+                escrow_client.settle_round(&round_id, &winners);
+            }
+        }
         if winners.len() > 0 {
             for player in Self::read_round_players(&env, round_id).iter() {
                 let mut is_winner = false;
@@ -397,6 +445,21 @@ impl LyricsFlip {
                     bump_persistent(&env, &DataKey::PlayerStats(player));
                 }
             }
+            if has_unanswered {
+                let mut stats = Self::get_player_stat(env.clone(), player.clone());
+                stats.current_streak = 0;
+                set_persistent(&env, &DataKey::PlayerStats(player.clone()), &stats);
+            }
+        }
+
+        // LF-271: tied winners are co-winners; each gets `rounds_won += 1`.
+        // Zero-score rounds have no winners. Players who left the round are
+        // no longer in `RoundPlayers`, so they are never selected here.
+        let winners = Self::determine_round_winners(&env, round_id);
+        for winner in winners.iter() {
+            let mut stats = Self::get_player_stat(env.clone(), winner.clone());
+            stats.rounds_won += 1;
+            set_persistent(&env, &DataKey::PlayerStats(winner.clone()), &stats);
         }
 
         let scores = Self::get_round_scores(env.clone(), round_id);
@@ -407,14 +470,10 @@ impl LyricsFlip {
         }
         .publish(&env);
 
-        env.storage()
-            .persistent()
-            .set(&DataKey::RoundFinalized(round_id), &true);
-        bump_persistent(&env, &DataKey::RoundFinalized(round_id));
+        set_persistent(&env, &DataKey::RoundFinalized(round_id), &true);
         // LF-176: the round no longer constrains `update_card` on its cards.
         Self::clear_live_rounds(&env, round_id);
-        bump_instance(&env);
-    }
+        bump_instance(&env);    }
 
     /// Number of live (added and not removed) cards.
     pub fn get_cards_count(env: Env) -> u64 {
@@ -456,13 +515,21 @@ impl LyricsFlip {
     /// clamped to `MAX_PAGE_LIMIT`.
     pub fn get_open_rounds(env: Env, start: u32, limit: u32) -> Vec<u64> {
         let open = Self::read_open_rounds(&env);
+        // LF-265: expired lobbies can only be cancelled, so never list them.
+        let now = env.ledger().timestamp();
+        let mut live: Vec<u64> = Vec::new(&env);
+        for round_id in open.iter() {
+            if !Self::is_lobby_expired(&env, round_id, now) {
+                live.push_back(round_id);
+            }
+        }
         let end = start
             .saturating_add(limit.min(MAX_PAGE_LIMIT))
-            .min(open.len());
+            .min(live.len());
         if start >= end {
             return Vec::new(&env);
         }
-        open.slice(start..end)
+        live.slice(start..end)
     }
 
     /// Returns the max players.
@@ -569,9 +636,7 @@ impl LyricsFlip {
             let legacy = LegacyCard::try_from_val(env, &stored)
                 .unwrap_or_else(|_| panic_with_error!(env, Error::NonExistingCard));
             let card = Card::from(legacy);
-            env.storage()
-                .persistent()
-                .set(&DataKey::Card(card_id), &card);
+            set_persistent(env, &DataKey::Card(card_id), &card);
             card
         } else {
             Card::try_from_val(env, &stored)
@@ -670,10 +735,7 @@ impl LyricsFlip {
         {
             env.storage().instance().remove(&DataKey::Admin(address.clone()));
             if is_enabled {
-                env.storage()
-                    .persistent()
-                    .set(&DataKey::Admin(address.clone()), &true);
-                bump_persistent(&env, &DataKey::Admin(address.clone()));
+                set_persistent(&env, &DataKey::Admin(address.clone()), &true);
 
                 let mut admins = Self::read_admins(&env);
                 let mut found = false;
@@ -685,8 +747,7 @@ impl LyricsFlip {
                 }
                 if !found {
                     admins.push_back(address);
-                    env.storage().persistent().set(&DataKey::Admins, &admins);
-                    bump_persistent(&env, &DataKey::Admins);
+                    set_persistent(&env, &DataKey::Admins, &admins);
                 }
                 return true;
             }
@@ -716,8 +777,7 @@ impl LyricsFlip {
             if let Some(enabled) = env.storage().instance().get::<_, bool>(&key) {
                 env.storage().instance().remove(&key);
                 if enabled {
-                    env.storage().persistent().set(&key, &true);
-                    bump_persistent(&env, &key);
+                    set_persistent(&env, &key, &true);
                     let mut found = false;
                     for i in 0..admins.len() {
                         if admins.get(i).unwrap() == address {
@@ -745,8 +805,7 @@ impl LyricsFlip {
         }
 
         if index_changed {
-            env.storage().persistent().set(&DataKey::Admins, &admins);
-            bump_persistent(&env, &DataKey::Admins);
+            set_persistent(&env, &DataKey::Admins, &admins);
         }
     }
 
@@ -785,6 +844,10 @@ impl LyricsFlip {
         caller: Address,
         genre: Option<Genre>,
         invitees: Vec<Address>,
+        seed: u64,
+        invite_hash: Option<BytesN<32>>,
+        wager_token: Option<Address>,
+        wager_amount: i128,
     ) -> u64 {
         if genre.is_none() {
             panic_with_error!(env, Error::NonExistingGenre);
@@ -799,6 +862,8 @@ impl LyricsFlip {
             None,
             invitees,
             false,
+            wager_token,
+            wager_amount,
         )
     }
 
@@ -811,6 +876,7 @@ impl LyricsFlip {
         invitees: Vec<Address>,
     ) -> u64 {
         Self::create_round_internal(&env, caller, filter, difficulty, invitees, false)
+        Self::create_round_internal(&env, caller, filter, difficulty, seed, None, false, None, 0)
     }
 
     fn create_round_internal(
@@ -820,9 +886,13 @@ impl LyricsFlip {
         difficulty: Option<u32>,
         invitees: Vec<Address>,
         solo: bool,
+        wager_token: Option<Address>,
+        wager_amount: i128,
     ) -> u64 {
         caller.require_auth();
         let is_private = !invitees.is_empty();
+        if wager_amount < 0 { panic_with_error!(env, Error::InvalidRoundDuration); }
+        if wager_amount > 0 && wager_token.is_none() { panic_with_error!(env, Error::NotAuthorized); }
         // LF-175: cap public open lobbies per address. Private and solo
         // rounds never appear in `OpenRounds`, so they are exempt.
         if !solo && !is_private {
@@ -875,7 +945,8 @@ impl LyricsFlip {
             round_id,
             admin: caller.clone(),
             genre,
-            wager_amount: 0,
+            wager_amount: wager_amount,
+            wager_token: wager_token.clone(),
             start_time: 0,
             is_started: false,
             is_completed: false,
@@ -891,15 +962,9 @@ impl LyricsFlip {
 
         let mut players: Vec<Address> = Vec::new(&env);
         players.push_back(caller.clone());
-        env.storage()
-            .persistent()
-            .set(&DataKey::RoundPlayers(round_id), &players);
-        bump_persistent(&env, &DataKey::RoundPlayers(round_id));
+        set_persistent(&env, &DataKey::RoundPlayers(round_id), &players);
 
-        env.storage()
-            .persistent()
-            .set(&DataKey::RoundCards(round_id), &cards);
-        bump_persistent(&env, &DataKey::RoundCards(round_id));
+        set_persistent(&env, &DataKey::RoundCards(round_id), &cards);
 
         // LF-264: remember the allowlist for private rounds. The round
         // creator is implicitly allowed to join their own round.
@@ -908,6 +973,9 @@ impl LyricsFlip {
                 .persistent()
                 .set(&DataKey::RoundInvitees(round_id), &invitees);
             bump_persistent(&env, &DataKey::RoundInvitees(round_id));
+        // LF-162: remember the invite preimage hash for private rounds.
+        if let Some(hash) = invite_hash {
+            set_persistent(&env, &DataKey::RoundInviteHash(round_id), &hash);
         }
 
         // LF-176: track which rounds reference each card so `update_card`
@@ -916,24 +984,42 @@ impl LyricsFlip {
             Self::add_live_round(env, card_id, round_id);
         }
 
-        env.storage()
-            .persistent()
-            .set(&DataKey::Round(round_id), &round);
-        bump_persistent(&env, &DataKey::Round(round_id));
+        set_persistent(&env, &DataKey::Round(round_id), &round);
 
-        env.storage().persistent().set(
+        set_persistent(
+            &env,
             &DataKey::RoundCreatedAt(round_id),
             &env.ledger().timestamp(),
         );
+
+        if wager_amount > 0 {
+            let escrow = env.storage().instance().get::<_, Address>(&DataKey::EscrowContract)
+                .unwrap_or_else(|| panic_with_error!(env, Error::NotAuthorized));
+            let token_address = wager_token.clone().unwrap();
+            let client = EscrowClient::new(env, &escrow);
+            client.create_round(&round_id, &caller, &token_address);
+            client.deposit(&round_id, &caller, &wager_amount);
+        }
 
         // LF-162: private rounds are not discoverable in the public lobby.
         // LF-175: solo rounds skip the lobby entirely, so they neither
         // appear in nor consume a slot from `OpenRounds`.
         if !round.is_private && !solo {
+            // LF-265: lazily prune expired lobbies so `OpenRounds` does not
+            // grow without bound when nobody cancels them.
+            let now = env.ledger().timestamp();
             let mut open = Self::read_open_rounds(env);
-            open.push_back(round_id);
-            env.storage().persistent().set(&DataKey::OpenRounds, &open);
-            bump_persistent(env, &DataKey::OpenRounds);
+            let mut pruned: Vec<u64> = Vec::new(env);
+            for id in open.iter() {
+                if Self::is_lobby_expired(env, id, now) {
+                    let expired = Self::read_round(env, id);
+                    Self::dec_open_rounds_of(env, &expired.admin);
+                } else {
+                    pruned.push_back(id);
+                }
+            }
+            pruned.push_back(round_id);
+            set_persistent(env, &DataKey::OpenRounds, &pruned);
             Self::inc_open_rounds_of(env, &caller);
         }
 
@@ -962,6 +1048,10 @@ impl LyricsFlip {
         if !is_round_admin && !is_participant {
             panic_with_error!(env, Error::NotAuthorized);
         }
+        // LF-265: an expired lobby can only be cancelled.
+        if Self::is_lobby_expired(&env, round_id, env.ledger().timestamp()) {
+            panic_with_error!(env, Error::LobbyExpired);
+        }
 
         let ready_key = DataKey::RoundReady((round_id, caller.clone()));
         let already_ready: bool = env.storage().persistent().get(&ready_key).unwrap_or(false);
@@ -971,8 +1061,7 @@ impl LyricsFlip {
 
         let players = Self::read_round_players(&env, round_id);
 
-        env.storage().persistent().set(&ready_key, &true);
-        bump_persistent(&env, &ready_key);
+        set_persistent(&env, &ready_key, &true);
 
         let ready_count_key = DataKey::RoundReadyCount(round_id);
         let ready_count: u32 = env
@@ -981,10 +1070,7 @@ impl LyricsFlip {
             .get(&ready_count_key)
             .unwrap_or(0)
             + 1;
-        env.storage()
-            .persistent()
-            .set(&ready_count_key, &ready_count);
-        bump_persistent(&env, &ready_count_key);
+        set_persistent(&env, &ready_count_key, &ready_count);
 
         PlayerReady {
             round_id,
@@ -1001,20 +1087,14 @@ impl LyricsFlip {
             for player in players.iter() {
                 let mut stats = Self::get_player_stat(env.clone(), player.clone());
                 stats.total_rounds += 1;
-                env.storage()
-                    .persistent()
-                    .set(&DataKey::PlayerStats(player.clone()), &stats);
-                bump_persistent(&env, &DataKey::PlayerStats(player));
+                set_persistent(&env, &DataKey::PlayerStats(player.clone()), &stats);
             }
 
             let start_time = env.ledger().timestamp();
             round.start_time = start_time;
             round.end_time = start_time + round.round_duration;
             round.is_started = true;
-            env.storage()
-                .persistent()
-                .set(&DataKey::Round(round_id), &round);
-            bump_persistent(&env, &DataKey::Round(round_id));
+            set_persistent(&env, &DataKey::Round(round_id), &round);
 
             Self::remove_open_round(&env, round_id, &round.admin);
 
@@ -1050,16 +1130,17 @@ impl LyricsFlip {
         if round.is_started {
             panic_with_error!(env, Error::RoundAlreadyStarted);
         }
+        // LF-265: an expired lobby can only be cancelled.
+        if Self::is_lobby_expired(&env, round_id, env.ledger().timestamp()) {
+            panic_with_error!(env, Error::LobbyExpired);
+        }
 
         let mut players = Self::read_round_players(&env, round_id);
         if players.len() >= Self::get_max_players(env.clone()) {
             panic_with_error!(env, Error::RoundFull);
         }
         players.push_back(caller.clone());
-        env.storage()
-            .persistent()
-            .set(&DataKey::RoundPlayers(round_id), &players);
-        bump_persistent(&env, &DataKey::RoundPlayers(round_id));
+        set_persistent(&env, &DataKey::RoundPlayers(round_id), &players);
 
         RoundJoined {
             round_id,
@@ -1084,9 +1165,7 @@ impl LyricsFlip {
             .first_index_of(&caller)
             .unwrap_or_else(|| panic_with_error!(env, Error::NotAParticipant));
         players.remove(idx);
-        env.storage()
-            .persistent()
-            .set(&DataKey::RoundPlayers(round_id), &players);
+        set_persistent(&env, &DataKey::RoundPlayers(round_id), &players);
 
         let ready_key = DataKey::RoundReady((round_id, caller.clone()));
         if env.storage().persistent().get(&ready_key).unwrap_or(false) {
@@ -1097,9 +1176,7 @@ impl LyricsFlip {
                 .persistent()
                 .get(&ready_count_key)
                 .unwrap_or(0);
-            env.storage()
-                .persistent()
-                .set(&ready_count_key, &ready_count.saturating_sub(1));
+            set_persistent(&env, &ready_count_key, &ready_count.saturating_sub(1));
         }
 
         let refunded = Self::refund_wager(&env, &round, &caller);
@@ -1132,9 +1209,7 @@ impl LyricsFlip {
 
         round.is_cancelled = true;
         round.end_time = env.ledger().timestamp();
-        env.storage()
-            .persistent()
-            .set(&DataKey::Round(round_id), &round);
+        set_persistent(&env, &DataKey::Round(round_id), &round);
         Self::remove_open_round(&env, round_id, &round.admin);
         // LF-176: a cancelled round no longer constrains `update_card`.
         Self::clear_live_rounds(&env, round_id);
@@ -1161,9 +1236,16 @@ impl LyricsFlip {
     /// already finalized". The `is_completed` flag is set only by
     /// `finalize_round`, so players can still answer the last drawn card
     /// after this function returns it.
-    pub fn next_card(env: Env, caller: Address, round_id: u64) -> Card {
+    pub fn next_card(env: Env, caller: Address, round_id: u64) -> QuestionCard {
         caller.require_auth();
-        Self::next_card_internal(&env, &caller, round_id)
+        let card = Self::next_card_internal(&env, &caller, round_id);
+        let index = env
+            .storage()
+            .persistent()
+            .get::<_, u32>(&DataKey::PlayerCardIndex((round_id, caller)))
+            .unwrap_or(1)
+            .saturating_sub(1);
+        Self::build_question_card(env, card, round_id.wrapping_add(index as u64), QuestionKind::Title)
     }
 
     /// LF-164: auth-free body of `next_card` so `answer_and_next` can draw the
@@ -1198,6 +1280,28 @@ impl LyricsFlip {
             .unwrap_or_else(|| panic_with_error!(env, Error::NoMoreCards));
         let card = Self::read_card(env, card_id);
 
+        // LF-272: skipping a card (letting the timer run out without
+        // submitting) must reset the streak exactly like a wrong answer.
+        if player_index > 0 {
+            let previous_card_id = round_cards.get(player_index - 1).unwrap();
+            let answered: bool = env
+                .storage()
+                .persistent()
+                .get(&DataKey::RoundPlayerAnswered((
+                    round_id,
+                    caller.clone(),
+                    previous_card_id,
+                )))
+                .unwrap_or(false);
+            if !answered {
+                let mut stats = Self::get_player_stat(env.clone(), caller.clone());
+                if stats.current_streak != 0 {
+                    stats.current_streak = 0;
+                    set_persistent(env, &DataKey::PlayerStats(caller.clone()), &stats);
+                }
+            }
+        }
+
         CardDrawn {
             round_id,
             index: player_index,
@@ -1206,16 +1310,10 @@ impl LyricsFlip {
         .publish(env);
 
         let started_at_key = DataKey::PlayerCardStartedAt((round_id, caller.clone(), card_id));
-        env.storage()
-            .persistent()
-            .set(&started_at_key, &env.ledger().timestamp());
-        bump_persistent(env, &started_at_key);
+        set_persistent(env, &started_at_key, &env.ledger().timestamp());
 
         let player_index_key = DataKey::PlayerCardIndex((round_id, caller.clone()));
-        env.storage()
-            .persistent()
-            .set(&player_index_key, &(player_index + 1));
-        bump_persistent(env, &player_index_key);
+        set_persistent(env, &player_index_key, &(player_index + 1));
 
         let mut round = round;
         round.next_card_index = round.next_card_index.max(player_index + 1);
@@ -1223,10 +1321,7 @@ impl LyricsFlip {
         // Do NOT set is_completed here. The round is completed only by
         // finalize_round, which lets players answer the last card after it
         // has been drawn (LF-003).
-        env.storage()
-            .persistent()
-            .set(&DataKey::Round(round_id), &round);
-        bump_persistent(env, &DataKey::Round(round_id));
+        set_persistent(env, &DataKey::Round(round_id), &round);
 
         card
     }
@@ -1310,15 +1405,9 @@ impl LyricsFlip {
         for index in Index::of(&env, &card).iter().skip(1) {
             *index.pos(&mut pos) = Self::index_push(&env, index, card_id);
         }
-        env.storage()
-            .persistent()
-            .set(&DataKey::CardPos(card_id), &pos);
-        env.storage()
-            .persistent()
-            .set(&DataKey::CardKey(new_key), &card_id);
-        env.storage()
-            .persistent()
-            .set(&DataKey::Card(card_id), &card);
+        set_persistent(&env, &DataKey::CardPos(card_id), &pos);
+        set_persistent(&env, &DataKey::CardKey(new_key), &card_id);
+        set_persistent(&env, &DataKey::Card(card_id), &card);
 
         CardUpdated {
             card_id,
@@ -1346,10 +1435,7 @@ impl LyricsFlip {
         env.storage()
             .persistent()
             .remove(&DataKey::CardPos(card_id));
-        env.storage()
-            .persistent()
-            .set(&DataKey::CardDisabled(card_id), &true);
-        bump_persistent(&env, &DataKey::CardDisabled(card_id));
+        set_persistent(&env, &DataKey::CardDisabled(card_id), &true);
 
         CardRemoved { card_id }.publish(&env);
     }
@@ -1369,10 +1455,7 @@ impl LyricsFlip {
         let mut admins = Self::read_admins(&env);
 
         if is_enable {
-            env.storage()
-                .persistent()
-                .set(&DataKey::Admin(recipient.clone()), &true);
-            bump_persistent(&env, &DataKey::Admin(recipient.clone()));
+            set_persistent(&env, &DataKey::Admin(recipient.clone()), &true);
 
             let mut found = false;
             for i in 0..admins.len() {
@@ -1383,8 +1466,7 @@ impl LyricsFlip {
             }
             if !found {
                 admins.push_back(recipient.clone());
-                env.storage().persistent().set(&DataKey::Admins, &admins);
-                bump_persistent(&env, &DataKey::Admins);
+                set_persistent(&env, &DataKey::Admins, &admins);
             }
         } else {
             // LF-156: On revoke, remove the entry instead of writing false
@@ -1399,8 +1481,7 @@ impl LyricsFlip {
                     new_admins.push_back(a);
                 }
             }
-            env.storage().persistent().set(&DataKey::Admins, &new_admins);
-            bump_persistent(&env, &DataKey::Admins);
+            set_persistent(&env, &DataKey::Admins, &new_admins);
         }
 
         RoleUpdated {
@@ -1463,10 +1544,7 @@ impl LyricsFlip {
         env.storage()
             .instance()
             .remove(&DataKey::Admin(caller.clone()));
-        env.storage()
-            .persistent()
-            .set(&DataKey::Admin(caller.clone()), &true);
-        bump_persistent(&env, &DataKey::Admin(caller.clone()));
+        set_persistent(&env, &DataKey::Admin(caller.clone()), &true);
 
         let mut admins = Self::read_admins(&env);
         let mut found = false;
@@ -1478,8 +1556,7 @@ impl LyricsFlip {
         }
         if !found {
             admins.push_back(caller.clone());
-            env.storage().persistent().set(&DataKey::Admins, &admins);
-            bump_persistent(&env, &DataKey::Admins);
+            set_persistent(&env, &DataKey::Admins, &admins);
         }
 
         OwnershipTransferred {
@@ -1539,10 +1616,7 @@ impl LyricsFlip {
                     env.storage().instance().remove(&DataKey::Admin(owner.clone()));
 
                     if is_owner_admin {
-                        env.storage()
-                            .persistent()
-                            .set(&DataKey::Admin(owner.clone()), &true);
-                        bump_persistent(&env, &DataKey::Admin(owner.clone()));
+                        set_persistent(&env, &DataKey::Admin(owner.clone()), &true);
                     }
 
                     let mut admins = Self::read_admins(&env);
@@ -1558,8 +1632,7 @@ impl LyricsFlip {
                             admins.push_back(owner.clone());
                         }
                     }
-                    env.storage().persistent().set(&DataKey::Admins, &admins);
-                    bump_persistent(&env, &DataKey::Admins);
+                    set_persistent(&env, &DataKey::Admins, &admins);
 
                     current_version = 4;
                 }
@@ -1580,7 +1653,7 @@ impl LyricsFlip {
         .publish(&env);
     }
 
-    /// Submits a round answer.
+    /// Submits a round answer through the shared scoring implementation.
     pub fn submit_answer(env: Env, caller: Address, round_id: u64, answer: Answer) -> bool {
         caller.require_auth();
         if !Self::is_round_player(&env, round_id, &caller) {
@@ -1634,8 +1707,7 @@ impl LyricsFlip {
         {
             panic_with_error!(env, Error::AlreadyAnswered);
         }
-        env.storage().persistent().set(&answered_key, &true);
-        bump_persistent(&env, &answered_key);
+        set_persistent(&env, &answered_key, &true);
 
         let answer_started_at: u64 = env
             .storage()
@@ -1651,10 +1723,7 @@ impl LyricsFlip {
         let mut answer_times = answer_times;
         let total_time = answer_times.get(caller.clone()).unwrap_or(0u64);
         answer_times.set(caller.clone(), total_time + answer_time);
-        env.storage()
-            .persistent()
-            .set(&DataKey::RoundAnswerTimes(round_id), &answer_times);
-        bump_persistent(&env, &DataKey::RoundAnswerTimes(round_id));
+        set_persistent(&env, &DataKey::RoundAnswerTimes(round_id), &answer_times);
 
         // Answers after the card window are scored as wrong (not rejected),
         // so the player still counts as having answered the card.
@@ -1682,10 +1751,7 @@ impl LyricsFlip {
         if is_answer_correct {
             let score = scores.get(caller.clone()).unwrap_or(0u64);
             scores.set(caller.clone(), score + points);
-            env.storage()
-                .persistent()
-                .set(&DataKey::RoundScores(round_id), &scores);
-            bump_persistent(&env, &DataKey::RoundScores(round_id));
+            set_persistent(&env, &DataKey::RoundScores(round_id), &scores);
         }
 
         let mut stats = Self::get_player_stat(env.clone(), caller.clone());
@@ -1697,10 +1763,7 @@ impl LyricsFlip {
         } else {
             stats.current_streak = 0;
         }
-        env.storage()
-            .persistent()
-            .set(&DataKey::PlayerStats(caller.clone()), &stats);
-        bump_persistent(&env, &DataKey::PlayerStats(caller.clone()));
+        set_persistent(&env, &DataKey::PlayerStats(caller.clone()), &stats);
 
         AnswerSubmitted {
             round_id,
@@ -1711,8 +1774,8 @@ impl LyricsFlip {
         .publish(&env);
 
         is_answer_correct
+        Self::submit_answer_internal(&env, &caller, round_id, &answer).0
     }
-
     /// Sets the max players.
     pub fn set_max_players(env: Env, caller: Address, value: u32) {
         caller.require_auth();
@@ -1727,6 +1790,13 @@ impl LyricsFlip {
     }
 
     /// Sets the nft contract.
+    pub fn set_escrow_contract(env: Env, caller: Address, escrow: Address) {
+        caller.require_auth();
+        Self::assert_owner(&env, &caller);
+        env.storage().instance().set(&DataKey::EscrowContract, &escrow);
+        EscrowContractUpdated { owner: caller, escrow }.publish(&env);
+    }
+
     pub fn set_nft_contract(env: Env, caller: Address, nft_contract: Address) {
         caller.require_auth();
         Self::assert_owner(&env, &caller);
@@ -1797,6 +1867,15 @@ impl LyricsFlip {
     /// Mints the NFT for `milestone` to `caller` through a cross-contract
     /// call. This contract must be the NFT contract's minter. Each milestone
     /// can be claimed once per player.
+    pub fn claim_winnings(env: Env, caller: Address, round_id: u64) -> i128 {
+        caller.require_auth();
+        let round = Self::read_round(&env, round_id);
+        if round.wager_amount == 0 { return 0; }
+        let escrow = env.storage().instance().get::<_, Address>(&DataKey::EscrowContract)
+            .unwrap_or_else(|| panic_with_error!(env, Error::NotAuthorized));
+        EscrowClient::new(&env, &escrow).claim_winnings(&caller, &round_id)
+    }
+
     pub fn claim_reward(env: Env, caller: Address, milestone: Milestone) -> u128 {
         caller.require_auth();
         Self::require_not_paused(&env);
@@ -1818,7 +1897,7 @@ impl LyricsFlip {
             panic_with_error!(env, Error::MilestoneNotReached);
         }
 
-        env.storage().persistent().set(&claimed_key, &true);
+        set_persistent(&env, &claimed_key, &true);
         // Pass the milestone discriminant as `kind` so the NFT contract
         // records which achievement this badge represents (LF-168).
         let token_id = NftClient::new(&env, &nft_contract).mint(
@@ -2154,6 +2233,9 @@ impl LyricsFlip {
         env.storage()
             .persistent()
             .set(&DataKey::Card(card_id), &card);
+        set_persistent(env, &DataKey::CardPos(card_id), &pos);
+        set_persistent(env, &DataKey::CardKey(key), &card_id);
+        set_persistent(env, &DataKey::Card(card_id), &card);
 
         CardAdded {
             card_id,
@@ -2187,10 +2269,8 @@ impl LyricsFlip {
     /// Appends `card_id` and returns its position.
     fn index_push(env: &Env, index: &Index, card_id: u64) -> u32 {
         let len = Self::index_len(env, index);
-        env.storage().persistent().set(&index.at_key(len), &card_id);
-        env.storage()
-            .persistent()
-            .set(&index.count_key(), &(len + 1));
+        set_persistent(env, &index.at_key(len), &card_id);
+        set_persistent(env, &index.count_key(), &(len + 1));
         len
     }
 
@@ -2200,15 +2280,13 @@ impl LyricsFlip {
         let last = Self::index_len(env, index) - 1;
         if pos != last {
             let moved = Self::index_get(env, index, last);
-            env.storage().persistent().set(&index.at_key(pos), &moved);
+            set_persistent(env, &index.at_key(pos), &moved);
             let mut moved_pos = Self::read_card_pos(env, moved);
             *index.pos(&mut moved_pos) = pos;
-            env.storage()
-                .persistent()
-                .set(&DataKey::CardPos(moved), &moved_pos);
+            set_persistent(env, &DataKey::CardPos(moved), &moved_pos);
         }
         env.storage().persistent().remove(&index.at_key(last));
-        env.storage().persistent().set(&index.count_key(), &last);
+        set_persistent(env, &index.count_key(), &last);
     }
 
     fn draw_cards(env: &Env, index: &Index, empty: Error) -> Vec<Card> {
@@ -2607,8 +2685,11 @@ impl LyricsFlip {
     /// Returns the wager refunded to `player`. Wagers are not escrowed yet
     /// (see LF-013), so this only reports `round.wager_amount`; once escrow
     /// lands, the token transfer back to `player` belongs here.
-    fn refund_wager(_env: &Env, round: &Round, _player: &Address) -> i128 {
-        round.wager_amount
+    fn refund_wager(env: &Env, round: &Round, player: &Address) -> i128 {
+        if round.wager_amount == 0 { return 0; }
+        let escrow = env.storage().instance().get::<_, Address>(&DataKey::EscrowContract)
+            .unwrap_or_else(|| panic_with_error!(env, Error::NotAuthorized));
+        EscrowClient::new(env, &escrow).refund(&round.round_id, player)
     }
 
     /// Panics with `Error::Paused` when the emergency pause is active.
@@ -2786,6 +2867,8 @@ impl LyricsFlip {
             seed,
             None,
             true,
+            None,
+            0,
         );
 
         // Mark started immediately (mirrors start_round's writes for the
@@ -2794,7 +2877,7 @@ impl LyricsFlip {
         let start_time = env.ledger().timestamp();
         round.is_started = true;
         round.start_time = start_time;
-        round.end_time = start_time + DEFAULT_ROUND_DURATION_SECONDS;
+        round.end_time = start_time + round.round_duration;
         round.solo = true;
         env.storage()
             .persistent()
@@ -2816,14 +2899,12 @@ impl LyricsFlip {
             .get(0)
             .unwrap_or_else(|| panic_with_error!(env, Error::NoMoreCards));
         let card = Self::read_card(&env, card_id);
-        env.storage().persistent().set(
-            &DataKey::PlayerCardIndex((round_id, caller.clone())),
-            &1u32,
-        );
-        env.storage().persistent().set(
-            &DataKey::PlayerCardStartedAt((round_id, caller.clone(), card_id)),
-            &env.ledger().timestamp(),
-        );
+        let player_card_index_key = DataKey::PlayerCardIndex((round_id, caller.clone()));
+        env.storage().persistent().set(&player_card_index_key, &1u32);
+        bump_persistent(&env, &player_card_index_key);
+        let player_card_started_key = DataKey::PlayerCardStartedAt((round_id, caller.clone(), card_id));
+        env.storage().persistent().set(&player_card_started_key, &env.ledger().timestamp());
+        bump_persistent(&env, &player_card_started_key);
         CardDrawn {
             round_id,
             index: 0,
@@ -2843,38 +2924,73 @@ impl LyricsFlip {
         choice: Answer,
     ) -> AnswerResult {
         caller.require_auth();
-
-        let (correct, points) =
-            Self::submit_answer_internal(&env, &caller, round_id, &choice);
-
-        let next_index: u32 = env
+        let player_index = env
             .storage()
             .persistent()
-            .get(&DataKey::PlayerCardIndex((round_id, caller.clone())))
+            .get::<_, u32>(&DataKey::PlayerCardIndex((round_id, caller.clone())))
             .unwrap_or(0);
-
+        let current_index = player_index.saturating_sub(1);
+        let round_cards = Self::read_round_cards(&env, round_id);
+        let current_card_id = round_cards
+            .get(current_index)
+            .unwrap_or_else(|| panic_with_error!(env, Error::NoActiveCard));
+        let current_card = Self::read_card(&env, current_card_id);
+        let kind = match &choice {
+            Answer::Title(_) => QuestionKind::Title,
+            Answer::Artist(_) => QuestionKind::Artist,
+            Answer::Year(_) => QuestionKind::Year,
+        };
+        let (correct, points) = Self::submit_answer_internal(&env, &caller, round_id, &choice);
+        // The question is reconstructed only after recording the answer, so its
+        // correct option cannot be used to leak the active answer early.
+        let answered_question = Self::build_question_card(
+            env.clone(),
+            current_card,
+            round_id.wrapping_add(current_index as u64),
+            kind,
+        );
+        let correct_option = Self::correct_option(&env, &answered_question, &choice);
+        let next_index = env
+            .storage()
+            .persistent()
+            .get::<_, u32>(&DataKey::PlayerCardIndex((round_id, caller.clone())))
+            .unwrap_or(0);
         let round_cards = Self::read_round_cards(&env, round_id);
         let round = Self::read_round(&env, round_id);
-
         let next = if (next_index as u64) < (round_cards.len() as u64) {
-            let mut v = Vec::new(&env);
-            v.push_back(Self::next_card_internal(&env, &caller, round_id));
-            v
+            let card = Self::next_card_internal(&env, &caller, round_id);
+            let question = Self::build_question_card(
+                &env,
+                card,
+                round_id.wrapping_add(next_index as u64),
+                QuestionKind::Title,
+            );
+            Some(question)
         } else {
             let ready = Self::are_all_required_answers_submitted(&env, round_id);
             let past = round.end_time != 0 && env.ledger().timestamp() >= round.end_time;
             if ready || past {
-                Self::finalize_round(env.clone(), caller.clone(), round_id);
+                Self::finalize_round_internal(&env, round_id);
             }
-            Vec::new(&env)
+            None
         };
-
-        AnswerResult { correct, points, correct_option: 0, next }
+        AnswerResult { correct, points, correct_option, next }
     }
 }
-
 // Private helpers shared by the exported entry points above.
 impl LyricsFlip {
+    fn correct_option(env: &Env, question: &QuestionCard, choice: &Answer) -> u32 {
+        let matches = |option: &String| match choice {
+            Answer::Title(value) | Answer::Artist(value) => option == value,
+            Answer::Year(value) => option == &Self::u64_to_string(env, *value),
+        };
+        let options = [&question.option_one, &question.option_two, &question.option_three, &question.option_four];
+        for (index, option) in options.iter().enumerate() {
+            if matches(option) { return (index + 1) as u32; }
+        }
+        0
+    }
+
     fn submit_answer_internal(
         env: &Env,
         caller: &Address,
@@ -2928,7 +3044,7 @@ impl LyricsFlip {
         env.storage().persistent().set(&DataKey::RoundAnswerTimes(round_id), &times);
         bump_persistent(env, &DataKey::RoundAnswerTimes(round_id));
 
-        let is_correct = answer_time <= CARD_ANSWER_WINDOW_SECONDS
+        let is_correct = answer_time <= round.answer_window
             && match answer {
                 Answer::Artist(v) => *v == current_card.artist,
                 Answer::Year(v) => *v == current_card.year,
@@ -2979,4 +3095,3 @@ impl LyricsFlip {
         (is_correct, points)
     }
 }
-

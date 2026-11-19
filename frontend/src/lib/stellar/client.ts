@@ -21,11 +21,13 @@ import {
   type Round,
   type RoundFilter,
   type WireCard,
+  type WireQuestionCard,
   type WireRound,
   ROLE_ADMIN,
   genreFromWire,
   genreToWire,
   questionKindToWire,
+  questionKindFromWire,
 } from './types';
 
 /**
@@ -39,7 +41,7 @@ export interface TimedResult<T> {
   closedAtMs: number | null;
 }
 
-export interface NextCardResult extends TimedResult<Card> {
+export interface NextCardResult extends TimedResult<QuestionCard> {
   /**
    * Ledger close time (unix milliseconds) of the `next_card` transaction —
    * the moment the contract opened the 15 s answer window for this card.
@@ -61,7 +63,7 @@ export interface SystemCalls {
   ) => Promise<bigint>;
   joinRound: (roundId: bigint) => Promise<void>;
   startRound: (roundId: bigint) => Promise<void>;
-  nextCard: (roundId: bigint) => Promise<Card>;
+  nextCard: (roundId: bigint) => Promise<QuestionCard>;
   /**
    * `next_card` plus the ledger close time that started the card's on-chain
    * answer window (LF-193).
@@ -181,7 +183,7 @@ type LyricsFlipContract = {
   }) => Promise<contract.AssembledTransaction<bigint[]>>;
   get_max_players: () => Promise<contract.AssembledTransaction<number>>;
   start_round: (args: { caller: string; round_id: bigint }) => Promise<contract.AssembledTransaction<null>>;
-  next_card: (args: { caller: string; round_id: bigint }) => Promise<contract.AssembledTransaction<WireCard>>;
+  next_card: (args: { caller: string; round_id: bigint }) => Promise<contract.AssembledTransaction<WireQuestionCard>>;
   submit_answer: (args: {
     caller: string;
     round_id: bigint;
@@ -253,6 +255,10 @@ async function getGameClient(config: StellarConfig, publicKey: string | null) {
 }
 
 const cardFromWire = (card: WireCard): Card => ({ ...card, genre: genreFromWire(card.genre) });
+const questionCardFromWire = (card: WireQuestionCard): QuestionCard => ({
+  ...card,
+  kind: questionKindFromWire(card.kind),
+});
 const cardToWire = (card: Omit<Card, 'card_id'>): WireCard => ({
   ...card,
   card_id: BigInt(0),
@@ -294,7 +300,7 @@ export function createSystemCalls(config: StellarConfig, publicKey: string | nul
     const closedAtMs =
       sent.closedAtSeconds === null ? null : sent.closedAtSeconds * 1000;
     return {
-      result: cardFromWire(sent.result),
+      result: questionCardFromWire(sent.result),
       closedAtMs,
       startedAtMs: closedAtMs ?? Date.now(),
     };

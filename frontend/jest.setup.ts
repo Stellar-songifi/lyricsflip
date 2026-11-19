@@ -1,3 +1,5 @@
+import '@testing-library/jest-dom';
+
 // Mock @creit.tech/stellar-wallets-kit
 jest.mock('@creit.tech/stellar-wallets-kit', () => ({
   StellarWalletsKit: {

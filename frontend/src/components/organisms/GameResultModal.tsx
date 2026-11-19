@@ -72,7 +72,12 @@ export const GameResultModal = () => {
     const percent = (score / maxRounds) * 100;
 
     return (
-      <div className="space-y-4 mt-10">
+      <div
+        className="space-y-4 mt-10"
+        role="status"
+        aria-live="polite"
+        data-testid="game-result-content"
+      >
         <div className="flex flex-col justify-center items-center gap-6">
           <Image width={200} height={200} src={imageSrc} alt="" />
           <p className="font-bold text-[32px]">

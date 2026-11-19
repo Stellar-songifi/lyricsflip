@@ -119,7 +119,12 @@ const GameResultPopup: React.FC<GameResultPopupProps> = ({
     const percent = (score / maxRounds) * 100;
 
     return (
-      <div className="space-y-4 mt-10">
+      <div
+        className="space-y-4 mt-10"
+        role="status"
+        aria-live="polite"
+        data-testid="game-result-content"
+      >
         <div className="flex flex-col justify-center items-center gap-6">
           <div className="size-[200px]">
             <Image

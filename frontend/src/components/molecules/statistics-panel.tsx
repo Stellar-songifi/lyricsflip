@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { useGameTimer } from '@/features/game/hooks/useGameTimer';
 import GameResultPopup from '../organisms/GameResultPopup';
@@ -12,6 +12,9 @@ interface StatisticsPanelProps {
   multiplayer?: boolean;
 }
 
+/** Thresholds (in seconds) at which the remaining time is announced. */
+const ANNOUNCE_AT = [10, 5];
+
 export function StatisticsPanel({
   time,
   potWin,
@@ -20,6 +23,8 @@ export function StatisticsPanel({
 }: StatisticsPanelProps) {
   const [remainingTime, setRemainingTime] = useState<string>(time);
   const [showGameResult, setShowGameResult] = useState<boolean>(false);
+  const [announcement, setAnnouncement] = useState<string>('');
+  const announcedRef = useRef<Set<number>>(new Set());
 
   const { timeLeft, startTimer, resetTimer, endGame, isPlaying } =
     useGameTimer();
@@ -28,16 +33,23 @@ export function StatisticsPanel({
     const numericTimeLeft = parseInt(time, 10);
     resetTimer(numericTimeLeft);
     startTimer();
+    announcedRef.current = new Set();
   }, []);
 
   useEffect(() => {
-    if (timeLeft > 0) {
-      setRemainingTime(formatTime(parseInt(timeLeft.toString(), 10)));
+    const seconds = Math.ceil(Number(timeLeft));
+    if (seconds > 0) {
+      setRemainingTime(formatTime(seconds));
+      if (ANNOUNCE_AT.includes(seconds) && !announcedRef.current.has(seconds)) {
+        announcedRef.current.add(seconds);
+        setAnnouncement(`${seconds} seconds left`);
+      }
     } else {
+      setAnnouncement("Time's up");
       endGame();
       setShowGameResult(true);
     }
-  }, [timeLeft]);
+  }, [timeLeft, endGame]);
 
   return (
     <div className="relative">
@@ -49,6 +61,7 @@ export function StatisticsPanel({
             <div className="flex justify-between items-center">
               <span className="text-gray-400 text-base">Time Left:</span>
               <span
+                aria-live="off"
                 className={`text-lg font-medium ${
                   isPlaying ? 'text-green-500' : 'text-red-500'
                 }`}
@@ -68,6 +81,12 @@ export function StatisticsPanel({
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Live region: announces the time left at 10 s and 5 s and when time
+          runs out (LF-311). */}
+      <div aria-live="polite" role="status" className="sr-only" data-testid="timer-announcement">
+        {announcement}
       </div>
 
       {showGameResult && (

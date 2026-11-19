@@ -1,7 +1,7 @@
 "use client";
 import { SongOptions } from '@/components/molecules/song-options';
 import { StatisticsPanel } from '@/components/molecules/statistics-panel';
-import GameResultPopup from '@/components/organisms/GameResultPopup';
+import { Confetti } from '@/components/molecules/confetti';
 import { LyricCard } from '@/components/organisms/LyricCard';
 import { useStellar } from '@/lib/stellar/hooks/useStellar';
 import { useSearchParams } from 'next/navigation';
@@ -34,6 +34,8 @@ export default function SinglePlayerGame() {
   const [isCardFlipped, setIsCardFlipped] = useState(false);
   const [score, setScore] = useState(0);
   const [timeLeft, setTimeLeft] = useState(300); // 5 minutes default
+  const [lastAnswerCorrect, setLastAnswerCorrect] = useState<boolean | null>(null);
+  const [resultAnnouncement, setResultAnnouncement] = useState<string | null>(null);
 
   const loadNextCard = useCallback(async () => {
     if (!systemCalls || !roundId) return;
@@ -41,6 +43,8 @@ export default function SinglePlayerGame() {
     setSelectedOption(null);
     setCorrectOption(null);
     setIsCardFlipped(false);
+    setLastAnswerCorrect(null);
+    setResultAnnouncement(null);
     setTxStatus('Drawing next card…');
     const nextCard = await systemCalls.nextCard(id);
     setTxStatus('Building question…');
@@ -114,6 +118,12 @@ export default function SinglePlayerGame() {
       setTxStatus('Submitting answer…');
       const isCorrect = await systemCalls.submitAnswer(round.round_id, Answer.title(option.title));
       setCorrectOption(isCorrect ? option : { title: card.title, artist: card.artist });
+      setLastAnswerCorrect(isCorrect);
+      setResultAnnouncement(
+        isCorrect
+          ? 'Correct!'
+          : `Wrong! The answer was ${card.title} by ${card.artist}`,
+      );
       if (isCorrect) {
         setScore(prev => prev + 1);
       }
@@ -164,6 +174,7 @@ export default function SinglePlayerGame() {
 
   return (
     <div className="container mt-4 mx-auto h-fit w-full mb-20 lg:mb-12 p-4 lg:p-0 md:mt-24 lg:mt-32">
+      {isCardFlipped && lastAnswerCorrect && <Confetti />}
       <div className="mb-6">
         <button
           onClick={handleBack}
@@ -207,6 +218,8 @@ export default function SinglePlayerGame() {
         onSelect={handleSongSelect}
         selectedOption={selectedOption}
         correctOption={correctOption}
+        groupLabel="Song options"
+        resultAnnouncement={resultAnnouncement}
       />
 
       {isCardFlipped && (

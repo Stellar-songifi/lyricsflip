@@ -45,11 +45,17 @@ export interface ServerToClientEvents {
     songOptions: SongOption[];
   }) => void;
   room_error: (payload: { message: string }) => void;
+  /** Emitted when a round finishes; includes the final scoreboard. */
+  round_ended: (payload: { scores: Player[] }) => void;
+  /** Server acknowledgement that this socket is watching as a spectator. */
+  spectator_joined: (payload: { roomId: string }) => void;
 }
 
 /** Events emitted by the client. */
 export interface ClientToServerEvents {
   join_room: (payload: { roomId: string; playerName: string }) => void;
+  /** Join as a read-only spectator (no playerName needed). */
+  watch_room: (payload: { roomId: string }) => void;
   select_song: (payload: { roomId: string; songIndex: number }) => void;
   leave_room: (payload: { roomId: string }) => void;
 }

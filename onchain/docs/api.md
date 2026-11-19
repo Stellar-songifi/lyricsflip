@@ -494,9 +494,11 @@ stellar contract invoke \
   -- cancel-round --caller <PLAYER_ADDRESS> --round_id 1
 ```
 
-### `next_card(env: Env, round_id: u64) -> Card`
+### `next_card(env: Env, round_id: u64) -> QuestionCard`
 - Signer: none (read-like action, but it mutates stored round state).
 - State changes: advances `next_card_index` and sets the current card start time.
+- Return value contains only the lyric, question kind and four shuffled options;
+  it never contains title, artist or year for an active card.
 - Errors: `RoundNotStarted`, `RoundCompleted`.
 - Events: `CardDrawn`.
 - Example:
@@ -1225,3 +1227,25 @@ stellar contract invoke \
   --network testnet \
   -- upgrade --caller <OWNER_ADDRESS> --new_wasm_hash $HASH
 ```
+
+
+## `lyricsflip-escrow` contract
+
+The escrow contract is owned by the game contract. Its lifecycle is `Open → Locked → Settled`; an open or locked round may instead transition to `Cancelled`.
+
+### Lifecycle and token movement
+
+- `create_round(round_id, creator, token, pot)` registers a round and emits `EscrowRoundCreated`. The initial pot must already be held by escrow.
+- `deposit(caller, round_id, amount)` transfers tokens into escrow while the round is `Open` and emits `Deposited`.
+- `lock_round(round_id)` is owner-only, rejects any non-`Open` round, and emits `Locked`.
+- `refund(caller, round_id)` returns that caller's recorded deposit while the round is `Open` and emits `Refunded`.
+- `cancel_round(round_id)` is owner-only for `Open` or `Locked` rounds. It refunds every depositor exactly once, emits one `Refunded` event per transfer, then emits `Cancelled`.
+- `settle_round(round_id, winners)` is owner-only and requires `Locked`. It transfers the protocol fee immediately, records the configurable claim deadline, and emits `Settled`. Passing an empty winner list invokes the no-winner refund path and cancels the round with no fee.
+- `claim_winnings(caller, round_id)` pays a winner before the deadline and emits `Claimed`. The fee is never charged during a claim.
+- `sweep_unclaimed(round_id)` is callable at or after the claim deadline and transfers every remaining winner share to the treasury, emitting `Swept`. A swept round rejects later claims.
+
+Every persistent round read and write extends the round entry TTL by 30 days, and every configuration read/write extends instance TTL by 30 days. The default claim deadline is 90 days and can be changed for future settlements with `set_claim_deadline(seconds)`.
+
+### Escrow events
+
+The typed `#[contractevent]` events are `EscrowRoundCreated`, `Deposited`, `Locked`, `Settled`, `Refunded`, `Cancelled`, `Claimed`, and `Swept`. They are emitted for every escrow token movement and lifecycle transition so indexers can reconcile escrow balances without relying on legacy untyped events.

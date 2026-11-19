@@ -20,7 +20,6 @@ import {
   Answer,
   MILESTONES,
   MILESTONE_NAMES,
-  type Card,
   type Milestone,
   type PlayerStats,
   type QuestionCard,
@@ -108,7 +107,7 @@ export default function SinglePlayerGame() {
   const [round, setRound] = useState<Round | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [card, setCard] = useState<Card | null>(null);
+  const [card, setCard] = useState<QuestionCard | null>(null);
   const [question, setQuestion] = useState<QuestionCard | null>(null);
   const [questionKind, setQuestionKind] = useState<QuestionKind>('Title');
   const [totalCards, setTotalCards] = useState(0);
@@ -162,9 +161,7 @@ export default function SinglePlayerGame() {
 
   const handleCardTimeout = useCallback(() => {
     // Time ran out – flip the card to reveal the answer and count as a miss
-    if (card) {
-      setCorrectOption({ title: card.title, artist: card.artist });
-    }
+    setCorrectOption(null);
     setIsCardFlipped(true);
     // selectedOption stays null → the wrong-answer highlight is skipped,
     // but the correct answer is revealed (same UX as a miss)
@@ -195,13 +192,9 @@ export default function SinglePlayerGame() {
     resetCardTimer();
     setTxStatus('Drawing next card…');
     const { result: nextCard, startedAtMs } = await systemCalls.nextCardWithMeta(id);
-    setTxStatus('Building question…');
-    // Rotate (or honour the round setting) so all three kinds get played.
-    const kind = pickQuestionKind(kindSetting, answeredCount);
-    const questionCard = await systemCalls.buildQuestionCard(nextCard, kind);
-    setQuestionKind(kind);
+    setQuestionKind(nextCard.kind);
     setCard(nextCard);
-    setQuestion(questionCard);
+    setQuestion(nextCard);
     // The contract's 15 s window started when `next_card` closed in a ledger,
     // which is several seconds before this line runs.
     setCardStartedAtMs(startedAtMs);
@@ -300,7 +293,7 @@ export default function SinglePlayerGame() {
       if (!systemCalls || !roundId || !card || selectedOption !== null) return;
       setSelectedOption(option);
       setIsCardFlipped(true);
-      setCorrectOption({ title: card.title, artist: card.artist });
+      setCorrectOption(null);
       setAnswerResult(null);
 
       // Build the Answer variant that matches the question kind. Year options
@@ -498,8 +491,8 @@ export default function SinglePlayerGame() {
             lyrics={[
               {
                 text: question.lyric,
-                title: card?.title ?? '',
-                artist: card?.artist ?? '',
+                      title: '',
+                      artist: '',
               },
             ]}
             isFlipped={isCardFlipped}

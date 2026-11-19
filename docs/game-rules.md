@@ -10,7 +10,7 @@ backed by a named function or constant in the contract. Source files:
 If this document and the contract disagree, the contract wins — please open an issue.
 
 Related issues: LF-005 (`rounds_won` tracking), LF-013 (scoring), LF-014 (payouts),
-LF-135 (wager escrow — **planned**), LF-177 (card difficulty — **planned**),
+LF-259–LF-262 (escrow lifecycle), LF-177 (card difficulty — **planned**),
 LF-246 (this rewrite).
 
 ## Rounds
@@ -94,7 +94,8 @@ Winners are chosen by `complete_round(...)` / `settle_round(...)` in this order:
 2. If scores tie, the player with the **lowest total answer time** wins.
 3. If both score and total answer time tie, the round has **shared co-winners** — every
    tied player is recorded as a winner.
-4. If **every** player scores zero, the round has **no winners**.
+4. If **every** player scores zero, the round has **no winners** and the escrow owner
+   cancels the escrow round, refunding every depositor in full with no protocol fee.
 
 Each winner's `rounds_won` in `PlayerStats` is incremented by **1** (see LF-005).
 Shared co-winners **each** receive the increment — a tie does not divide the win.
@@ -131,15 +132,19 @@ Notes:
 ## Fees & Payouts
 
 - `settle_round(...)` splits the round pool into a **payout** and a **protocol fee**.
-- The fee rate is snapshotted when the round is created, so later fee changes do not
-  affect rounds already in flight.
+- The fee is transferred to the treasury at settlement, never on the first claim.
+- Winners have a configurable claim deadline (90 days by default). After the deadline,
+  `sweep_unclaimed(...)` sends all remaining winner shares to the treasury.
+- The fee rate is read and charged when the round is settled; later fee changes do not
+  affect a round after settlement.
 - `MAX_FEE_BPS` = **1000** basis points (**10%**). `set_fee_bps(admin, bps)` rejects
   values above this cap.
-- The fee is sent to the **treasury address snapshotted at round creation**.
+- The fee is sent to the configured treasury address at settlement.
 - Admin changes emit `FeeUpdated` and `TreasuryUpdated` events.
 
-> **Planned:** wager escrow and staking are not implemented. Tracked in LF-135.
-> (Note: LF-005 was about `rounds_won`, not escrow.)
+Escrow lifecycle is implemented by `onchain/contracts/lyricsflip-escrow`: rounds move
+`Open → Locked → Settled`, or `Open|Locked → Cancelled`; deposits are rejected after
+locking, and cancellation/refund paths return each depositor's recorded amount.
 
 ## Worked Example
 
@@ -187,8 +192,8 @@ split 475 / 475. Had the payout been 951, Ada (lower index) would receive 476 an
 | UI term | Meaning | Contract behaviour |
 | --- | --- | --- |
 | **Odds** | Not a contract concept. | **Remove from the UI.** There is no contract value to map it to. |
-| **Pot / Pool** | Total tokens staked for a round. | **Planned** (LF-135). When implemented, `settle_round` splits it into payout + fee. |
-| **Potential win** | Amount a player would receive if they win. | **Planned** (LF-135). Will be `pool − fee`, computed from the snapshotted fee rate. |
+| **Pot / Pool** | Total tokens staked for a round. | Escrowed balance tracked per depositor; `settle_round` splits it into payout + fee. |
+| **Potential win** | Amount a player would receive if they win. | `pool − fee`, split equally with deterministic remainder distribution. |
 | **Difficulty** | How hard a card is. | **Not implemented** (LF-177). Cards have no difficulty; points depend only on answer time. |
 | **Duration** | How long a player has to answer a card. | `CARD_ANSWER_WINDOW_SECONDS` = **15s**. Late answers are accepted but scored as wrong. |
 | **Round deadline** | When the round closes. | `start_time + ROUND_DURATION_SECONDS` = **300s**. |
@@ -199,7 +204,10 @@ split 475 / 475. Had the payout been 951, Ada (lower index) would receive 476 an
 - LF-005 — `rounds_won` tracking (not escrow)
 - LF-013 — scoring
 - LF-014 — payouts and fees
-- LF-135 — wager escrow (**planned**)
+- LF-259 — escrow cancellation and refunds
+- LF-260 — no-winner full refunds
+- LF-261 — claim deadlines, sweeps, and typed escrow events
+- LF-262 — escrow storage TTL extension
 - LF-177 — card difficulty (**planned**)
 - LF-246 — this document rewrite
 - LF-271 — tie-breaking and edge-case decision table

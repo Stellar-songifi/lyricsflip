@@ -1,4 +1,4 @@
-﻿//! Resource-budget regression tests (LF-033). Each test records CPU and
+//! Resource-budget regression tests (LF-033). Each test records CPU and
 //! memory for one call with realistic data and fails if it exceeds the
 //! ceiling in `budget_thresholds.rs`.
 

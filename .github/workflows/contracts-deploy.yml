@@ -90,6 +90,11 @@ jobs:
               --owner "$OWNER" --minter "$GAME_ID" \
               --token_name "LyricsFlip" --token_symbol "LFLIP" \
               --base_uri "https://lyricsflip.xyz/nft/")
+            ESCROW_ID=$(stellar contract deploy --wasm "$WASM_DIR/lyricsflip_escrow.wasm" \
+              --source deployer --network "$NETWORK" -- \
+              --owner "$GAME_ID" --treasury "$OWNER" --fee_bps 0)
+            stellar contract invoke --id "$GAME_ID" --source deployer --network "$NETWORK" -- \
+              set_escrow_contract --caller "$OWNER" --escrow "$ESCROW_ID"
             stellar contract invoke --id "$GAME_ID" --source deployer --network "$NETWORK" \
               -- set_cards_per_round --caller "$OWNER" --value 5
           else

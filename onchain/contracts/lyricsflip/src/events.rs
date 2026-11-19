@@ -215,3 +215,12 @@ pub struct RoundDurationUpdated {
 pub struct RoundBufferUpdated {
     pub value: u64,
 }
+
+#[contractevent]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct EscrowContractUpdated {
+    #[topic]
+    pub owner: Address,
+    #[topic]
+    pub escrow: Address,
+}

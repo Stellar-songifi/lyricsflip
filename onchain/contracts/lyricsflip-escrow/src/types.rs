@@ -1,11 +1,9 @@
 use soroban_sdk::{contracttype, Address, Map, Vec};
 
-/// Status of a wagered round.
 #[contracttype]
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum RoundStatus {
     Open,
-    Locked,
     Settled,
     Cancelled,
 }
@@ -17,6 +15,7 @@ pub struct Round {
     pub id: u64,
     pub creator: Address,
     pub token: Address,
+    /// Unspent tokens currently reserved for this round.
     pub pot: i128,
     pub fee: i128,
     pub status: RoundStatus,
@@ -32,9 +31,16 @@ pub struct Round {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Config {
     /// Owner of this escrow contract — normally the game contract address.
+    pub depositors: Vec<Address>,
+    pub fee_paid: bool,
+    pub paid: i128,
+}
+
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct Config {
     pub owner: Address,
     pub treasury: Address,
-    /// Protocol fee in basis points (1 bps = 0.01%).
     pub fee_bps: u32,
     /// Claim window in seconds for newly settled rounds.
     pub claim_deadline: u64,

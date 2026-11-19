@@ -33,10 +33,9 @@ impl Fixture {
         let token = token::StellarAssetClient::new(&env, &token_id.address());
 
         // Deploy the escrow contract.
-        let escrow_id = env.register(EscrowContract, ());
+        let escrow_id = env.register(EscrowContract, (owner.clone(), treasury.clone(), fee_bps));
         let escrow = EscrowContractClient::new(&env, &escrow_id);
         // initialize returns () on success (panics on error) in the generated client.
-        escrow.initialize(&owner, &treasury, &fee_bps);
 
         Self {
             env,
@@ -83,7 +82,7 @@ fn initialize_rejects_fee_above_100_percent() {
     env.mock_all_auths();
     let owner = Address::generate(&env);
     let treasury = Address::generate(&env);
-    let escrow_id = env.register(EscrowContract, ());
+    let escrow_id = env.register(EscrowContract, (owner.clone(), treasury.clone(), fee_bps));
     let escrow = EscrowContractClient::new(&env, &escrow_id);
     let result = escrow.try_initialize(&owner, &treasury, &10_001);
     assert_eq!(result, Err(Ok(Error::InvalidFee)));
@@ -114,12 +113,11 @@ fn create_round_requires_owner_auth() {
     let token_admin = Address::generate(&env);
     let token_id = env.register_stellar_asset_contract_v2(token_admin).address();
 
-    let escrow_id = env.register(EscrowContract, ());
+    let escrow_id = env.register(EscrowContract, (owner.clone(), treasury.clone(), fee_bps));
     let escrow = EscrowContractClient::new(&env, &escrow_id);
 
     // Initialize with mock auths just for the setup call.
     env.mock_all_auths();
-    escrow.initialize(&owner, &treasury, &0);
     env.set_auths(&[]); // clear all mocked auths
 
     let creator = Address::generate(&env);
@@ -165,11 +163,10 @@ fn settle_round_requires_owner_auth() {
     let token_admin = Address::generate(&env);
     let token_id = env.register_stellar_asset_contract_v2(token_admin).address();
 
-    let escrow_id = env.register(EscrowContract, ());
+    let escrow_id = env.register(EscrowContract, (owner.clone(), treasury.clone(), fee_bps));
     let escrow = EscrowContractClient::new(&env, &escrow_id);
 
     env.mock_all_auths();
-    escrow.initialize(&owner, &treasury, &0);
     let creator = Address::generate(&env);
     escrow.create_round(&1u64, &creator, &token_id, &1000i128);
 

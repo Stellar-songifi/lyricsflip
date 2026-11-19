@@ -494,9 +494,11 @@ stellar contract invoke \
   -- cancel-round --caller <PLAYER_ADDRESS> --round_id 1
 ```
 
-### `next_card(env: Env, round_id: u64) -> Card`
+### `next_card(env: Env, round_id: u64) -> QuestionCard`
 - Signer: none (read-like action, but it mutates stored round state).
 - State changes: advances `next_card_index` and sets the current card start time.
+- Return value contains only the lyric, question kind and four shuffled options;
+  it never contains title, artist or year for an active card.
 - Errors: `RoundNotStarted`, `RoundCompleted`.
 - Events: `CardDrawn`.
 - Example:

@@ -122,6 +122,12 @@
       "braavos": "Braavos"
     }
   },
+  "errors": {
+    "loadingEngine": "Chargement du moteur de jeu...",
+    "initializing": "Veuillez patienter pendant que nous initialisons le jeu",
+    "loading": "Chargement...",
+    "preparing": "Veuillez patienter pendant que nous préparons le jeu"
+  },
   "home": {
     "welcomeTitle": "Bienvenue sur LyricsFlip",
     "welcomeConnect": "sur LyricsFlip, ",
@@ -251,6 +257,11 @@
   },
   "lyricCard": {
     "footer": "LyricFlip...à vous de jouer🎶🩵"
+  },
+  "questionCard": {
+    "Title": "Quelle est la chanson ?",
+    "Artist": "Qui la chante ?",
+    "Year": "Quelle est l'année ?"
   },
   "results": {
     "loading": "Chargement...",
@@ -384,5 +395,9 @@
     "none": "Aucune notification pour le moment.",
     "unread": "Non lu",
     "dismiss": "Ignorer"
+  },
+  "shareButton": {
+    "label": "Partager",
+    "hug": "Câlins"
   }
 }

@@ -6,12 +6,12 @@ import { GameModal } from '@/components/organisms/game-modal';
 import { GameOptions } from '@/components/organisms/game-mode-selection';
 import { WagerModal } from '@/components/organisms/WagerModal';
 import { useModalStore } from '@/store/modal-store';
-import { useStellar, type UseStellarResult } from '@/lib/stellar/hooks/useStellar';
+import { useStellar } from '@/lib/stellar/hooks/useStellar';
 
 export default function Home() {
   const t = useTranslations('home');
   const { openModal } = useModalStore();
-  const { systemCalls, account, isLoading, error } = useStellar();
+  const { isLoading, error } = useStellar();
 
   const handleGameSelect = (gameId: string) => {
     if (gameId === 'quick-game') {

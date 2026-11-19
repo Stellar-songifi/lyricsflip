@@ -1,20 +1,22 @@
 "use client";
-import { SongOptions } from '@/components/molecules/song-options';
 import { StatisticsPanel } from '@/components/molecules/statistics-panel';
 import { Confetti } from '@/components/molecules/confetti';
 import { LyricCard } from '@/components/organisms/LyricCard';
+import { QuestionCard } from '@/components/question-card';
+import type { SongOption } from '@/lib/stellar/types';
+import {
+  answerForOption,
+  QUESTION_KIND_VALUES,
+  type Card,
+  type QuestionCard as QuestionCardType,
+  type Round,
+} from '@/lib/stellar/types';
 import { useStellar } from '@/lib/stellar/hooks/useStellar';
 import { useSearchParams } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
-import { Answer, type Card, type QuestionCard, type Round } from '@/lib/stellar/types';
 import { useTranslations } from 'next-intl';
-
-interface SongOption {
-  title: string;
-  artist: string;
-}
 
 export default function SinglePlayerGame() {
   const t = useTranslations('singlePlayer');
@@ -26,7 +28,7 @@ export default function SinglePlayerGame() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [card, setCard] = useState<Card | null>(null);
-  const [question, setQuestion] = useState<QuestionCard | null>(null);
+  const [question, setQuestion] = useState<QuestionCardType | null>(null);
   const [totalCards, setTotalCards] = useState(0);
   const [answeredCount, setAnsweredCount] = useState(0);
   const [txStatus, setTxStatus] = useState<string | null>(null);
@@ -50,11 +52,13 @@ export default function SinglePlayerGame() {
     setTxStatus(t('drawingCard'));
     const nextCard = await systemCalls.nextCard(id);
     setTxStatus(t('buildingQuestion'));
-    const questionCard = await systemCalls.buildQuestionCard(nextCard, 'Title');
+    // Cycle the question kind per card so all three kinds can be played.
+    const kind = QUESTION_KIND_VALUES[answeredCount % QUESTION_KIND_VALUES.length];
+    const questionCard = await systemCalls.buildQuestionCard(nextCard, kind);
     setCard(nextCard);
     setQuestion(questionCard);
     setTxStatus(null);
-  }, [roundId, systemCalls, t]);
+  }, [roundId, systemCalls, t, answeredCount]);
 
   useEffect(() => {
     const fetchRoundData = async () => {
@@ -113,12 +117,15 @@ export default function SinglePlayerGame() {
   const isRoundFinished = totalCards > 0 && answeredCount >= totalCards;
 
   const handleSongSelect = async (option: SongOption) => {
-    if (!round || !card || !systemCalls || selectedOption) return;
+    if (!round || !card || !question || !systemCalls || selectedOption) return;
 
     setSelectedOption(option);
     try {
       setTxStatus(t('submittingAnswer'));
-      const isCorrect = await systemCalls.submitAnswer(round.round_id, Answer.title(option.title));
+      const isCorrect = await systemCalls.submitAnswer(
+        round.round_id,
+        answerForOption(question.kind, option),
+      );
       setCorrectOption(isCorrect ? option : { title: card.title, artist: card.artist });
       setLastAnswerCorrect(isCorrect);
       setResultAnnouncement(
@@ -215,12 +222,12 @@ export default function SinglePlayerGame() {
 
       {txStatus && <p className="mt-4 text-sm text-gray-600">{txStatus}</p>}
 
-      <SongOptions
+      <QuestionCard
+        kind={question?.kind ?? QUESTION_KIND_VALUES[0]}
         options={options}
         onSelect={handleSongSelect}
         selectedOption={selectedOption}
         correctOption={correctOption}
-        groupLabel={t('optionsLabel')}
         resultAnnouncement={resultAnnouncement}
       />
 

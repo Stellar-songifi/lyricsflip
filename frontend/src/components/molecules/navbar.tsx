@@ -78,7 +78,7 @@ const Navbar = () => {
                 className="object-cover"
               />
               <span className="text-[#909090] font-interv text-[12px] font-normal leading-[20px]">
-                0xg5600134d...55e1
+                {t('walletAddress')}
               </span>
             </div>
 

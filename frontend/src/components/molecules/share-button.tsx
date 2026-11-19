@@ -3,6 +3,7 @@
 import { Share } from 'lucide-react';
 import { CounterBadge } from '../atoms/counter-badge';
 import { Button } from '../atoms/button';
+import { useTranslations } from 'next-intl';
 
 interface ShareButtonProps {
   shareCount: number
@@ -11,6 +12,7 @@ interface ShareButtonProps {
 }
 
 export function ShareButton({ shareCount, hugCount, onShare }: ShareButtonProps) {
+  const t = useTranslations('shareButton');
   return (
     <Button
       variant="outlinePurple"
@@ -19,11 +21,11 @@ export function ShareButton({ shareCount, hugCount, onShare }: ShareButtonProps)
     >
       <div className="flex items-center gap-2">
         <Share className="h-4 w-4" />
-        <span>Share</span>
+        <span>{t('label')}</span>
       </div>
       <div className="flex items-center gap-2">
         <CounterBadge count={shareCount} label="" />
-        <CounterBadge count={hugCount} label="Hug" />
+        <CounterBadge count={hugCount} label={t('hug')} />
       </div>
     </Button>
   );

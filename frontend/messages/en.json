@@ -122,6 +122,12 @@
       "braavos": "Braavos"
     }
   },
+  "errors": {
+    "loadingEngine": "Loading Game Engine...",
+    "initializing": "Please wait while we initialize the game",
+    "loading": "Loading...",
+    "preparing": "Please wait while we prepare the game"
+  },
   "home": {
     "welcomeTitle": "Welcome to LyricsFlip",
     "welcomeConnect": "to LyricsFlip, ",
@@ -252,6 +258,11 @@
   "lyricCard": {
     "footer": "LyricFlip...join the fun🎶🩵"
   },
+  "questionCard": {
+    "Title": "Which song?",
+    "Artist": "Who sings it?",
+    "Year": "What year?"
+  },
   "results": {
     "loading": "Loading...",
     "points": "Points",
@@ -378,5 +389,9 @@
     "none": "No notifications here yet.",
     "unread": "Unread",
     "dismiss": "Dismiss"
+  },
+  "shareButton": {
+    "label": "Share",
+    "hug": "Hug"
   }
 }

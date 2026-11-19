@@ -39,7 +39,7 @@ export const GameResultModal = () => {
       try {
         setIsLoading(true);
         const data = await systemCalls.getRound(BigInt(roundId));
-        setRoundData(data);
+        setRoundData(data as unknown as GameResultData);
       } catch (err) {
         setError(err instanceof Error ? err.message : t('failedFetch'));
       } finally {

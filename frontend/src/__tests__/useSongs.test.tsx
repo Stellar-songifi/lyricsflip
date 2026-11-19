@@ -45,7 +45,7 @@ describe('useSongs hook', () => {
   it('handles fetch error', async () => {
     global.fetch = jest.fn(() => Promise.resolve({ ok: false })) as jest.Mock;
 
-    const { result } = renderHook(() => useSongs(), { wrapper });
+    renderHook(() => useSongs(), { wrapper });
 
   });
 });

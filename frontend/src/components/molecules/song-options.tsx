@@ -3,11 +3,9 @@
 import { useId, useRef, type KeyboardEvent } from 'react';
 import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
+import type { SongOption } from '@/lib/stellar/types';
 
-interface SongOption {
-  title: string;
-  artist: string;
-}
+export type { SongOption };
 
 interface SongOptionsProps {
   options: SongOption[];

@@ -27,6 +27,18 @@ interface GameResultData {
   thirdPlace?: string;
 }
 
+interface GameResultData {
+  score?: number;
+  maxRounds?: number;
+  odds?: string | number;
+  wagerAmount?: string;
+  potentialWin?: string;
+  winner?: string;
+  prize?: string;
+  secondPlace?: string;
+  thirdPlace?: string;
+}
+
 const GameResultPopup: React.FC<GameResultPopupProps> = ({
   isWin,
   isMultiplayer,
@@ -54,7 +66,7 @@ const GameResultPopup: React.FC<GameResultPopupProps> = ({
       try {
         setIsLoading(true);
         const data = await systemCalls.getRound(BigInt(roundId));
-        setRoundData(data);
+        setRoundData(data as unknown as GameResultData);
       } catch (err) {
         setError(err instanceof Error ? err.message : t('failedFetch'));
       } finally {

@@ -57,7 +57,7 @@ export default function MultiplayerRoundPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [systemCalls, roundId, rawRoundId]);
+  }, [systemCalls, roundId, rawRoundId, t]);
 
   // Load the round, then join it once a wallet is connected.
   useEffect(() => {
@@ -86,7 +86,7 @@ export default function MultiplayerRoundPage() {
       }
     };
     run();
-  }, [systemCalls, roundId, account, loadRound]);
+  }, [systemCalls, roundId, account, loadRound, t]);
 
   const handleReady = async () => {
     if (!systemCalls || roundId === null) return;

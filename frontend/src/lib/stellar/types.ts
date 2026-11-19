@@ -139,6 +139,34 @@ export const Answer = {
   title: (value: string): Answer => ({ tag: 'Title', values: [value] }),
 };
 
+/**
+ * A single answer option shown on the card. The option text lives in
+ * `title` for Title and Artist questions (the artist name), and in `title`
+ * for Year questions (the year as a string).
+ */
+export interface SongOption {
+  title: string;
+  artist: string;
+}
+
+/**
+ * Maps the selected option to the `Answer` variant matching the question
+ * kind (LF-308). The on-chain `Answer` enum carries the real value:
+ * `Artist`/`Year` questions submit `Answer.artist`/`Answer.year` instead of
+ * the default `Answer.title` the game page used to send.
+ */
+export const answerForOption = (kind: QuestionKind, option: SongOption): Answer => {
+  switch (kind) {
+    case 'Artist':
+      return Answer.artist(option.title);
+    case 'Year':
+      return Answer.year(BigInt(option.title));
+    case 'Title':
+    default:
+      return Answer.title(option.title);
+  }
+};
+
 export interface StellarAccount {
   address: string;
 }

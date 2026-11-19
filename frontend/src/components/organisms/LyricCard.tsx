@@ -70,7 +70,6 @@ export const LyricCard = ({
 }) => {
   const currentLyric = lyrics[0];
   const reducedMotion = usePrefersReducedMotion();
-  const t = useTranslations('lyricCard');
 
   // With reduced motion, swap the 3D flip for an opacity crossfade and skip
   // the 3D transform entirely (LF-311). Both faces carry the same lyric, so the

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import ShareButton from "@/components/molecules/share-button";
+import { ShareButton } from "@/components/molecules/share-button";
 
 type RoundResult = {
   roundId: string;

@@ -3,17 +3,11 @@ use crate::*;
 impl LyricsFlip {
     // ---- build_question_card helpers ----
 
-    pub(crate) fn build_title_question(
-        env: &Env,
-        card: Card,
-        seed: u64,
-        cards_count: u64,
-    ) -> QuestionCard {
+    pub(crate) fn build_title_question(env: &Env, card: Card, cards_count: u64) -> QuestionCard {
         let correct = card.title.clone();
         Self::build_options_question(
             env,
             card,
-            seed,
             cards_count,
             QuestionKind::Title,
             correct,
@@ -21,17 +15,11 @@ impl LyricsFlip {
         )
     }
 
-    pub(crate) fn build_artist_question(
-        env: &Env,
-        card: Card,
-        seed: u64,
-        cards_count: u64,
-    ) -> QuestionCard {
+    pub(crate) fn build_artist_question(env: &Env, card: Card, cards_count: u64) -> QuestionCard {
         let correct = card.artist.clone();
         Self::build_options_question(
             env,
             card,
-            seed,
             cards_count,
             QuestionKind::Artist,
             correct,
@@ -57,13 +45,12 @@ impl LyricsFlip {
     pub(crate) fn build_options_question(
         env: &Env,
         card: Card,
-        seed: u64,
         cards_count: u64,
         kind: QuestionKind,
         correct: String,
         get_value: impl Fn(&Card) -> String,
     ) -> QuestionCard {
-        let candidates = Self::distractor_candidate_ids(env, &card, seed, cards_count);
+        let candidates = Self::distractor_candidate_ids(env, &card, cards_count);
         let total = candidates.len() as u64;
         let sample = core::cmp::min(MAX_DISTRACTOR_SAMPLE, total);
         let max_attempts = if sample == 0 {
@@ -99,7 +86,7 @@ impl LyricsFlip {
             options.push_back(answer.clone());
         }
 
-        let shuffled = Self::shuffle_strings(env, options, seed);
+        let shuffled = Self::shuffle_strings(env, options);
 
         QuestionCard {
             lyric: card.lyrics.clone(),
@@ -113,16 +100,11 @@ impl LyricsFlip {
     }
 
     /// Ordered card ids used to pick distractors for `card`: same-genre cards
-    /// (shuffled with `seed`) first so wrong options stay plausible, then every
-    /// remaining card (shuffled with a derived seed). Each card appears exactly
-    /// once, so a question can always be answered — or fail with
-    /// `NotEnoughDistinctCards` — without ever looping.
-    pub(crate) fn distractor_candidate_ids(
-        env: &Env,
-        card: &Card,
-        seed: u64,
-        cards_count: u64,
-    ) -> Vec<u64> {
+    /// (shuffled with the PRNG) first so wrong options stay plausible, then
+    /// every remaining card. Each card appears exactly once, so a question can
+    /// always be answered — or fail with `NotEnoughDistinctCards` —
+    /// without ever looping.
+    pub(crate) fn distractor_candidate_ids(env: &Env, card: &Card, cards_count: u64) -> Vec<u64> {
         let genre_index = Index::Genre(card.genre);
         let genre_len = Self::index_len(env, &genre_index) as u64;
 
@@ -130,7 +112,7 @@ impl LyricsFlip {
 
         if genre_len > 0 {
             let sample_len = core::cmp::min(genre_len, 6);
-            let indices = Self::get_random_numbers(env, seed, sample_len, genre_len, true);
+            let indices = Self::get_random_numbers(env, sample_len, genre_len, true);
             for idx in indices.iter() {
                 candidates.push_back(Self::index_get(env, &genre_index, idx as u32));
             }
@@ -138,7 +120,7 @@ impl LyricsFlip {
 
         if candidates.len() < 4 && cards_count > candidates.len() as u64 {
             let needed = core::cmp::min(cards_count, 10);
-            let shuffled_all = Self::get_random_numbers(env, seed + 1, needed, cards_count, false);
+            let shuffled_all = Self::get_random_numbers(env, needed, cards_count, false);
             for id in shuffled_all.iter() {
                 if !candidates.contains(&id) {
                     candidates.push_back(id);
@@ -152,18 +134,14 @@ impl LyricsFlip {
     /// deduplicate, and take the first 3. Year options are stored as their
     /// decimal string representation so they fit into the same `Vec<String>`
     /// shuffle as Title and Artist questions.
-    pub(crate) fn build_year_question(env: &Env, card: Card, seed: u64) -> QuestionCard {
-        // Generate offsets deterministically from the seed.
+    pub(crate) fn build_year_question(env: &Env, card: Card) -> QuestionCard {
+        // LF-268: shuffle the offsets with the contract PRNG.
         let offsets: [i64; 10] = [1, -1, 2, -2, 3, -3, 4, -4, 5, -5];
-        let mut current_seed = seed;
-        // Fisher-Yates shuffle of the offsets array using the LCG.
         let mut shuffled_offsets = offsets;
         let mut j = 10usize;
         while j > 1 {
             j -= 1;
-            current_seed =
-                current_seed.wrapping_mul(1664525).wrapping_add(1013904223) % 0xFFFF_FFFFu64;
-            let rand_idx = (current_seed % (j as u64 + 1)) as usize;
+            let rand_idx = env.prng().gen_range::<u64>(0..(j as u64 + 1)) as usize;
             shuffled_offsets.swap(j, rand_idx);
         }
 
@@ -236,7 +214,7 @@ impl LyricsFlip {
             options.push_back(y.clone());
         }
 
-        let shuffled = Self::shuffle_strings(env, options, seed);
+        let shuffled = Self::shuffle_strings(env, options);
 
         QuestionCard {
             lyric: card.lyrics.clone(),
@@ -283,17 +261,14 @@ impl LyricsFlip {
         false
     }
 
-    /// Fisher-Yates shuffle over a small (4-element) options list, mirroring
-    /// `shuffle_array` in the Cairo contract.
-    pub(crate) fn shuffle_strings(env: &Env, arr: Vec<String>, seed: u64) -> Vec<String> {
+    /// LF-268: Fisher-Yates shuffle over a small (4-element) options list
+    /// using the contract PRNG.
+    pub(crate) fn shuffle_strings(env: &Env, arr: Vec<String>) -> Vec<String> {
         let mut result = arr;
-        let mut current_seed = seed;
         let mut j = result.len();
         while j > 1 {
             j -= 1;
-            current_seed =
-                current_seed.wrapping_mul(1664525).wrapping_add(1013904223) % 0xFFFF_FFFFu64;
-            let rand_idx = (current_seed % (j as u64 + 1)) as u32;
+            let rand_idx = env.prng().gen_range::<u64>(0..(j as u64 + 1)) as u32;
             if j != rand_idx {
                 let a = result.get(j).unwrap();
                 let b = result.get(rand_idx).unwrap();
@@ -301,8 +276,25 @@ impl LyricsFlip {
                 result.set(rand_idx, a);
             }
         }
-        let _ = env;
         result
+    }
+    pub(crate) fn correct_option(env: &Env, question: &QuestionCard, choice: &Answer) -> u32 {
+        let matches = |option: &String| match choice {
+            Answer::Title(value) | Answer::Artist(value) => option == value,
+            Answer::Year(value) => option == &Self::u64_to_string(env, *value),
+        };
+        let options = [
+            &question.option_one,
+            &question.option_two,
+            &question.option_three,
+            &question.option_four,
+        ];
+        for (index, option) in options.iter().enumerate() {
+            if matches(option) {
+                return (index + 1) as u32;
+            }
+        }
+        0
     }
 }
 
@@ -325,20 +317,15 @@ pub(crate) fn get_question(env: Env, caller: Address, round_id: u64) -> Question
         .unwrap_or_else(|| panic_with_error!(env, Error::NoMoreCards));
     let card = LyricsFlip::read_card(&env, card_id);
     let kind = QuestionKind::Title;
-    LyricsFlip::build_question_card(env, card, round_id, kind)
+    LyricsFlip::build_question_card(env, card, kind)
 }
 
-pub(crate) fn build_question_card(
-    env: Env,
-    card: Card,
-    seed: u64,
-    kind: QuestionKind,
-) -> QuestionCard {
+pub(crate) fn build_question_card(env: Env, card: Card, kind: QuestionKind) -> QuestionCard {
     let cards_count = LyricsFlip::index_len(&env, &Index::All) as u64;
 
     match kind {
-        QuestionKind::Title => LyricsFlip::build_title_question(&env, card, seed, cards_count),
-        QuestionKind::Artist => LyricsFlip::build_artist_question(&env, card, seed, cards_count),
-        QuestionKind::Year => LyricsFlip::build_year_question(&env, card, seed),
+        QuestionKind::Title => LyricsFlip::build_title_question(&env, card, cards_count),
+        QuestionKind::Artist => LyricsFlip::build_artist_question(&env, card, cards_count),
+        QuestionKind::Year => LyricsFlip::build_year_question(&env, card),
     }
 }

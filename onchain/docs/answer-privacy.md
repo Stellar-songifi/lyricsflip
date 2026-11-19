@@ -1,11 +1,9 @@
 # Answer privacy on-chain (LF-142)
 
-`Card` currently stores `title`, `artist`, and `year` in plaintext, and
-`get_card`, `get_round_cards`, and `next_card` all return them. On a public
-ledger that means anyone can read the solution for the current card, and
-`next_card` hands the answer to the caller at the exact moment the question
-appears. A guessing game needs answers that stay hidden until they are
-revealed.
+`Card` stores `title`, `artist`, and `year` in plaintext for scoring, but an
+active round must never return those fields through a public gameplay path.
+The question is exposed as a redacted `QuestionCard`; the answer is revealed
+only after the answer has been recorded.
 
 This document compares three approaches and records the one we implement.
 
@@ -62,8 +60,8 @@ We implement a **redaction-first** variant of (a): the contract keeps the
 plaintext answer in storage for scoring, but **no public view returns it while
 the card's round is active**.
 
-- `next_card` returns a `QuestionCard { lyric, options }` — the lyric and the
-  multiple-choice options, never the answer.
+- `next_card` returns a `QuestionCard { lyric, kind, options }` — the lyric,
+  question kind and multiple-choice options, never the answer.
 - `get_question(env, caller, round_id) -> QuestionCard` is the only public
   getter for the caller's current card; it returns lyric, kind, and options.
 - `get_card` is admin-only. Non-admins receive a redacted card (no `title`,
@@ -74,6 +72,9 @@ the card's round is active**.
   is finalized.
 - `submit_answer` is unchanged: it still validates against the stored answer,
   so scoring and tests keep working.
+- `answer_and_next` returns the 1-based correct option only after recording the
+  submitted answer, and its optional `next` result is another redacted
+  `QuestionCard`.
 - `get_reveal(round_id, card_index)` returns the answer only after the caller
   has answered that card or the round has been finalized.
 

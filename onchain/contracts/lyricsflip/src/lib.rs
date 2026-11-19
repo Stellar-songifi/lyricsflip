@@ -14,7 +14,7 @@ mod types;
 mod upgrade;
 
 use cards::*;
-use storage::{bump_instance, bump_persistent};
+use storage::{bump_instance, bump_persistent, set_persistent};
 pub use storage::{BUMP_AMOUNT, DAY_IN_LEDGERS, LIFETIME_THRESHOLD};
 
 #[cfg(test)]
@@ -27,14 +27,15 @@ mod test_budget;
 pub use errors::Error;
 pub use events::{
     AnswerSubmitted, AnswerWindowUpdated, CardAdded, CardDrawn, CardRemoved, CardRevealed,
-    CardUpdated, CardsPerRoundUpdated, ContractUpgraded, LobbyTimeoutUpdated,
+    CardUpdated, CardsPerRoundUpdated, ContractUpgraded, EscrowContractUpdated,
+    LobbyTimeoutUpdated, MaxPlayersUpdated, MilestoneReset, NftContractUpdated,
     OwnershipTransferStarted, OwnershipTransferred, Paused, PlayerReady, RewardClaimed,
     RoleUpdated, RoundBufferUpdated, RoundCancelled, RoundCompleted, RoundCreated,
     RoundDurationUpdated, RoundJoined, RoundLeft, RoundStarted, SchemaMigrated, Unpaused,
 };
 pub use types::{
-    Answer, AnswerResult, Card, CardPos, DataKey, Genre, LegacyCard, LegacyRound, Milestone,
-    PlayerStats, QuestionCard, QuestionKind, Role, Round, RoundFilter, RoundV3,
+    Answer, AnswerResult, Card, CardPos, CardResult, DataKey, Genre, LegacyCard, LegacyRound,
+    Milestone, PlayerStats, QuestionCard, QuestionKind, Role, Round, RoundFilter, RoundV3, RoundV4,
 };
 
 use soroban_sdk::{
@@ -42,10 +43,20 @@ use soroban_sdk::{
     String, TryFromVal, Val, Vec,
 };
 
+#[contractclient(name = "EscrowClient")]
+pub trait EscrowInterface {
+    fn create_round(env: Env, round_id: u64, creator: Address, token: Address);
+    fn deposit(env: Env, round_id: u64, from: Address, amount: i128);
+    fn refund(env: Env, round_id: u64, player: Address) -> i128;
+    fn cancel_round(env: Env, round_id: u64, players: Vec<Address>);
+    fn settle_round(env: Env, round_id: u64, winners: Vec<Address>);
+    fn claim_winnings(env: Env, caller: Address, round_id: u64) -> i128;
+}
+
 /// Bumped on every release that changes the contract's code; see `upgrade`.
-pub const VERSION: u32 = 1;
+pub const VERSION: u32 = 2;
 /// Current persisted storage layout. Kept separate from the code version.
-pub const SCHEMA_VERSION: u32 = 4;
+pub const SCHEMA_VERSION: u32 = 5;
 
 pub const DEFAULT_ROUND_DURATION_SECONDS: u64 = 300;
 pub const MIN_ROUND_DURATION_SECONDS: u64 = 10;
@@ -126,8 +137,10 @@ const SECONDS_PER_YEAR: u64 = 31_556_952;
 /// Maximum number of cards accepted by one `add_cards` call. See
 /// `onchain/README.md` and `test::add_cards_max_batch_fits_budget`.
 pub const MAX_CARDS_PER_BATCH: u32 = 20;
-/// Maximum number of cards inspected when applying round filters.
-pub const MAX_ROUND_FILTER_SCAN: u32 = 500;
+/// LF-267: bounded number of draw attempts when a filtered round has to
+/// reject non-matching cards. Each attempt costs one PRNG draw plus a card
+/// read, so the loop stays within budget even at 10k cards.
+pub const MAX_FILTER_DRAW_ATTEMPTS: u32 = 64;
 
 #[contract]
 pub struct LyricsFlip;
@@ -149,11 +162,18 @@ impl LyricsFlip {
 
     /// Returns the round cards.
     ///
-    /// LF-142: while a round is active (started and not finalized), only an
-    /// admin may read the card ids, so a modified client cannot look up the
-    /// answers ahead of time. After finalization the list is public again.
+    /// LF-292: free to read (no auth) once the round is finalized or
+    /// cancelled. Before that only an admin may read the ids, so a modified
+    /// client cannot look up the answers ahead of time; any other caller gets
+    /// `RoundNotReady`.
     pub fn get_round_cards(env: Env, caller: Address, round_id: u64) -> Vec<u64> {
         rounds::get_round_cards(env, caller, round_id)
+    }
+
+    /// LF-293: every card of a finalized round with each player's
+    /// `(correct, points)`, read from storage so it never depends on events.
+    pub fn get_round_summary(env: Env, round_id: u64) -> Vec<CardResult> {
+        gameplay::get_round_summary(env, round_id)
     }
 
     /// Returns the round players.
@@ -171,7 +191,7 @@ impl LyricsFlip {
         gameplay::get_round_scores(env, round_id)
     }
 
-    /// Finalizes a round.
+    /// Finalizes a round after authenticating and checking participation/readiness.
     pub fn finalize_round(env: Env, caller: Address, round_id: u64) {
         gameplay::finalize_round(env, caller, round_id)
     }
@@ -196,6 +216,13 @@ impl LyricsFlip {
     /// `start` of 0 is treated as 1. Returns an empty list past the end.
     pub fn get_rounds(env: Env, start: u64, limit: u32) -> Vec<Round> {
         rounds::get_rounds(env, start, limit)
+    }
+
+    /// LF-286: ids of the rounds `player` created or joined, newest first.
+    /// `start` is an offset from the newest round and `limit` is clamped to
+    /// `MAX_PAGE_LIMIT`. Rounds the player left are not included.
+    pub fn get_player_rounds(env: Env, player: Address, start: u32, limit: u32) -> Vec<u64> {
+        rewards::get_player_rounds(env, player, start, limit)
     }
 
     /// Ids of rounds that are created but not yet started (i.e. joinable),
@@ -265,19 +292,37 @@ impl LyricsFlip {
         questions::get_question(env, caller, round_id)
     }
 
+    /// LF-279: Admin-only page of the catalogue, walking `Index::All` from
+    /// `start` and returning up to `limit` (clamped to `MAX_PAGE_LIMIT`)
+    /// cards. Soft-removed cards are skipped.
+    pub fn get_cards(env: Env, caller: Address, start: u32, limit: u32) -> Vec<Card> {
+        cards::get_cards(env, caller, start, limit)
+    }
+
+    /// LF-279: Admin-only page of the cards of `genre`; see `get_cards`.
+    pub fn get_cards_by_genre(
+        env: Env,
+        caller: Address,
+        genre: Genre,
+        start: u32,
+        limit: u32,
+    ) -> Vec<Card> {
+        cards::get_cards_by_genre(env, caller, genre, start, limit)
+    }
+
     /// Returns the cards of genre.
-    pub fn get_cards_of_genre(env: Env, genre: Genre, seed: u64) -> Vec<Card> {
-        cards::get_cards_of_genre(env, genre, seed)
+    pub fn get_cards_of_genre(env: Env, genre: Genre) -> Vec<Card> {
+        cards::get_cards_of_genre(env, genre)
     }
 
     /// Returns the cards of artist.
-    pub fn get_cards_of_artist(env: Env, artist: String, seed: u64) -> Vec<Card> {
-        cards::get_cards_of_artist(env, artist, seed)
+    pub fn get_cards_of_artist(env: Env, artist: String) -> Vec<Card> {
+        cards::get_cards_of_artist(env, artist)
     }
 
     /// Returns the cards of a year.
-    pub fn get_cards_of_a_year(env: Env, year: u64, seed: u64) -> Vec<Card> {
-        cards::get_cards_of_a_year(env, year, seed)
+    pub fn get_cards_of_a_year(env: Env, year: u64) -> Vec<Card> {
+        cards::get_cards_of_a_year(env, year)
     }
 
     /// Returns the player stat.
@@ -322,16 +367,31 @@ impl LyricsFlip {
         admin::unpause(env, caller)
     }
 
-    /// Creates a round. `invite_hash` (LF-162) makes the round private: only
-    /// a joiner that presents a code whose sha256 matches may enter.
+    /// Creates a round. `invitees` (LF-264) makes the round private: only
+    /// the listed addresses may join. The allowlist is stored on-chain, so
+    /// nothing secret ever appears in a transaction argument.
     pub fn create_round(
         env: Env,
         caller: Address,
         genre: Option<Genre>,
-        seed: u64,
-        invite_hash: Option<BytesN<32>>,
+        invitees: Vec<Address>,
+        wager_token: Option<Address>,
+        wager_amount: i128,
     ) -> u64 {
-        rounds::create_round(env, caller, genre, seed, invite_hash)
+        rounds::create_round(env, caller, genre, invitees, wager_token, wager_amount)
+    }
+
+    /// LF-291: like `create_round`, but caps this round at `max_players`
+    /// (e.g. 2 for a duel). Must be at least 2 and at most the global
+    /// `get_max_players`; `None` uses the global value.
+    pub fn create_round_with_max_players(
+        env: Env,
+        caller: Address,
+        genre: Option<Genre>,
+        invitees: Vec<Address>,
+        max_players: Option<u32>,
+    ) -> u64 {
+        rounds::create_round_with_max_players(env, caller, genre, invitees, max_players)
     }
 
     /// Creates a round using optional genre, decade and difficulty filters.
@@ -340,9 +400,9 @@ impl LyricsFlip {
         caller: Address,
         filter: RoundFilter,
         difficulty: Option<u32>,
-        seed: u64,
+        invitees: Vec<Address>,
     ) -> u64 {
-        rounds::create_round_with_filter(env, caller, filter, difficulty, seed)
+        rounds::create_round_with_filter(env, caller, filter, difficulty, invitees)
     }
 
     /// Starts round.
@@ -350,10 +410,11 @@ impl LyricsFlip {
         rounds::start_round(env, caller, round_id)
     }
 
-    /// Joins round. For a private round (LF-162), `invite_code` must be a
-    /// string whose sha256 equals the round's stored `RoundInviteHash`.
-    pub fn join_round(env: Env, caller: Address, round_id: u64, invite_code: Option<String>) {
-        rounds::join_round(env, caller, round_id, invite_code)
+    /// Joins round. For a private round (LF-264), `caller` must appear in the
+    /// allowlist the admin supplied at creation. Nothing secret is passed in
+    /// the call, so observing an earlier join reveals nothing reusable.
+    pub fn join_round(env: Env, caller: Address, round_id: u64) {
+        rounds::join_round(env, caller, round_id)
     }
 
     /// Leaves a round that hasn't started yet and refunds the caller's wager.
@@ -376,7 +437,7 @@ impl LyricsFlip {
     /// already finalized". The `is_completed` flag is set only by
     /// `finalize_round`, so players can still answer the last drawn card
     /// after this function returns it.
-    pub fn next_card(env: Env, caller: Address, round_id: u64) -> Card {
+    pub fn next_card(env: Env, caller: Address, round_id: u64) -> QuestionCard {
         gameplay::next_card(env, caller, round_id)
     }
 
@@ -467,7 +528,7 @@ impl LyricsFlip {
         upgrade::migrate(env, caller)
     }
 
-    /// Submits a round answer.
+    /// Submits a round answer through the shared scoring implementation.
     pub fn submit_answer(env: Env, caller: Address, round_id: u64, answer: Answer) -> bool {
         gameplay::submit_answer(env, caller, round_id, answer)
     }
@@ -478,6 +539,10 @@ impl LyricsFlip {
     }
 
     /// Sets the nft contract.
+    pub fn set_escrow_contract(env: Env, caller: Address, escrow: Address) {
+        admin::set_escrow_contract(env, caller, escrow)
+    }
+
     pub fn set_nft_contract(env: Env, caller: Address, nft_contract: Address) {
         admin::set_nft_contract(env, caller, nft_contract)
     }
@@ -504,21 +569,27 @@ impl LyricsFlip {
         admin::set_round_buffer(env, caller, value)
     }
 
+    /// LF-284: owner-only. Clears `player`'s claimed flag for `milestone` so
+    /// a badge that was burned or revoked by mistake can be claimed again.
+    pub fn reset_milestone(env: Env, caller: Address, player: Address, milestone: Milestone) {
+        rewards::reset_milestone(env, caller, player, milestone)
+    }
+
     /// Mints the NFT for `milestone` to `caller` through a cross-contract
     /// call. This contract must be the NFT contract's minter. Each milestone
     /// can be claimed once per player.
+    pub fn claim_winnings(env: Env, caller: Address, round_id: u64) -> i128 {
+        rewards::claim_winnings(env, caller, round_id)
+    }
+
     pub fn claim_reward(env: Env, caller: Address, milestone: Milestone) -> u128 {
         rewards::claim_reward(env, caller, milestone)
     }
 
-    /// Builds a question card.
-    pub fn build_question_card(
-        env: Env,
-        card: Card,
-        seed: u64,
-        kind: QuestionKind,
-    ) -> QuestionCard {
-        questions::build_question_card(env, card, seed, kind)
+    /// Builds a question card. LF-268: options are shuffled with the
+    /// contract PRNG, so no caller-supplied seed can steer the layout.
+    pub fn build_question_card(env: Env, card: Card, kind: QuestionKind) -> QuestionCard {
+        questions::build_question_card(env, card, kind)
     }
 
     /// LF-163: create and start a solo round in one call, return the first
@@ -526,13 +597,8 @@ impl LyricsFlip {
     /// multiplayer lobby. Exactly ONE require_auth: create_round_internal
     /// performs it, so we do not call it again here, and the first card is
     /// drawn inline (next_card would require_auth a second time).
-    pub fn create_solo_round(
-        env: Env,
-        caller: Address,
-        genre: Option<Genre>,
-        seed: u64,
-    ) -> QuestionCard {
-        rounds::create_solo_round(env, caller, genre, seed)
+    pub fn create_solo_round(env: Env, caller: Address, genre: Option<Genre>) -> QuestionCard {
+        rounds::create_solo_round(env, caller, genre)
     }
 
     // LF-164: combined answer+draw. Reuses submit_answer's scoring path so

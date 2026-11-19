@@ -58,10 +58,7 @@ pub(crate) fn migrate(env: Env, caller: Address) {
                     .remove(&DataKey::Admin(owner.clone()));
 
                 if is_owner_admin {
-                    env.storage()
-                        .persistent()
-                        .set(&DataKey::Admin(owner.clone()), &true);
-                    bump_persistent(&env, &DataKey::Admin(owner.clone()));
+                    set_persistent(&env, &DataKey::Admin(owner.clone()), &true);
                 }
 
                 let mut admins = LyricsFlip::read_admins(&env);
@@ -77,8 +74,7 @@ pub(crate) fn migrate(env: Env, caller: Address) {
                         admins.push_back(owner.clone());
                     }
                 }
-                env.storage().persistent().set(&DataKey::Admins, &admins);
-                bump_persistent(&env, &DataKey::Admins);
+                set_persistent(&env, &DataKey::Admins, &admins);
 
                 current_version = 4;
             }

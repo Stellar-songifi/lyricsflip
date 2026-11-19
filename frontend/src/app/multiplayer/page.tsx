@@ -3,6 +3,7 @@
 import { Button } from '@/components/atoms/button';
 import { GENRE_VALUES, type Genre } from '@/lib/stellar/types';
 import { useStellar } from '@/lib/stellar/hooks/use-stellar';
+import { generateInviteCode } from '@/lib/stellar/client';
 import { ArrowLeft } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
@@ -28,6 +29,8 @@ export default function MultiplayerLobbyPage() {
   const { systemCalls, account, connect } = useStellar();
   const [genre, setGenre] = useState<Genre>(GENRE_VALUES[0]);
   const [roundId, setRoundId] = useState('');
+  const [inviteCode, setInviteCode] = useState('');
+  const [isPrivate, setIsPrivate] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errorState, setError] = useState<string | null>(null);
   const [busyRoundId, setBusyRoundId] = useState<string | null>(null);
@@ -81,9 +84,11 @@ export default function MultiplayerLobbyPage() {
     setError(null);
 
     try {
-      const id = await systemCalls.createRound(genre);
+      // LF-305: private rounds carry their invite code in the URL fragment.
+      const code = isPrivate ? generateInviteCode() : undefined;
+      const id = await systemCalls.createRound(genre, undefined, undefined, code);
       await openRounds.refresh();
-      router.push(`/multiplayer/${id}`);
+      router.push(code ? `/multiplayer/${id}#invite=${code}` : `/multiplayer/${id}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create round');
     } finally {
@@ -97,7 +102,12 @@ export default function MultiplayerLobbyPage() {
       return;
     }
 
-    router.push(`/multiplayer/${roundId.trim()}`);
+    const code = inviteCode.trim();
+    router.push(
+      code
+        ? `/multiplayer/${roundId.trim()}#invite=${encodeURIComponent(code)}`
+        : `/multiplayer/${roundId.trim()}`,
+    );
   };
 
   const handleJoinFromList = async (entry: OpenRound) => {
@@ -165,6 +175,14 @@ export default function MultiplayerLobbyPage() {
               </option>
             ))}
           </select>
+          <label className="mb-4 flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={isPrivate}
+              onChange={(e) => setIsPrivate(e.target.checked)}
+            />
+            Private (invite link only)
+          </label>
           <Button
             onClick={handleCreateRound}
             disabled={isLoading}
@@ -188,6 +206,14 @@ export default function MultiplayerLobbyPage() {
             value={roundId}
             onChange={(e) => setRoundId(e.target.value)}
             placeholder="Enter Round ID"
+            className="w-full px-4 py-3 border rounded mb-4 min-h-[44px] text-sm"
+          />
+          <input
+            type="text"
+            aria-label="Invite code"
+            value={inviteCode}
+            onChange={(e) => setInviteCode(e.target.value)}
+            placeholder="Invite code (private rounds)"
             className="w-full px-4 py-3 border rounded mb-4 min-h-[44px] text-sm"
           />
           <Button

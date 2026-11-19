@@ -6,6 +6,9 @@ pub(crate) enum Index {
     Genre(Genre),
     Artist(String),
     Year(u64),
+    Decade(u64),
+    Difficulty(u32),
+    GenreDecade(Genre, u64),
 }
 
 impl Index {
@@ -18,12 +21,25 @@ impl Index {
         ]
     }
 
+    /// LF-267: the filter indexes a card belongs to (decade, difficulty and
+    /// the combined genre+decade index). Maintained alongside `of`.
+    fn filters_of(card: &Card) -> [Index; 3] {
+        [
+            Index::Decade(card.year / 10 * 10),
+            Index::Difficulty(card.difficulty),
+            Index::GenreDecade(card.genre, card.year / 10 * 10),
+        ]
+    }
+
     fn count_key(&self) -> DataKey {
         match self {
             Index::All => DataKey::CardsCount,
             Index::Genre(g) => DataKey::GenreCardCount(*g),
             Index::Artist(a) => DataKey::ArtistCardCount(a.clone()),
             Index::Year(y) => DataKey::YearCardCount(*y),
+            Index::Decade(d) => DataKey::DecadeCardCount(*d),
+            Index::Difficulty(d) => DataKey::DifficultyCardCount(*d),
+            Index::GenreDecade(g, d) => DataKey::GenreDecadeCardCount((*g, *d)),
         }
     }
 
@@ -33,6 +49,9 @@ impl Index {
             Index::Genre(g) => DataKey::GenreCardAt((*g, i)),
             Index::Artist(a) => DataKey::ArtistCardAt((a.clone(), i)),
             Index::Year(y) => DataKey::YearCardAt((*y, i)),
+            Index::Decade(d) => DataKey::DecadeCardAt((*d, i)),
+            Index::Difficulty(d) => DataKey::DifficultyCardAt((*d, i)),
+            Index::GenreDecade(g, d) => DataKey::GenreDecadeCardAt((*g, *d, i)),
         }
     }
 
@@ -42,6 +61,9 @@ impl Index {
             Index::Genre(_) => &mut pos.genre,
             Index::Artist(_) => &mut pos.artist,
             Index::Year(_) => &mut pos.year,
+            Index::Decade(_) => &mut pos.decade,
+            Index::Difficulty(_) => &mut pos.difficulty,
+            Index::GenreDecade(_, _) => &mut pos.genre_decade,
         }
     }
 }
@@ -84,6 +106,15 @@ pub(crate) fn assert_clean_text(env: &Env, value: &String, err: Error) {
 }
 
 impl LyricsFlip {
+    /// Unredacted catalogue read for admin paths (`update_card`,
+    /// `remove_card`): `NonExistingCard` for soft-removed cards.
+    pub(crate) fn read_catalogue_card(env: &Env, card_id: u64) -> Card {
+        if Self::is_card_disabled(env, card_id) {
+            panic_with_error!(env, Error::NonExistingCard);
+        }
+        Self::read_card(env, card_id)
+    }
+
     /// LF-278: strips the answer fields from a card that a live round still
     /// references, so public catalogue reads can't map a live card to its
     /// answer.
@@ -123,9 +154,7 @@ impl LyricsFlip {
             let legacy = LegacyCard::try_from_val(env, &stored)
                 .unwrap_or_else(|_| panic_with_error!(env, Error::NonExistingCard));
             let card = Card::from(legacy);
-            env.storage()
-                .persistent()
-                .set(&DataKey::Card(card_id), &card);
+            set_persistent(env, &DataKey::Card(card_id), &card);
             card
         } else {
             Card::try_from_val(env, &stored)
@@ -194,19 +223,20 @@ impl LyricsFlip {
             genre: 0,
             artist: 0,
             year: 0,
+            decade: 0,
+            difficulty: 0,
+            genre_decade: 0,
         };
         for index in Index::of(&env, &card).iter() {
             *index.pos(&mut pos) = Self::index_push(env, index, card_id);
         }
-        env.storage()
-            .persistent()
-            .set(&DataKey::CardPos(card_id), &pos);
-        env.storage()
-            .persistent()
-            .set(&DataKey::CardKey(key), &card_id);
-        env.storage()
-            .persistent()
-            .set(&DataKey::Card(card_id), &card);
+        // LF-267: maintain the filter indexes too.
+        for index in Index::filters_of(&card).iter() {
+            *index.pos(&mut pos) = Self::index_push(env, index, card_id);
+        }
+        set_persistent(env, &DataKey::CardPos(card_id), &pos);
+        set_persistent(env, &DataKey::CardKey(key), &card_id);
+        set_persistent(env, &DataKey::Card(card_id), &card);
 
         CardAdded {
             card_id,
@@ -237,13 +267,24 @@ impl LyricsFlip {
             .unwrap_or_else(|| panic_with_error!(env, Error::NonExistingCard))
     }
 
+    pub(crate) fn page_cards(env: &Env, index: &Index, start: u32, limit: u32) -> Vec<Card> {
+        let len = Self::index_len(env, index);
+        let end = start.saturating_add(limit.min(MAX_PAGE_LIMIT)).min(len);
+        let mut out = Vec::new(env);
+        for i in start..end {
+            let card_id = Self::index_get(env, index, i);
+            if !Self::is_card_disabled(env, card_id) {
+                out.push_back(Self::read_card(env, card_id));
+            }
+        }
+        out
+    }
+
     /// Appends `card_id` and returns its position.
     pub(crate) fn index_push(env: &Env, index: &Index, card_id: u64) -> u32 {
         let len = Self::index_len(env, index);
-        env.storage().persistent().set(&index.at_key(len), &card_id);
-        env.storage()
-            .persistent()
-            .set(&index.count_key(), &(len + 1));
+        set_persistent(env, &index.at_key(len), &card_id);
+        set_persistent(env, &index.count_key(), &(len + 1));
         len
     }
 
@@ -253,27 +294,77 @@ impl LyricsFlip {
         let last = Self::index_len(env, index) - 1;
         if pos != last {
             let moved = Self::index_get(env, index, last);
-            env.storage().persistent().set(&index.at_key(pos), &moved);
+            set_persistent(env, &index.at_key(pos), &moved);
             let mut moved_pos = Self::read_card_pos(env, moved);
             *index.pos(&mut moved_pos) = pos;
-            env.storage()
-                .persistent()
-                .set(&DataKey::CardPos(moved), &moved_pos);
+            set_persistent(env, &DataKey::CardPos(moved), &moved_pos);
         }
         env.storage().persistent().remove(&index.at_key(last));
-        env.storage().persistent().set(&index.count_key(), &last);
+        set_persistent(env, &index.count_key(), &last);
     }
 
-    pub(crate) fn draw_cards(env: &Env, index: &Index, seed: u64, empty: Error) -> Vec<Card> {
+    pub(crate) fn draw_cards(env: &Env, index: &Index, empty: Error) -> Vec<Card> {
         let limit = Self::index_len(env, index) as u64;
         if limit == 0 {
             panic_with_error!(env, empty);
         }
         let amount = Self::get_cards_per_round(env.clone()) as u64;
         let mut cards: Vec<Card> = Vec::new(env);
-        for idx in Self::get_random_numbers(env, seed, amount, limit, true).iter() {
+        for idx in Self::get_random_numbers(env, amount, limit, true).iter() {
             let card_id = Self::index_get(env, index, idx as u32);
             cards.push_back(Self::redact_if_live(env, Self::read_card(env, card_id)));
+        }
+        cards
+    }
+
+    /// LF-267: draws `amount` distinct card ids honouring `filter` and
+    /// `difficulty`. The draw starts from the narrowest index that already
+    /// satisfies part of the filter (genre+decade, decade, difficulty, genre
+    /// or all cards) and rejects cards that fail the remaining checks, with a
+    /// bounded number of retries. Every live matching card is reachable.
+    pub(crate) fn draw_round_cards(
+        env: &Env,
+        filter: &RoundFilter,
+        difficulty: Option<u32>,
+        amount: u64,
+    ) -> Vec<u64> {
+        let decade = filter.decade.map(|d| d / 10 * 10);
+        let source = match (filter.genre, decade, difficulty) {
+            (Some(g), Some(d), _) => Index::GenreDecade(g, d),
+            (None, Some(d), _) => Index::Decade(d),
+            (None, None, Some(diff)) => Index::Difficulty(diff),
+            (Some(g), None, _) => Index::Genre(g),
+            (None, None, None) => Index::All,
+        };
+        let source_count = Self::index_len(env, &source);
+        if source_count == 0 {
+            if filter.genre.is_some() {
+                panic_with_error!(env, Error::EmptyGenreCards);
+            }
+            panic_with_error!(env, Error::AmountExceedsLimit);
+        }
+
+        let mut cards: Vec<u64> = Vec::new(env);
+        let mut attempts: u32 = 0;
+        while (cards.len() as u64) < amount && attempts < MAX_FILTER_DRAW_ATTEMPTS {
+            attempts += 1;
+            let idx = env.prng().gen_range::<u64>(0..(source_count as u64)) as u32;
+            let card_id = Self::index_get(env, &source, idx);
+            if cards.contains(&card_id) {
+                continue;
+            }
+            let card = Self::read_card(env, card_id);
+            let matches_decade = decade.map(|d| card.year / 10 * 10 == d).unwrap_or(true);
+            let matches_difficulty = difficulty
+                .map(|value| card.difficulty == value)
+                .unwrap_or(true);
+            if matches_decade && matches_difficulty {
+                cards.push_back(card_id);
+            }
+        }
+
+        if (cards.len() as u64) < amount {
+            panic_with_error!(env, Error::AmountExceedsLimit);
         }
         cards
     }
@@ -319,9 +410,6 @@ impl LyricsFlip {
         }
     }
 
-    /// True while `card_id` belongs to a round that is still playable, i.e.
-    /// neither finalized nor cancelled and not past its self-heal deadline
-    /// (round deadline once started, lobby timeout before that).
     pub(crate) fn card_has_live_round(env: &Env, card_id: u64) -> bool {
         let live: Vec<u64> = env
             .storage()
@@ -346,28 +434,36 @@ pub(crate) fn get_genre_card_count(env: Env, genre: Genre) -> u32 {
 }
 
 pub(crate) fn get_card(env: Env, card_id: u64) -> Card {
-    if LyricsFlip::is_card_disabled(&env, card_id) {
-        panic_with_error!(env, Error::NonExistingCard);
-    }
-    LyricsFlip::redact_if_live(&env, LyricsFlip::read_card(&env, card_id))
+    LyricsFlip::redact_if_live(&env, LyricsFlip::read_catalogue_card(&env, card_id))
 }
 
-pub(crate) fn get_cards_of_genre(env: Env, genre: Genre, seed: u64) -> Vec<Card> {
-    LyricsFlip::draw_cards(&env, &Index::Genre(genre), seed, Error::EmptyGenreCards)
+pub(crate) fn get_cards(env: Env, caller: Address, start: u32, limit: u32) -> Vec<Card> {
+    LyricsFlip::assert_admin(&env, &caller);
+    LyricsFlip::page_cards(&env, &Index::All, start, limit)
 }
 
-pub(crate) fn get_cards_of_artist(env: Env, artist: String, seed: u64) -> Vec<Card> {
+pub(crate) fn get_cards_by_genre(
+    env: Env,
+    caller: Address,
+    genre: Genre,
+    start: u32,
+    limit: u32,
+) -> Vec<Card> {
+    LyricsFlip::assert_admin(&env, &caller);
+    LyricsFlip::page_cards(&env, &Index::Genre(genre), start, limit)
+}
+
+pub(crate) fn get_cards_of_genre(env: Env, genre: Genre) -> Vec<Card> {
+    LyricsFlip::draw_cards(&env, &Index::Genre(genre), Error::EmptyGenreCards)
+}
+
+pub(crate) fn get_cards_of_artist(env: Env, artist: String) -> Vec<Card> {
     let normalized = ascii_lower_string(&env, &artist);
-    LyricsFlip::draw_cards(
-        &env,
-        &Index::Artist(normalized),
-        seed,
-        Error::ArtistCardsIsZero,
-    )
+    LyricsFlip::draw_cards(&env, &Index::Artist(normalized), Error::ArtistCardsIsZero)
 }
 
-pub(crate) fn get_cards_of_a_year(env: Env, year: u64, seed: u64) -> Vec<Card> {
-    LyricsFlip::draw_cards(&env, &Index::Year(year), seed, Error::EmptyYearCards)
+pub(crate) fn get_cards_of_a_year(env: Env, year: u64) -> Vec<Card> {
+    LyricsFlip::draw_cards(&env, &Index::Year(year), Error::EmptyYearCards)
 }
 
 pub(crate) fn add_card(env: Env, caller: Address, card: Card) -> u64 {
@@ -392,7 +488,7 @@ pub(crate) fn add_cards(env: Env, caller: Address, cards: Vec<Card>) -> Vec<u64>
 pub(crate) fn update_card(env: Env, caller: Address, card_id: u64, card: Card) {
     caller.require_auth();
     LyricsFlip::assert_admin(&env, &caller);
-    let old = LyricsFlip::get_card(env.clone(), card_id);
+    let old = LyricsFlip::read_catalogue_card(&env, card_id);
     LyricsFlip::validate_card(&env, &card);
 
     let answer_fields_changed =
@@ -424,15 +520,9 @@ pub(crate) fn update_card(env: Env, caller: Address, card_id: u64, card: Card) {
     for index in Index::of(&env, &card).iter().skip(1) {
         *index.pos(&mut pos) = LyricsFlip::index_push(&env, index, card_id);
     }
-    env.storage()
-        .persistent()
-        .set(&DataKey::CardPos(card_id), &pos);
-    env.storage()
-        .persistent()
-        .set(&DataKey::CardKey(new_key), &card_id);
-    env.storage()
-        .persistent()
-        .set(&DataKey::Card(card_id), &card);
+    set_persistent(&env, &DataKey::CardPos(card_id), &pos);
+    set_persistent(&env, &DataKey::CardKey(new_key), &card_id);
+    set_persistent(&env, &DataKey::Card(card_id), &card);
 
     CardUpdated {
         card_id,
@@ -444,7 +534,7 @@ pub(crate) fn update_card(env: Env, caller: Address, card_id: u64, card: Card) {
 pub(crate) fn remove_card(env: Env, caller: Address, card_id: u64) {
     caller.require_auth();
     LyricsFlip::assert_admin(&env, &caller);
-    let card = LyricsFlip::get_card(env.clone(), card_id);
+    let card = LyricsFlip::read_catalogue_card(&env, card_id);
 
     let mut pos = LyricsFlip::read_card_pos(&env, card_id);
     for index in Index::of(&env, &card).iter() {
@@ -456,10 +546,7 @@ pub(crate) fn remove_card(env: Env, caller: Address, card_id: u64) {
     env.storage()
         .persistent()
         .remove(&DataKey::CardPos(card_id));
-    env.storage()
-        .persistent()
-        .set(&DataKey::CardDisabled(card_id), &true);
-    bump_persistent(&env, &DataKey::CardDisabled(card_id));
+    set_persistent(&env, &DataKey::CardDisabled(card_id), &true);
 
     CardRemoved { card_id }.publish(&env);
 }

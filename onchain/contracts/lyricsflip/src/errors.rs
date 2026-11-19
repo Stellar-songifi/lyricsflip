@@ -105,11 +105,14 @@ pub enum Error {
     TooManyOpenRounds = 45,
     /// LF-154: `set_max_players` got a value above `MAX_ROUND_PLAYERS`.
     MaxPlayersTooHigh = 46,
-    /// LF-277: `join_round` on a private round got no invite code, or one
-    /// whose sha256 doesn't match the round's invite hash.
-    InvalidInvite = 47,
+    /// LF-265: the lobby is older than `round.lobby_timeout`; it can only be
+    /// cancelled, not joined, started, or listed.
+    LobbyExpired = 47,
+    /// LF-264 / LF-277: the caller is not in the private round's invitee
+    /// allowlist and therefore cannot join it.
+    InvalidInvite = 48,
     /// LF-277: a non-admin tried to `cancel_round` before the lobby timeout.
-    LobbyTimeoutNotReached = 48,
+    LobbyTimeoutNotReached = 49,
     /// LF-277: the round admin tried to `leave_round`; cancel it instead.
-    AdminCannotLeave = 49,
+    AdminCannotLeave = 50,
 }

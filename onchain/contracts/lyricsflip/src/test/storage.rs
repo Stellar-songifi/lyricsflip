@@ -10,13 +10,13 @@ use super::*;
 #[test]
 fn ttl_survival_game_entries_survive_ledger_advance() {
     let (env, client, owner) = setup();
-    seed_cards(&env, &client, &owner, 3);
+    seed_cards(&env, &client, &owner, 4);
     client.set_cards_per_round(&owner, &2);
 
-    let round_id = client.create_round(&owner, &Some(Genre::Pop), &77u64, &None);
+    let round_id = client.create_round(&owner, &Some(Genre::Pop), &Vec::new(&env), &None, &0i128);
     client.start_round(&owner, &round_id);
 
-    let card = client.next_card(&owner, &round_id);
+    let card = next_card_full(&env, &client, &owner, round_id);
     assert!(client.submit_answer(&owner, &round_id, &Answer::Title(card.title.clone())));
 
     // Advance ledger sequence far beyond the Soroban default minimum TTL
@@ -46,7 +46,7 @@ fn ttl_survival_cards_survive_ledger_advance() {
 
     // Cards and genre index should still be accessible.
     let _card = client.get_card(&1);
-    let cards = client.get_cards_of_genre(&Genre::Pop, &999u64);
+    let cards = client.get_cards_of_genre(&Genre::Pop);
     assert_eq!(cards.len(), 3);
 }
 
@@ -55,9 +55,9 @@ fn leave_round_refunds_wager_and_frees_the_seat() {
     let (env, client, owner) = setup();
     seed_cards(&env, &client, &owner, 2);
     client.set_cards_per_round(&owner, &2);
-    let round_id = client.create_round(&owner, &Some(Genre::Pop), &1u64, &None);
+    let round_id = client.create_round(&owner, &Some(Genre::Pop), &Vec::new(&env), &None, &0i128);
     let player2 = Address::generate(&env);
-    client.join_round(&player2, &round_id, &None);
+    client.join_round(&player2, &round_id);
     client.start_round(&player2, &round_id);
 
     client.leave_round(&player2, &round_id);
@@ -81,13 +81,13 @@ fn leave_round_fails_after_start_and_for_admin() {
     let (env, client, owner) = setup();
     seed_cards(&env, &client, &owner, 2);
     client.set_cards_per_round(&owner, &2);
-    let round_id = client.create_round(&owner, &Some(Genre::Pop), &1u64, &None);
+    let round_id = client.create_round(&owner, &Some(Genre::Pop), &Vec::new(&env), &None, &0i128);
     let player2 = Address::generate(&env);
-    client.join_round(&player2, &round_id, &None);
+    client.join_round(&player2, &round_id);
 
     assert_eq!(
         client.try_leave_round(&owner, &round_id),
-        Err(Ok(Error::NotAuthorized.into()))
+        Err(Ok(Error::AdminCannotLeave.into()))
     );
     client.start_round(&owner, &round_id);
     client.start_round(&player2, &round_id);
@@ -102,9 +102,9 @@ fn cancel_round_refunds_everyone_and_blocks_join_and_start() {
     let (env, client, owner) = setup();
     seed_cards(&env, &client, &owner, 2);
     client.set_cards_per_round(&owner, &2);
-    let round_id = client.create_round(&owner, &Some(Genre::Pop), &1u64, &None);
+    let round_id = client.create_round(&owner, &Some(Genre::Pop), &Vec::new(&env), &None, &0i128);
     let player2 = Address::generate(&env);
-    client.join_round(&player2, &round_id, &None);
+    client.join_round(&player2, &round_id);
 
     client.cancel_round(&owner, &round_id);
     let events = env.events().all();
@@ -121,7 +121,7 @@ fn cancel_round_refunds_everyone_and_blocks_join_and_start() {
     assert_eq!(client.get_open_rounds(&0, &10).len(), 0);
     let late = Address::generate(&env);
     assert_eq!(
-        client.try_join_round(&late, &round_id, &None),
+        client.try_join_round(&late, &round_id),
         Err(Ok(Error::RoundCancelled.into()))
     );
     assert_eq!(
@@ -140,12 +140,12 @@ fn anyone_can_cancel_only_after_lobby_timeout() {
     seed_cards(&env, &client, &owner, 2);
     client.set_cards_per_round(&owner, &2);
     env.ledger().set_timestamp(1_000);
-    let round_id = client.create_round(&owner, &Some(Genre::Pop), &1u64, &None);
+    let round_id = client.create_round(&owner, &Some(Genre::Pop), &Vec::new(&env), &None, &0i128);
     let stranger = Address::generate(&env);
 
     assert_eq!(
         client.try_cancel_round(&stranger, &round_id),
-        Err(Ok(Error::NotAuthorized.into()))
+        Err(Ok(Error::LobbyTimeoutNotReached.into()))
     );
     env.ledger().set_timestamp(1_000 + LOBBY_TIMEOUT_SECONDS);
     client.cancel_round(&stranger, &round_id);

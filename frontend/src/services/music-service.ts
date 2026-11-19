@@ -1,9 +1,24 @@
 import { env } from '@/env';
-import type { LyricData } from '@/store/types';
-import type { components } from './generated/openapi';
+import type { LyricData } from '@/store/game-types';
 
-export type Song = components['schemas']['Song'];
-export type Category = components['schemas']['Category'];
+/** Song as returned by `GET /songs` (backend `Song` entity). */
+export interface Song {
+  id: string;
+  title: string;
+  artist: string;
+  year: number;
+  genre: string;
+  lyrics: string;
+  difficulty: string;
+  [key: string]: unknown;
+}
+
+/** Category as returned by `GET /categories`. */
+export interface Category {
+  id: string;
+  name: string;
+  [key: string]: unknown;
+}
 
 const getJson = async <T>(path: string): Promise<T> => {
   const response = await fetch(`${env.NEXT_PUBLIC_API_URL}${path}`);
@@ -13,7 +28,10 @@ const getJson = async <T>(path: string): Promise<T> => {
   return response.json() as Promise<T>;
 };
 
-export const fetchSongs = (): Promise<Song[]> => getJson<Song[]>('/songs');
+export const fetchSongs = (genre?: string): Promise<Song[]> =>
+  getJson<Song[]>(
+    genre ? `/songs?genre=${encodeURIComponent(genre)}` : '/songs',
+  );
 
 export const fetchCategories = (): Promise<Category[]> =>
   getJson<Category[]>('/categories');

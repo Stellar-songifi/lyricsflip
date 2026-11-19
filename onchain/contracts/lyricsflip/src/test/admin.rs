@@ -123,9 +123,10 @@ fn error_codes_are_stable() {
         (Error::CardInActiveRound, 44),
         (Error::TooManyOpenRounds, 45),
         (Error::MaxPlayersTooHigh, 46),
-        (Error::InvalidInvite, 47),
-        (Error::LobbyTimeoutNotReached, 48),
-        (Error::AdminCannotLeave, 49),
+        (Error::LobbyExpired, 47),
+        (Error::InvalidInvite, 48),
+        (Error::LobbyTimeoutNotReached, 49),
+        (Error::AdminCannotLeave, 50),
     ];
     for (variant, code) in expected {
         assert_eq!(variant as u32, code, "{:?} was renumbered", variant);

@@ -13,19 +13,19 @@ extern crate upgrade_fixture;
 
 use crate::{
     Answer, AnswerSubmitted, AnswerWindowUpdated, Card, CardAdded, CardDrawn, CardRemoved,
-    CardRevealed, CardUpdated, CardsPerRoundUpdated, ContractUpgraded, Error, Genre, LegacyRound,
-    LobbyTimeoutUpdated, LyricsFlip, LyricsFlipClient, Milestone, QuestionKind, Role, RoleUpdated,
-    RoundBufferUpdated, RoundCancelled, RoundCompleted, RoundDurationUpdated, RoundLeft,
-    SchemaMigrated, CARD_ANSWER_WINDOW_SECONDS, DEFAULT_MAX_PLAYERS, DEFAULT_ROUND_BUFFER_SECONDS,
-    LOBBY_TIMEOUT_SECONDS, MAX_ANSWER_WINDOW_SECONDS, MAX_CARDS_PER_BATCH, MAX_CARDS_PER_ROUND,
-    MAX_LOBBY_TIMEOUT_SECONDS, MAX_LYRICS_LEN, MAX_OPEN_ROUNDS_PER_ADDRESS, MAX_PAGE_LIMIT,
-    MAX_ROUND_BUFFER_SECONDS, MAX_ROUND_DURATION_SECONDS, MAX_ROUND_PLAYERS,
-    MIN_ANSWER_WINDOW_SECONDS, MIN_LOBBY_TIMEOUT_SECONDS, MIN_ROUND_BUFFER_SECONDS,
-    MIN_ROUND_DURATION_SECONDS,
+    CardRevealed, CardUpdated, CardsPerRoundUpdated, ContractUpgraded, DataKey, Error, Genre,
+    LegacyRound, LobbyTimeoutUpdated, LyricsFlip, LyricsFlipClient, Milestone, QuestionKind, Role,
+    RoleUpdated, RoundBufferUpdated, RoundCancelled, RoundCompleted, RoundDurationUpdated,
+    RoundLeft, SchemaMigrated, CARD_ANSWER_WINDOW_SECONDS, DEFAULT_MAX_PLAYERS,
+    DEFAULT_ROUND_BUFFER_SECONDS, LOBBY_TIMEOUT_SECONDS, MAX_ANSWER_WINDOW_SECONDS,
+    MAX_CARDS_PER_BATCH, MAX_CARDS_PER_ROUND, MAX_LOBBY_TIMEOUT_SECONDS, MAX_LYRICS_LEN,
+    MAX_OPEN_ROUNDS_PER_ADDRESS, MAX_PAGE_LIMIT, MAX_ROUND_BUFFER_SECONDS,
+    MAX_ROUND_DURATION_SECONDS, MAX_ROUND_PLAYERS, MIN_ANSWER_WINDOW_SECONDS,
+    MIN_LOBBY_TIMEOUT_SECONDS, MIN_ROUND_BUFFER_SECONDS, MIN_ROUND_DURATION_SECONDS,
 };
 use soroban_sdk::{
     testutils::{Address as _, ContractEvents, Events, Ledger},
-    xdr, Address, BytesN, Env, Event, Map, String, Vec,
+    xdr, Address, Env, Event, Map, String, Vec,
 };
 
 /// 2026-05-28, so cards up to year 2026 pass validation.
@@ -35,6 +35,7 @@ mod admin;
 mod cards;
 mod cards_validation;
 mod config;
+mod finalize;
 mod gameplay;
 mod lifecycle;
 mod lobbies;
@@ -203,6 +204,44 @@ fn parse_year_u64(s: &soroban_sdk::String) -> u64 {
     n
 }
 
+/// Draws the caller's next card and returns the full `Card` (answer
+/// included) straight from contract storage. `next_card` itself only
+/// returns the redacted `QuestionCard` (LF-142), but tests need the answer.
+pub(crate) fn next_card_full(
+    env: &Env,
+    client: &LyricsFlipClient,
+    player: &Address,
+    round_id: u64,
+) -> Card {
+    client.next_card(player, &round_id);
+    current_card_full(env, client, player, round_id)
+}
+
+/// The full `Card` the caller is currently answering in `round_id`.
+pub(crate) fn current_card_full(
+    env: &Env,
+    client: &LyricsFlipClient,
+    player: &Address,
+    round_id: u64,
+) -> Card {
+    env.as_contract(&client.address, || {
+        let idx: u32 = env
+            .storage()
+            .persistent()
+            .get(&DataKey::PlayerCardIndex((round_id, player.clone())))
+            .unwrap();
+        let ids: Vec<u64> = env
+            .storage()
+            .persistent()
+            .get(&DataKey::RoundCards(round_id))
+            .unwrap();
+        env.storage()
+            .persistent()
+            .get(&DataKey::Card(ids.get(idx - 1).unwrap()))
+            .unwrap()
+    })
+}
+
 fn assert_emitted(env: &Env, contract_id: &Address, event: impl Event) {
     let expected = event.to_xdr(env, contract_id);
     assert!(
@@ -243,10 +282,18 @@ fn assert_round_completed_event(
 fn fill_open_lobby_cap(
     client: &LyricsFlipClient,
     creator: &Address,
-    seed_base: u64,
+    _seed_base: u64,
 ) -> std::vec::Vec<u64> {
     (0..MAX_OPEN_ROUNDS_PER_ADDRESS)
-        .map(|i| client.create_round(creator, &Some(Genre::Pop), &(seed_base + i as u64), &None))
+        .map(|_| {
+            client.create_round(
+                creator,
+                &Some(Genre::Pop),
+                &Vec::new(creator.env()),
+                &None,
+                &0i128,
+            )
+        })
         .collect()
 }
 
@@ -261,7 +308,7 @@ fn genre_ids(client: &LyricsFlipClient, owner: &Address, genre: Genre) -> std::v
     let count = client.get_genre_card_count(&genre);
     client.set_cards_per_round(owner, &count);
     let mut ids: std::vec::Vec<u64> = client
-        .get_cards_of_genre(&genre, &1)
+        .get_cards_of_genre(&genre)
         .iter()
         .map(|c| c.card_id)
         .collect();
@@ -300,6 +347,9 @@ fn simulate_eight_player_round(scenario: Simulation) {
                 ..sample_card(&env, Genre::Pop, "Easy Artist", "Easy Song", 1996)
             },
         );
+        // Distractors for the question options; another genre, so the
+        // round still draws the two Pop cards above.
+        seed_cards_genre(&env, &client, &owner, 3, Genre::Rock);
         client.set_cards_per_round(&owner, &2);
     } else {
         seed_cards(&env, &client, &owner, 8);
@@ -307,10 +357,10 @@ fn simulate_eight_player_round(scenario: Simulation) {
     }
 
     let mut players = std::vec![owner.clone()];
-    let round_id = client.create_round(&owner, &Some(Genre::Pop), &123u64, &None);
+    let round_id = client.create_round(&owner, &Some(Genre::Pop), &Vec::new(&env), &None, &0i128);
     for _ in 1..MAX_ROUND_PLAYERS {
         let player = Address::generate(&env);
-        client.join_round(&player, &round_id, &None);
+        client.join_round(&player, &round_id);
         players.push(player);
     }
     for player in players.iter() {
@@ -322,7 +372,7 @@ fn simulate_eight_player_round(scenario: Simulation) {
             let answer_card = |start: u64| {
                 for (i, player) in players.iter().enumerate() {
                     env.ledger().set_timestamp(start);
-                    let card = client.next_card(player, &round_id);
+                    let card = next_card_full(&env, &client, player, round_id);
                     let delay = match (card.difficulty, i) {
                         (3, 0) => 7,
                         (3, 1) => 8,
@@ -357,7 +407,7 @@ fn simulate_eight_player_round(scenario: Simulation) {
         Simulation::ExactTie => {
             for player in players.iter() {
                 env.ledger().set_timestamp(NOW + 10);
-                let card = client.next_card(player, &round_id);
+                let card = next_card_full(&env, &client, player, round_id);
                 env.ledger().set_timestamp(NOW + 12);
                 assert!(client.submit_answer(
                     player,
@@ -369,7 +419,7 @@ fn simulate_eight_player_round(scenario: Simulation) {
         Simulation::AllWrong => {
             for player in players.iter() {
                 env.ledger().set_timestamp(NOW + 10);
-                let _ = client.next_card(player, &round_id);
+                let _ = next_card_full(&env, &client, player, round_id);
                 env.ledger().set_timestamp(NOW + 12);
                 assert!(!client.submit_answer(
                     player,
@@ -380,7 +430,7 @@ fn simulate_eight_player_round(scenario: Simulation) {
         }
         Simulation::Abandoned => {
             env.ledger().set_timestamp(NOW + 10);
-            let card = client.next_card(&owner, &round_id);
+            let card = next_card_full(&env, &client, &owner, round_id);
             env.ledger().set_timestamp(NOW + 11);
             assert!(client.submit_answer(&owner, &round_id, &Answer::Title(card.title.clone())));
             env.ledger()

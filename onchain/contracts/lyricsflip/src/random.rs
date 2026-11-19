@@ -5,7 +5,7 @@ impl LyricsFlip {
     /// deduplication loop.
     ///
     /// Builds an index array `[0, 1, …, limit-1]`, performs a single-pass
-    /// Fisher-Yates shuffle seeded from `(seed, ledger_sequence,
+    /// Fisher-Yates shuffle seeded from `(contract PRNG, ledger_sequence,
     /// ledger_timestamp)`, and returns the first `amount` elements. This
     /// replaces the old SHA-256 + dedup loop which had coupon-collector
     /// worst-case cost when `amount ≈ limit`.
@@ -15,7 +15,6 @@ impl LyricsFlip {
     /// same offset used by the old implementation).
     pub(crate) fn get_random_numbers(
         env: &Env,
-        seed: u64,
         amount: u64,
         limit: u64,
         for_index: bool,
@@ -38,7 +37,7 @@ impl LyricsFlip {
         let sequence = env.ledger().sequence() as u64;
         let timestamp = env.ledger().timestamp();
         let mut buf = [0u8; 32];
-        buf[0..8].copy_from_slice(&seed.to_be_bytes());
+        buf[0..8].copy_from_slice(&env.prng().gen::<u64>().to_be_bytes());
         buf[8..16].copy_from_slice(&sequence.to_be_bytes());
         buf[16..24].copy_from_slice(&timestamp.to_be_bytes());
         // last 8 bytes left zero — distinguishes this from per-iteration hashes

@@ -60,28 +60,28 @@ fn get_cards_of_genre_returns_requested_amount() {
     seed_cards(&env, &client, &owner, 6);
     client.set_cards_per_round(&owner, &4);
 
-    let cards = client.get_cards_of_genre(&Genre::Pop, &99u64);
+    let cards = client.get_cards_of_genre(&Genre::Pop);
     assert_eq!(cards.len(), 4);
 }
 
 #[test]
 fn get_cards_of_genre_errors_when_empty() {
     let (_env, client, _owner) = setup();
-    let result = client.try_get_cards_of_genre(&Genre::Jazz, &1u64);
+    let result = client.try_get_cards_of_genre(&Genre::Jazz);
     assert!(result.is_err());
 }
 
 #[test]
 fn get_cards_of_a_year_errors_when_empty() {
     let (_env, client, _owner) = setup();
-    let result = client.try_get_cards_of_a_year(&1975u64, &1u64);
+    let result = client.try_get_cards_of_a_year(&1975u64);
     assert!(result.is_err());
 }
 
 #[test]
 fn get_cards_of_artist_errors_when_no_cards() {
     let (env, client, _owner) = setup();
-    let result = client.try_get_cards_of_artist(&String::from_str(&env, "Nobody"), &1u64);
+    let result = client.try_get_cards_of_artist(&String::from_str(&env, "Nobody"));
     assert!(result.is_err());
 }
 
@@ -110,7 +110,7 @@ fn get_cards_of_artist_returns_requested_amount() {
     );
     client.set_cards_per_round(&owner, &2);
 
-    let cards = client.get_cards_of_artist(&String::from_str(&env, "The Same Artist"), &3u64);
+    let cards = client.get_cards_of_artist(&String::from_str(&env, "The Same Artist"));
     assert_eq!(cards.len(), 2);
 }
 
@@ -133,7 +133,7 @@ fn get_cards_of_year_returns_requested_amount() {
     }
     client.set_cards_per_round(&owner, &2);
 
-    let cards = client.get_cards_of_a_year(&1990u64, &55u64);
+    let cards = client.get_cards_of_a_year(&1990u64);
     assert_eq!(cards.len(), 2);
 }
 
@@ -180,7 +180,7 @@ fn lf161_artist_index_is_case_insensitive() {
     );
     client.set_cards_per_round(&owner, &2);
     for lookup in ["Drake", "drake", "DRAKE"] {
-        let cards = client.get_cards_of_artist(&String::from_str(&env, lookup), &1);
+        let cards = client.get_cards_of_artist(&String::from_str(&env, lookup));
         assert_eq!(cards.len(), 2, "lookup {lookup} should match both cards");
     }
 }
@@ -346,12 +346,12 @@ fn lf176_round_survives_removal_of_a_card_it_uses() {
     seed_cards(&env, &client, &owner, 6);
     client.set_cards_per_round(&owner, &3);
 
-    let round_id = client.create_round(&owner, &Some(Genre::Pop), &176u64, &None);
+    let round_id = client.create_round(&owner, &Some(Genre::Pop), &Vec::new(&env), &None, &0i128);
     client.start_round(&owner, &round_id);
 
     // Draw the first card, remember its id (ids start at 1) and title.
     env.ledger().set_timestamp(NOW + 5);
-    let first = client.next_card(&owner, &round_id);
+    let first = next_card_full(&env, &client, &owner, round_id);
     let first_id = first.card_id;
 
     // Admin removes that very card mid-round.
@@ -377,7 +377,7 @@ fn lf176_round_survives_removal_of_a_card_it_uses() {
     // Play out the remaining cards without any panic.
     for i in 0..2u64 {
         env.ledger().set_timestamp(NOW + 35 + i * 30);
-        let card = client.next_card(&owner, &round_id);
+        let card = next_card_full(&env, &client, &owner, round_id);
         env.ledger().set_timestamp(NOW + 38 + i * 30);
         client.submit_answer(&owner, &round_id, &Answer::Title(card.title.clone()));
     }
@@ -399,10 +399,10 @@ fn lf176_update_card_rejects_answer_change_on_live_round() {
     seed_cards(&env, &client, &owner, 4);
     client.set_cards_per_round(&owner, &2);
 
-    let round_id = client.create_round(&owner, &Some(Genre::Pop), &177u64, &None);
+    let round_id = client.create_round(&owner, &Some(Genre::Pop), &Vec::new(&env), &None, &0i128);
     client.start_round(&owner, &round_id);
     env.ledger().set_timestamp(NOW + 5);
-    let card = client.next_card(&owner, &round_id);
+    let card = next_card_full(&env, &client, &owner, round_id);
 
     // Changing a non-answer field (difficulty) is allowed.
     let mut cosmetic = card.clone();
@@ -420,7 +420,7 @@ fn lf176_update_card_rejects_answer_change_on_live_round() {
     // Play out the round: answer the first card, draw and answer the second.
     client.submit_answer(&owner, &round_id, &Answer::Title(card.title.clone()));
     env.ledger().set_timestamp(NOW + 35);
-    let second = client.next_card(&owner, &round_id);
+    let second = next_card_full(&env, &client, &owner, round_id);
     env.ledger().set_timestamp(NOW + 38);
     client.submit_answer(&owner, &round_id, &Answer::Title(second.title.clone()));
 

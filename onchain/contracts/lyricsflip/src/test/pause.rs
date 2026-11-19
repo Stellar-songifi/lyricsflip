@@ -11,17 +11,17 @@ fn pause_blocks_create_round_join_round_and_claim_reward() {
     client.set_cards_per_round(&owner, &2);
 
     // A round created before the pause stays joinable only until pause lands.
-    let round_id = client.create_round(&owner, &Some(Genre::Pop), &1u64, &None);
+    let round_id = client.create_round(&owner, &Some(Genre::Pop), &Vec::new(&env), &None, &0i128);
 
     client.pause(&owner);
     assert!(client.is_paused());
 
     assert_eq!(
-        client.try_create_round(&owner, &Some(Genre::Pop), &2u64, &None),
+        client.try_create_round(&owner, &Some(Genre::Pop), &Vec::new(&env), &None, &0i128),
         Err(Ok(Error::Paused.into()))
     );
     assert_eq!(
-        client.try_join_round(&Address::generate(&env), &round_id, &None),
+        client.try_join_round(&Address::generate(&env), &round_id),
         Err(Ok(Error::Paused.into()))
     );
     assert_eq!(
@@ -52,9 +52,9 @@ fn unpause_restores_create_round_join_round_and_claim() {
     client.unpause(&owner);
     assert!(!client.is_paused());
 
-    let round_id = client.create_round(&owner, &Some(Genre::Pop), &1u64, &None);
+    let round_id = client.create_round(&owner, &Some(Genre::Pop), &Vec::new(&env), &None, &0i128);
     let player2 = Address::generate(&env);
-    client.join_round(&player2, &round_id, &None);
+    client.join_round(&player2, &round_id);
     assert_eq!(client.get_players_round_count(&round_id), 2);
 
     // Claim paths are reachable again (the milestone itself is still unmet).
@@ -84,9 +84,9 @@ fn leave_round_refunds_while_paused() {
     let (env, client, owner) = setup();
     seed_cards(&env, &client, &owner, 2);
     client.set_cards_per_round(&owner, &2);
-    let round_id = client.create_round(&owner, &Some(Genre::Pop), &1u64, &None);
+    let round_id = client.create_round(&owner, &Some(Genre::Pop), &Vec::new(&env), &None, &0i128);
     let player2 = Address::generate(&env);
-    client.join_round(&player2, &round_id, &None);
+    client.join_round(&player2, &round_id);
 
     client.pause(&owner);
 
@@ -108,9 +108,9 @@ fn cancel_round_refunds_everyone_while_paused() {
     let (env, client, owner) = setup();
     seed_cards(&env, &client, &owner, 2);
     client.set_cards_per_round(&owner, &2);
-    let round_id = client.create_round(&owner, &Some(Genre::Pop), &1u64, &None);
+    let round_id = client.create_round(&owner, &Some(Genre::Pop), &Vec::new(&env), &None, &0i128);
     let player2 = Address::generate(&env);
-    client.join_round(&player2, &round_id, &None);
+    client.join_round(&player2, &round_id);
 
     client.pause(&owner);
 
@@ -148,8 +148,8 @@ fn upgrade_keeps_state_and_changes_version() {
             .remove(&crate::DataKey::SchemaVersion);
     });
 
-    // Initial code version and schema version must be 1
-    assert_eq!(client.version(), 1);
+    // Initial code version is VERSION; schema version defaults to 1
+    assert_eq!(client.version(), crate::VERSION);
     assert_eq!(client.schema_version(), 1);
 
     // 2. Upload the v2 fixture WASM
@@ -173,8 +173,8 @@ fn upgrade_keeps_state_and_changes_version() {
         ContractUpgraded {
             owner: owner.clone(),
             new_wasm_hash: hash.clone(),
-            old_version: 1,
-            new_version: 1,
+            old_version: crate::VERSION,
+            new_version: crate::VERSION,
         },
     );
 
@@ -243,7 +243,7 @@ fn upgrade_keeps_state_and_changes_version() {
 #[test]
 fn admin_and_gameplay_mutations_emit_events() {
     let (env, client, owner) = setup();
-    seed_cards(&env, &client, &owner, 3);
+    seed_cards(&env, &client, &owner, 4);
 
     client.set_cards_per_round(&owner, &2);
     assert_emitted(&env, &client.address, CardsPerRoundUpdated { value: 2 });
@@ -260,10 +260,11 @@ fn admin_and_gameplay_mutations_emit_events() {
         },
     );
 
-    let round_id = client.create_round(&owner, &Some(Genre::Pop), &1u64, &None);
+    let round_id = client.create_round(&owner, &Some(Genre::Pop), &Vec::new(&env), &None, &0i128);
     client.start_round(&owner, &round_id);
-    let card = client.next_card(&owner, &round_id);
+    client.next_card(&owner, &round_id);
     assert_emitted(&env, &client.address, CardDrawn { round_id, index: 0 });
+    let card = current_card_full(&env, &client, &owner, round_id);
 
     let correct = client.submit_answer(&owner, &round_id, &Answer::Title(card.title.clone()));
     assert!(correct);
@@ -282,7 +283,7 @@ fn admin_and_gameplay_mutations_emit_events() {
 #[test]
 fn faster_correct_answers_earn_more_points_and_wrong_answers_earn_zero() {
     let (env, client, owner) = setup();
-    for i in 0..3u64 {
+    for i in 0..4u64 {
         client.add_card(
             &owner,
             &Card {
@@ -299,20 +300,20 @@ fn faster_correct_answers_earn_more_points_and_wrong_answers_earn_zero() {
     }
     client.set_cards_per_round(&owner, &1);
 
-    let round_id = client.create_round(&owner, &Some(Genre::Pop), &5u64, &None);
+    let round_id = client.create_round(&owner, &Some(Genre::Pop), &Vec::new(&env), &None, &0i128);
     let fast = Address::generate(&env);
     let slow = Address::generate(&env);
     let wrong = Address::generate(&env);
-    client.join_round(&fast, &round_id, &None);
-    client.join_round(&slow, &round_id, &None);
-    client.join_round(&wrong, &round_id, &None);
+    client.join_round(&fast, &round_id);
+    client.join_round(&slow, &round_id);
+    client.join_round(&wrong, &round_id);
     for player in [&owner, &fast, &slow, &wrong] {
         client.start_round(player, &round_id);
     }
 
     let drawn_at = NOW + 10;
     env.ledger().set_timestamp(drawn_at);
-    let card = client.next_card(&owner, &round_id);
+    let card = next_card_full(&env, &client, &owner, round_id);
     for player in [&fast, &slow, &wrong] {
         client.next_card(player, &round_id);
     }

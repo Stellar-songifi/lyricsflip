@@ -1,4 +1,4 @@
-import type { LyricData } from '@/store/types';
+import type { LyricData } from '@/store/game-types';
 
 export const MOCK_LYRICS: LyricData[] = [
   {

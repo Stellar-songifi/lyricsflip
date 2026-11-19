@@ -164,22 +164,19 @@ fn update_card_moves_indexes() {
     client.set_cards_per_round(&owner, &1);
     let artist_z = String::from_str(&env, "Artist Z");
     assert_eq!(
-        sorted_ids(client.get_cards_of_artist(&artist_z, &1)),
+        sorted_ids(client.get_cards_of_artist(&artist_z)),
         std::vec![a]
     );
-    assert_eq!(
-        sorted_ids(client.get_cards_of_a_year(&2005, &1)),
-        std::vec![a]
-    );
+    assert_eq!(sorted_ids(client.get_cards_of_a_year(&2005)), std::vec![a]);
 
     client.set_cards_per_round(&owner, &2);
     let artist_a = String::from_str(&env, "Artist A");
     assert_eq!(
-        sorted_ids(client.get_cards_of_artist(&artist_a, &1)),
+        sorted_ids(client.get_cards_of_artist(&artist_a)),
         std::vec![b, c]
     );
     assert_eq!(
-        sorted_ids(client.get_cards_of_a_year(&1999, &1)),
+        sorted_ids(client.get_cards_of_a_year(&1999)),
         std::vec![b, c]
     );
 
@@ -236,11 +233,11 @@ fn remove_card_keeps_indexes_consistent() {
     assert_eq!(genre_ids(&client, &owner, Genre::Pop), std::vec![b, c]);
     let artist_a = String::from_str(&env, "Artist A");
     assert_eq!(
-        sorted_ids(client.get_cards_of_artist(&artist_a, &1)),
+        sorted_ids(client.get_cards_of_artist(&artist_a)),
         std::vec![b, c]
     );
     assert_eq!(
-        sorted_ids(client.get_cards_of_a_year(&1999, &1)),
+        sorted_ids(client.get_cards_of_a_year(&1999)),
         std::vec![b, c]
     );
 
@@ -248,16 +245,13 @@ fn remove_card_keeps_indexes_consistent() {
     client.remove_card(&owner, &c);
     client.set_cards_per_round(&owner, &1);
     assert_eq!(genre_ids(&client, &owner, Genre::Pop), std::vec![b]);
-    assert_eq!(
-        sorted_ids(client.get_cards_of_a_year(&1999, &1)),
-        std::vec![b]
-    );
+    assert_eq!(sorted_ids(client.get_cards_of_a_year(&1999)), std::vec![b]);
 
     client.remove_card(&owner, &b);
     assert_eq!(client.get_cards_count(), 0);
     assert_eq!(client.get_genre_card_count(&Genre::Pop), 0);
     assert_eq!(
-        client.try_get_cards_of_artist(&artist_a, &1),
+        client.try_get_cards_of_artist(&artist_a),
         Err(Ok(Error::ArtistCardsIsZero.into()))
     );
     assert_eq!(
@@ -319,9 +313,9 @@ fn add_cards_batch_of_20_returns_sequential_ids() {
 
     client.set_cards_per_round(&owner, &7);
     let artist0 = String::from_str(&env, "Artist 0");
-    assert_eq!(client.get_cards_of_artist(&artist0, &1).len(), 7);
+    assert_eq!(client.get_cards_of_artist(&artist0).len(), 7);
     client.set_cards_per_round(&owner, &4);
-    assert_eq!(client.get_cards_of_a_year(&1990, &1).len(), 4);
+    assert_eq!(client.get_cards_of_a_year(&1990).len(), 4);
 }
 
 #[test]
@@ -410,13 +404,13 @@ fn add_card_cost_does_not_grow_with_index_size() {
 #[test]
 fn answer_after_card_window_is_scored_as_wrong() {
     let (env, client, owner) = setup();
-    seed_cards(&env, &client, &owner, 1);
+    seed_cards(&env, &client, &owner, 4);
     client.set_cards_per_round(&owner, &1);
-    let round_id = client.create_round(&owner, &Some(Genre::Pop), &1u64, &None);
+    let round_id = client.create_round(&owner, &Some(Genre::Pop), &Vec::new(&env), &None, &0i128);
     client.start_round(&owner, &round_id);
 
     env.ledger().set_timestamp(10);
-    let card = client.next_card(&owner, &round_id);
+    let card = next_card_full(&env, &client, &owner, round_id);
     env.ledger()
         .set_timestamp(10 + CARD_ANSWER_WINDOW_SECONDS + 1);
     assert!(!client.submit_answer(&owner, &round_id, &Answer::Title(card.title.clone())));

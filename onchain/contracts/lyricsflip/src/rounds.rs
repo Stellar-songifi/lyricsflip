@@ -1,19 +1,38 @@
 use crate::*;
 
 impl LyricsFlip {
+    #[allow(clippy::too_many_arguments)]
     pub(crate) fn create_round_internal(
         env: &Env,
         caller: Address,
         filter: RoundFilter,
         difficulty: Option<u32>,
-        seed: u64,
-        invite_hash: Option<BytesN<32>>,
+        invitees: Vec<Address>,
         solo: bool,
+        max_players: Option<u32>,
+        wager_token: Option<Address>,
+        wager_amount: i128,
     ) -> u64 {
         caller.require_auth();
+        let global_max = Self::get_max_players((*env).clone());
+        let max_players = match max_players {
+            Some(value) if value < 2 => panic_with_error!(env, Error::InvalidMaxPlayers),
+            Some(value) if value > global_max => {
+                panic_with_error!(env, Error::MaxPlayersTooHigh)
+            }
+            Some(value) => value,
+            None => global_max,
+        };
+        let is_private = !invitees.is_empty();
+        if wager_amount < 0 {
+            panic_with_error!(env, Error::InvalidRoundDuration);
+        }
+        if wager_amount > 0 && wager_token.is_none() {
+            panic_with_error!(env, Error::NotAuthorized);
+        }
         // LF-175: cap public open lobbies per address. Private and solo
         // rounds never appear in `OpenRounds`, so they are exempt.
-        if !solo && invite_hash.is_none() {
+        if !solo && !is_private {
             let open_count = Self::open_rounds_of(env, &caller);
             if open_count >= MAX_OPEN_ROUNDS_PER_ADDRESS {
                 panic_with_error!(env, Error::TooManyOpenRounds);
@@ -31,48 +50,7 @@ impl LyricsFlip {
         Self::require_not_paused(&env);
 
         let amount = Self::get_cards_per_round((*env).clone()) as u64;
-        let source = filter.genre.map(Index::Genre).unwrap_or(Index::All);
-        let source_count = Self::index_len(env, &source);
-        if source_count == 0 && filter.genre.is_some() {
-            panic_with_error!(env, Error::EmptyGenreCards);
-        }
-
-        let mut cards: Vec<u64> = Vec::new(env);
-        if filter.decade.is_none() && difficulty.is_none() {
-            if (source_count as u64) < amount {
-                panic_with_error!(env, Error::AmountExceedsLimit);
-            }
-            for idx in Self::get_random_numbers(env, seed, amount, source_count as u64, true).iter()
-            {
-                cards.push_back(Self::index_get(env, &source, idx as u32));
-            }
-        } else {
-            let mut eligible = Vec::new(env);
-            let scan_count = source_count.min(MAX_ROUND_FILTER_SCAN);
-            for i in 0..scan_count {
-                let card_id = Self::index_get(env, &source, i);
-                let card = Self::read_card(env, card_id);
-                let matches_decade = filter
-                    .decade
-                    .map(|decade| card.year / 10 * 10 == decade)
-                    .unwrap_or(true);
-                let matches_difficulty = difficulty
-                    .map(|value| card.difficulty == value)
-                    .unwrap_or(true);
-                if matches_decade && matches_difficulty {
-                    eligible.push_back(card_id);
-                }
-            }
-
-            if (eligible.len() as u64) < amount {
-                panic_with_error!(env, Error::AmountExceedsLimit);
-            }
-            for idx in
-                Self::get_random_numbers(env, seed, amount, eligible.len() as u64, true).iter()
-            {
-                cards.push_back(eligible.get(idx as u32).unwrap());
-            }
-        }
+        let cards = Self::draw_round_cards(env, &filter, difficulty, amount);
         if filter.genre.is_none() && cards.is_empty() {
             panic_with_error!(env, Error::InvalidCardsPerRound);
         }
@@ -104,7 +82,8 @@ impl LyricsFlip {
             round_id,
             admin: caller.clone(),
             genre,
-            wager_amount: 0,
+            wager_amount: wager_amount,
+            wager_token: wager_token.clone(),
             start_time: 0,
             is_started: false,
             is_completed: false,
@@ -114,8 +93,9 @@ impl LyricsFlip {
             answer_window,
             lobby_timeout,
             round_duration,
-            is_private: invite_hash.is_some(),
+            is_private,
             solo: false,
+            max_players,
         };
 
         let mut players: Vec<Address> = Vec::new(&env);
@@ -124,18 +104,18 @@ impl LyricsFlip {
             .persistent()
             .set(&DataKey::RoundPlayers(round_id), &players);
         bump_persistent(&env, &DataKey::RoundPlayers(round_id));
+        Self::push_player_round(&env, &caller, round_id);
+        set_persistent(&env, &DataKey::RoundPlayers(round_id), &players);
 
-        env.storage()
-            .persistent()
-            .set(&DataKey::RoundCards(round_id), &cards);
-        bump_persistent(&env, &DataKey::RoundCards(round_id));
+        set_persistent(&env, &DataKey::RoundCards(round_id), &cards);
 
-        // LF-162: remember the invite preimage hash for private rounds.
-        if let Some(hash) = invite_hash {
+        // LF-264: remember the allowlist for private rounds. The round
+        // creator is implicitly allowed to join their own round.
+        if is_private {
             env.storage()
                 .persistent()
-                .set(&DataKey::RoundInviteHash(round_id), &hash);
-            bump_persistent(&env, &DataKey::RoundInviteHash(round_id));
+                .set(&DataKey::RoundInvitees(round_id), &invitees);
+            bump_persistent(&env, &DataKey::RoundInvitees(round_id));
         }
 
         // LF-176: track which rounds reference each card so `update_card`
@@ -144,24 +124,45 @@ impl LyricsFlip {
             Self::add_live_round(env, card_id, round_id);
         }
 
-        env.storage()
-            .persistent()
-            .set(&DataKey::Round(round_id), &round);
-        bump_persistent(&env, &DataKey::Round(round_id));
+        set_persistent(&env, &DataKey::Round(round_id), &round);
 
-        env.storage().persistent().set(
+        set_persistent(
+            &env,
             &DataKey::RoundCreatedAt(round_id),
             &env.ledger().timestamp(),
         );
+
+        if wager_amount > 0 {
+            let escrow = env
+                .storage()
+                .instance()
+                .get::<_, Address>(&DataKey::EscrowContract)
+                .unwrap_or_else(|| panic_with_error!(env, Error::NotAuthorized));
+            let token_address = wager_token.clone().unwrap();
+            let client = EscrowClient::new(env, &escrow);
+            client.create_round(&round_id, &caller, &token_address);
+            client.deposit(&round_id, &caller, &wager_amount);
+        }
 
         // LF-162: private rounds are not discoverable in the public lobby.
         // LF-175: solo rounds skip the lobby entirely, so they neither
         // appear in nor consume a slot from `OpenRounds`.
         if !round.is_private && !solo {
-            let mut open = Self::read_open_rounds(env);
-            open.push_back(round_id);
-            env.storage().persistent().set(&DataKey::OpenRounds, &open);
-            bump_persistent(env, &DataKey::OpenRounds);
+            // LF-265: lazily prune expired lobbies so `OpenRounds` does not
+            // grow without bound when nobody cancels them.
+            let now = env.ledger().timestamp();
+            let open = Self::read_open_rounds(env);
+            let mut pruned: Vec<u64> = Vec::new(env);
+            for id in open.iter() {
+                if Self::is_lobby_expired(env, id, now) {
+                    let expired = Self::read_round(env, id);
+                    Self::dec_open_rounds_of(env, &expired.admin);
+                } else {
+                    pruned.push_back(id);
+                }
+            }
+            pruned.push_back(round_id);
+            set_persistent(env, &DataKey::OpenRounds, &pruned);
             Self::inc_open_rounds_of(env, &caller);
         }
 
@@ -177,60 +178,21 @@ impl LyricsFlip {
         round_id
     }
 
-    pub(crate) fn is_round_player(env: &Env, round_id: u64, player: &Address) -> bool {
-        let players = Self::read_round_players(env, round_id);
-        for p in players.iter() {
-            if p == *player {
-                return true;
-            }
-        }
-        false
-    }
-
-    /// A round constrains its cards' answer fields until it is finalized or
-    /// cancelled, or until it can no longer be played at all. Rounds whose
-    /// deadline (or lobby timeout) has passed are skipped so abandoned
-    /// rounds can never permanently freeze a card.
-    pub(crate) fn is_round_live(env: &Env, round_id: u64) -> bool {
-        if env
-            .storage()
-            .persistent()
-            .get(&DataKey::RoundFinalized(round_id))
-            .unwrap_or(false)
-        {
-            return false;
-        }
-        let round = Self::read_round(env, round_id);
-        if round.is_cancelled || round.is_completed {
-            return false;
-        }
-        let now = env.ledger().timestamp();
-        if round.is_started {
-            now < round.end_time
-        } else {
-            let created_at: u64 = env
-                .storage()
-                .persistent()
-                .get(&DataKey::RoundCreatedAt(round_id))
-                .unwrap_or(0);
-            now < created_at + round.lobby_timeout
-        }
-    }
-
-    pub(crate) fn assert_round_pending(env: &Env, round: &Round) {
-        if round.is_cancelled {
-            panic_with_error!(env, Error::RoundCancelled);
-        }
-        if round.is_started {
-            panic_with_error!(env, Error::RoundAlreadyStarted);
-        }
-    }
+    // ---- LF-175: open-lobby cap per address ----
 
     /// Returns the wager refunded to `player`. Wagers are not escrowed yet
     /// (see LF-013), so this only reports `round.wager_amount`; once escrow
     /// lands, the token transfer back to `player` belongs here.
-    pub(crate) fn refund_wager(_env: &Env, round: &Round, _player: &Address) -> i128 {
-        round.wager_amount
+    pub(crate) fn refund_wager(env: &Env, round: &Round, player: &Address) -> i128 {
+        if round.wager_amount == 0 {
+            return 0;
+        }
+        let escrow = env
+            .storage()
+            .instance()
+            .get::<_, Address>(&DataKey::EscrowContract)
+            .unwrap_or_else(|| panic_with_error!(env, Error::NotAuthorized));
+        EscrowClient::new(env, &escrow).refund(&round.round_id, player)
     }
 }
 
@@ -239,15 +201,17 @@ pub(crate) fn get_round(env: Env, round_id: u64) -> Round {
 }
 
 pub(crate) fn get_round_cards(env: Env, caller: Address, round_id: u64) -> Vec<u64> {
-    caller.require_auth();
     let round = LyricsFlip::read_round(&env, round_id);
     let finalized: bool = env
         .storage()
         .persistent()
         .get(&DataKey::RoundFinalized(round_id))
         .unwrap_or(false);
-    if round.is_started && !finalized && !LyricsFlip::is_admin(env.clone(), Role::Admin, caller) {
-        panic_with_error!(env, Error::NotAuthorized);
+    if !finalized && !round.is_cancelled {
+        if !LyricsFlip::is_admin(env.clone(), Role::Admin, caller.clone()) {
+            panic_with_error!(env, Error::RoundNotReady);
+        }
+        caller.require_auth();
     }
     LyricsFlip::read_round_cards(&env, round_id)
 }
@@ -283,21 +247,30 @@ pub(crate) fn get_rounds(env: Env, start: u64, limit: u32) -> Vec<Round> {
 
 pub(crate) fn get_open_rounds(env: Env, start: u32, limit: u32) -> Vec<u64> {
     let open = LyricsFlip::read_open_rounds(&env);
+    // LF-265: expired lobbies can only be cancelled, so never list them.
+    let now = env.ledger().timestamp();
+    let mut live: Vec<u64> = Vec::new(&env);
+    for round_id in open.iter() {
+        if !LyricsFlip::is_lobby_expired(&env, round_id, now) {
+            live.push_back(round_id);
+        }
+    }
     let end = start
         .saturating_add(limit.min(MAX_PAGE_LIMIT))
-        .min(open.len());
+        .min(live.len());
     if start >= end {
         return Vec::new(&env);
     }
-    open.slice(start..end)
+    live.slice(start..end)
 }
 
 pub(crate) fn create_round(
     env: Env,
     caller: Address,
     genre: Option<Genre>,
-    seed: u64,
-    invite_hash: Option<BytesN<32>>,
+    invitees: Vec<Address>,
+    wager_token: Option<Address>,
+    wager_amount: i128,
 ) -> u64 {
     if genre.is_none() {
         panic_with_error!(env, Error::NonExistingGenre);
@@ -310,9 +283,37 @@ pub(crate) fn create_round(
             decade: None,
         },
         None,
-        seed,
-        invite_hash,
+        invitees,
         false,
+        None,
+        wager_token,
+        wager_amount,
+    )
+}
+
+pub(crate) fn create_round_with_max_players(
+    env: Env,
+    caller: Address,
+    genre: Option<Genre>,
+    invitees: Vec<Address>,
+    max_players: Option<u32>,
+) -> u64 {
+    if genre.is_none() {
+        panic_with_error!(env, Error::NonExistingGenre);
+    }
+    LyricsFlip::create_round_internal(
+        &env,
+        caller,
+        RoundFilter {
+            genre,
+            decade: None,
+        },
+        None,
+        invitees,
+        false,
+        max_players,
+        None,
+        0,
     )
 }
 
@@ -321,9 +322,11 @@ pub(crate) fn create_round_with_filter(
     caller: Address,
     filter: RoundFilter,
     difficulty: Option<u32>,
-    seed: u64,
+    invitees: Vec<Address>,
 ) -> u64 {
-    LyricsFlip::create_round_internal(&env, caller, filter, difficulty, seed, None, false)
+    LyricsFlip::create_round_internal(
+        &env, caller, filter, difficulty, invitees, false, None, None, 0,
+    )
 }
 
 pub(crate) fn start_round(env: Env, caller: Address, round_id: u64) {
@@ -338,6 +341,10 @@ pub(crate) fn start_round(env: Env, caller: Address, round_id: u64) {
     if !is_round_admin && !is_participant {
         panic_with_error!(env, Error::NotAuthorized);
     }
+    // LF-265: an expired lobby can only be cancelled.
+    if LyricsFlip::is_lobby_expired(&env, round_id, env.ledger().timestamp()) {
+        panic_with_error!(env, Error::LobbyExpired);
+    }
 
     let ready_key = DataKey::RoundReady((round_id, caller.clone()));
     let already_ready: bool = env.storage().persistent().get(&ready_key).unwrap_or(false);
@@ -347,8 +354,7 @@ pub(crate) fn start_round(env: Env, caller: Address, round_id: u64) {
 
     let players = LyricsFlip::read_round_players(&env, round_id);
 
-    env.storage().persistent().set(&ready_key, &true);
-    bump_persistent(&env, &ready_key);
+    set_persistent(&env, &ready_key, &true);
 
     let ready_count_key = DataKey::RoundReadyCount(round_id);
     let ready_count: u32 = env
@@ -357,10 +363,7 @@ pub(crate) fn start_round(env: Env, caller: Address, round_id: u64) {
         .get(&ready_count_key)
         .unwrap_or(0)
         + 1;
-    env.storage()
-        .persistent()
-        .set(&ready_count_key, &ready_count);
-    bump_persistent(&env, &ready_count_key);
+    set_persistent(&env, &ready_count_key, &ready_count);
 
     PlayerReady {
         round_id,
@@ -377,20 +380,14 @@ pub(crate) fn start_round(env: Env, caller: Address, round_id: u64) {
         for player in players.iter() {
             let mut stats = LyricsFlip::get_player_stat(env.clone(), player.clone());
             stats.total_rounds += 1;
-            env.storage()
-                .persistent()
-                .set(&DataKey::PlayerStats(player.clone()), &stats);
-            bump_persistent(&env, &DataKey::PlayerStats(player));
+            set_persistent(&env, &DataKey::PlayerStats(player.clone()), &stats);
         }
 
         let start_time = env.ledger().timestamp();
         round.start_time = start_time;
         round.end_time = start_time + round.round_duration;
         round.is_started = true;
-        env.storage()
-            .persistent()
-            .set(&DataKey::Round(round_id), &round);
-        bump_persistent(&env, &DataKey::Round(round_id));
+        set_persistent(&env, &DataKey::Round(round_id), &round);
 
         LyricsFlip::remove_open_round(&env, round_id, &round.admin);
 
@@ -405,7 +402,7 @@ pub(crate) fn start_round(env: Env, caller: Address, round_id: u64) {
     }
 }
 
-pub(crate) fn join_round(env: Env, caller: Address, round_id: u64, invite_code: Option<String>) {
+pub(crate) fn join_round(env: Env, caller: Address, round_id: u64) {
     caller.require_auth();
     // LF-277: paused, exists, cancelled, started, joined, full, invite.
     LyricsFlip::require_not_paused(&env);
@@ -417,31 +414,29 @@ pub(crate) fn join_round(env: Env, caller: Address, round_id: u64, invite_code: 
     if round.is_started {
         panic_with_error!(env, Error::RoundAlreadyStarted);
     }
+    // LF-265: an expired lobby can only be cancelled.
+    if LyricsFlip::is_lobby_expired(&env, round_id, env.ledger().timestamp()) {
+        panic_with_error!(env, Error::LobbyExpired);
+    }
     if LyricsFlip::is_round_player(&env, round_id, &caller) {
         panic_with_error!(env, Error::RoundAlreadyJoined);
     }
 
     let mut players = LyricsFlip::read_round_players(&env, round_id);
-    if players.len() >= LyricsFlip::get_max_players(env.clone()) {
+    if players.len() >= round.max_players {
         panic_with_error!(env, Error::RoundFull);
     }
-    // LF-162: private rounds require the preimage of RoundInviteHash.
-    if let Some(expected) = env
-        .storage()
-        .persistent()
-        .get::<_, BytesN<32>>(&DataKey::RoundInviteHash(round_id))
-    {
-        let provided = invite_code.unwrap_or_else(|| panic_with_error!(env, Error::InvalidInvite));
-        let hash = env.crypto().sha256(&provided.to_bytes());
-        if hash.to_array() != expected.to_array() {
-            panic_with_error!(env, Error::InvalidInvite);
-        }
+    // LF-264: private rounds are gated by the stored allowlist.
+    if round.is_private && !LyricsFlip::is_round_invitee(&env, round_id, &caller) {
+        panic_with_error!(env, Error::InvalidInvite);
     }
     players.push_back(caller.clone());
     env.storage()
         .persistent()
         .set(&DataKey::RoundPlayers(round_id), &players);
     bump_persistent(&env, &DataKey::RoundPlayers(round_id));
+    LyricsFlip::push_player_round(&env, &caller, round_id);
+    set_persistent(&env, &DataKey::RoundPlayers(round_id), &players);
 
     RoundJoined {
         round_id,
@@ -467,6 +462,8 @@ pub(crate) fn leave_round(env: Env, caller: Address, round_id: u64) {
     env.storage()
         .persistent()
         .set(&DataKey::RoundPlayers(round_id), &players);
+    LyricsFlip::remove_player_round(&env, &caller, round_id);
+    set_persistent(&env, &DataKey::RoundPlayers(round_id), &players);
 
     let ready_key = DataKey::RoundReady((round_id, caller.clone()));
     if env.storage().persistent().get(&ready_key).unwrap_or(false) {
@@ -477,9 +474,7 @@ pub(crate) fn leave_round(env: Env, caller: Address, round_id: u64) {
             .persistent()
             .get(&ready_count_key)
             .unwrap_or(0);
-        env.storage()
-            .persistent()
-            .set(&ready_count_key, &ready_count.saturating_sub(1));
+        set_persistent(&env, &ready_count_key, &ready_count.saturating_sub(1));
     }
 
     let refunded = LyricsFlip::refund_wager(&env, &round, &caller);
@@ -509,9 +504,7 @@ pub(crate) fn cancel_round(env: Env, caller: Address, round_id: u64) {
 
     round.is_cancelled = true;
     round.end_time = env.ledger().timestamp();
-    env.storage()
-        .persistent()
-        .set(&DataKey::Round(round_id), &round);
+    set_persistent(&env, &DataKey::Round(round_id), &round);
     LyricsFlip::remove_open_round(&env, round_id, &round.admin);
     // LF-176: a cancelled round no longer constrains `update_card`.
     LyricsFlip::clear_live_rounds(&env, round_id);
@@ -531,12 +524,7 @@ pub(crate) fn cancel_round(env: Env, caller: Address, round_id: u64) {
     .publish(&env);
 }
 
-pub(crate) fn create_solo_round(
-    env: Env,
-    caller: Address,
-    genre: Option<Genre>,
-    seed: u64,
-) -> QuestionCard {
+pub(crate) fn create_solo_round(env: Env, caller: Address, genre: Option<Genre>) -> QuestionCard {
     if genre.is_none() {
         panic_with_error!(env, Error::NonExistingGenre);
     }
@@ -550,9 +538,11 @@ pub(crate) fn create_solo_round(
             decade: None,
         },
         None,
-        seed,
-        None,
+        Vec::new(&env),
         true,
+        None,
+        None,
+        0,
     );
 
     // Mark started immediately (mirrors start_round's writes for the
@@ -561,7 +551,7 @@ pub(crate) fn create_solo_round(
     let start_time = env.ledger().timestamp();
     round.is_started = true;
     round.start_time = start_time;
-    round.end_time = start_time + DEFAULT_ROUND_DURATION_SECONDS;
+    round.end_time = start_time + round.round_duration;
     round.solo = true;
     env.storage()
         .persistent()
@@ -588,14 +578,17 @@ pub(crate) fn create_solo_round(
         .get(0)
         .unwrap_or_else(|| panic_with_error!(env, Error::NoMoreCards));
     let card = LyricsFlip::read_card(&env, card_id);
+    let player_card_index_key = DataKey::PlayerCardIndex((round_id, caller.clone()));
     env.storage()
         .persistent()
-        .set(&DataKey::PlayerCardIndex((round_id, caller.clone())), &1u32);
-    env.storage().persistent().set(
-        &DataKey::PlayerCardStartedAt((round_id, caller.clone(), card_id)),
-        &env.ledger().timestamp(),
-    );
+        .set(&player_card_index_key, &1u32);
+    bump_persistent(&env, &player_card_index_key);
+    let player_card_started_key = DataKey::PlayerCardStartedAt((round_id, caller.clone(), card_id));
+    env.storage()
+        .persistent()
+        .set(&player_card_started_key, &env.ledger().timestamp());
+    bump_persistent(&env, &player_card_started_key);
     CardDrawn { round_id, index: 0 }.publish(&env);
 
-    LyricsFlip::build_question_card(env, card, round_id, QuestionKind::Title)
+    LyricsFlip::build_question_card(env, card, QuestionKind::Title)
 }

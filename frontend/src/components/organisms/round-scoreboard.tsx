@@ -13,6 +13,8 @@ export interface RoundScoreboardProps {
   currentAddress?: string | null;
   /** Set once `RoundCompleted` arrives; winners get a trophy. */
   winners?: string[] | null;
+  /** Resolves an address to a display label (e.g. a username). */
+  displayName?: (address: string) => string;
 }
 
 const shortAddress = (address: string) =>
@@ -33,6 +35,7 @@ export default function RoundScoreboard({
   answered,
   currentAddress = null,
   winners = null,
+  displayName = shortAddress,
 }: RoundScoreboardProps) {
   const rows = [...players].sort((a, b) => {
     const byScore = (scores[b] ?? 0) - (scores[a] ?? 0);
@@ -72,7 +75,7 @@ export default function RoundScoreboard({
                     />
                   )}
                   <span className="truncate" title={player}>
-                    {shortAddress(player)}
+                    {displayName(player)}
                     {isCurrent ? ' (you)' : ''}
                   </span>
                 </span>

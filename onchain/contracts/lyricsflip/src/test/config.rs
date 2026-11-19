@@ -4,19 +4,17 @@ use super::*;
 // LF-158 – Make round duration and answer window configurable (#644)
 // ---------------------------------------------------------------------------
 
-// LF-162: private round requires the invite preimage; absent from the lobby.
+// LF-162 / LF-264: a private round admits only its invitees and stays out
+// of the public lobby.
 #[test]
-fn lf162_private_round_requires_invite_code() {
+fn lf162_private_round_admits_only_invitees() {
     let (env, client, owner) = setup();
     seed_cards(&env, &client, &owner, 5);
     client.set_cards_per_round(&owner, &2);
 
-    // Compute sha256("magic-code") on-chain style.
-    let code = String::from_str(&env, "magic-code");
-    let bytes = code.to_bytes();
-    let hash: BytesN<32> = env.crypto().sha256(&bytes).into();
-
-    let round_id = client.create_round(&owner, &Some(Genre::Pop), &162u64, &Some(hash.clone()));
+    let invitee = Address::generate(&env);
+    let invitees = Vec::from_array(&env, [invitee.clone()]);
+    let round_id = client.create_round(&owner, &Some(Genre::Pop), &invitees, &None, &0i128);
 
     // Not in lobby.
     let open = client.get_open_rounds(&0u32, &10u32);
@@ -26,34 +24,19 @@ fn lf162_private_round_requires_invite_code() {
         "private round must not appear in get_open_rounds"
     );
 
-    // Joining without the code is rejected.
+    // A caller who isn't on the allowlist is rejected.
     let stranger = Address::generate(&env);
     let err = client
-        .try_join_round(&stranger, &round_id, &None)
+        .try_join_round(&stranger, &round_id)
         .unwrap_err()
         .unwrap();
-    assert_eq!(err, Error::NotAuthorized.into());
+    assert_eq!(err, Error::InvalidInvite.into());
 
-    // Joining with the wrong code is rejected.
-    let wrong = String::from_str(&env, "wrong-code");
-    let err = client
-        .try_join_round(&stranger, &round_id, &Some(wrong))
-        .unwrap_err()
-        .unwrap();
-    assert_eq!(err, Error::NotAuthorized.into());
-
-    // Joining with the right code succeeds.
-    client.join_round(&stranger, &round_id, &Some(code.clone()));
-
-    // Player count went from 1 (owner) to 2.
+    // The invitee can join.
+    client.join_round(&invitee, &round_id);
     let players = client.get_round_players(&round_id);
     assert_eq!(players.len(), 2);
-    assert_eq!(
-        client
-            .get_round_players(&round_id)
-            .first_index_of(&stranger),
-        Some(1)
-    );
+    assert_eq!(players.first_index_of(&invitee), Some(1));
 }
 
 // LF-162: public rounds are unaffected.
@@ -63,11 +46,11 @@ fn lf162_public_round_still_joinable_without_code() {
     seed_cards(&env, &client, &owner, 3);
     client.set_cards_per_round(&owner, &2);
 
-    let round_id = client.create_round(&owner, &Some(Genre::Pop), &162u64, &None);
+    let round_id = client.create_round(&owner, &Some(Genre::Pop), &Vec::new(&env), &None, &0i128);
     assert_eq!(client.get_open_rounds(&0u32, &10u32).len(), 1);
 
     let stranger = Address::generate(&env);
-    client.join_round(&stranger, &round_id, &None);
+    client.join_round(&stranger, &round_id);
     assert_eq!(client.get_round_players(&round_id).len(), 2);
 }
 
@@ -79,7 +62,7 @@ fn lf163_solo_round_starts_in_one_call() {
     client.set_cards_per_round(&owner, &2);
     env.ledger().set_timestamp(NOW + 5);
 
-    let qc = client.create_solo_round(&owner, &Some(Genre::Pop), &163u64);
+    let qc = client.create_solo_round(&owner, &Some(Genre::Pop));
 
     // Round exists, started, flagged solo, not in OpenRounds.
     assert_eq!(client.get_round_count(), 1);
@@ -146,7 +129,7 @@ fn lf158_twenty_card_round_has_enough_time_to_finish() {
     seed_cards(&env, &client, &owner, 25);
     client.set_cards_per_round(&owner, &20);
 
-    let round_id = client.create_round(&owner, &Some(Genre::Pop), &12345u64, &None);
+    let round_id = client.create_round(&owner, &Some(Genre::Pop), &Vec::new(&env), &None, &0i128);
     let round_created = client.get_round(&round_id);
 
     // Verify snapshot: 20 cards * (15s answer + 15s buffer) = 600s
@@ -168,7 +151,7 @@ fn lf158_twenty_card_round_has_enough_time_to_finish() {
     for i in 0..20u64 {
         let draw_time = NOW + 5 + i * 18;
         env.ledger().set_timestamp(draw_time);
-        let card = client.next_card(&owner, &round_id);
+        let card = next_card_full(&env, &client, &owner, round_id);
 
         let answer_time = draw_time + 5;
         env.ledger().set_timestamp(answer_time);
@@ -193,7 +176,7 @@ fn lf158_values_are_snapshotted_onto_round_at_creation() {
     client.set_cards_per_round(&owner, &2);
 
     // Create Round 1 under default timing configuration
-    let r1 = client.create_round(&owner, &Some(Genre::Pop), &1u64, &None);
+    let r1 = client.create_round(&owner, &Some(Genre::Pop), &Vec::new(&env), &None, &0i128);
     let round_1 = client.get_round(&r1);
     assert_eq!(round_1.answer_window, 15);
     assert_eq!(round_1.lobby_timeout, 600);
@@ -205,7 +188,7 @@ fn lf158_values_are_snapshotted_onto_round_at_creation() {
     client.set_round_buffer(&owner, &25);
 
     // Create Round 2 under the updated configuration
-    let r2 = client.create_round(&owner, &Some(Genre::Pop), &2u64, &None);
+    let r2 = client.create_round(&owner, &Some(Genre::Pop), &Vec::new(&env), &None, &0i128);
     let round_2 = client.get_round(&r2);
     assert_eq!(round_2.answer_window, 30);
     assert_eq!(round_2.lobby_timeout, 120);
@@ -221,7 +204,7 @@ fn lf158_values_are_snapshotted_onto_round_at_creation() {
     // Round 1 start at NOW
     client.start_round(&owner, &r1);
     env.ledger().set_timestamp(NOW + 5);
-    let card1 = client.next_card(&owner, &r1);
+    let card1 = next_card_full(&env, &client, &owner, r1);
 
     // Submit answer 20 seconds after draw:
     // For Round 1, answer_window is snapshotted to 15, so 20s > 15s -> scored as wrong (false)
@@ -234,7 +217,7 @@ fn lf158_values_are_snapshotted_onto_round_at_creation() {
     // Start Round 2 and test its snapshotted 30s window:
     client.start_round(&owner, &r2);
     env.ledger().set_timestamp(NOW + 50);
-    let card2 = client.next_card(&owner, &r2);
+    let card2 = next_card_full(&env, &client, &owner, r2);
 
     // Submit answer 20 seconds after draw:
     // For Round 2, answer_window is snapshotted to 30, so 20s <= 30s -> scored as correct (true)
@@ -368,9 +351,9 @@ fn lf158_legacy_round_fallback_and_migration() {
     assert_eq!(round.round_duration, 300);
 
     // Initial schema version is 4 in constructor
-    assert_eq!(client.schema_version(), 4);
+    assert_eq!(client.schema_version(), crate::SCHEMA_VERSION);
 
     // Calling migrate is a clean, idempotent no-op
     client.migrate(&owner);
-    assert_eq!(client.schema_version(), 4);
+    assert_eq!(client.schema_version(), crate::SCHEMA_VERSION);
 }

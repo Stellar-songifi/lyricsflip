@@ -101,7 +101,7 @@ export async function withTxToastResult<T>(
   networkPassphrase: string,
   errors: Record<number, ContractErrorInfo> = LYRICSFLIP_ERRORS,
   publicKey?: string | null,
-): Promise<T> {
+): Promise<TxResult<T>> {
   // Balance pre-check: surface friendly errors before asking for a signature.
   if (publicKey) {
     await assertSufficientBalance(publicKey);
@@ -136,8 +136,11 @@ export async function withTxToastResult<T>(
   } catch (err) {
     const contractError = parseContractError(err, errors);
     toast.error(`Failed: ${contractError.message}`, { id });
-    reportError({
-      contractError: contractError.name,
+    reportError(err, {
+      contractError:
+        contractError.code !== undefined
+          ? errors[contractError.code]?.name
+          : undefined,
       network:
         networkPassphrase === PUBLIC_PASSPHRASE ? 'public' : 'testnet',
       route:
@@ -151,7 +154,13 @@ export async function withTxToast<T>(
   build: () => Promise<contract.AssembledTransaction<T>>,
   networkPassphrase: string,
   errors: Record<number, ContractErrorInfo> = LYRICSFLIP_ERRORS,
+  publicKey?: string | null,
 ): Promise<T> {
-  const { result } = await withTxToastResult(build, networkPassphrase, errors);
+  const { result } = await withTxToastResult(
+    build,
+    networkPassphrase,
+    errors,
+    publicKey,
+  );
   return result;
 }

@@ -25,11 +25,11 @@ fn winner_claims_nft_reward_via_cross_contract_mint() {
         Err(Ok(Error::MilestoneNotReached.into()))
     );
 
-    seed_cards(&env, &client, &owner, 1);
+    seed_cards(&env, &client, &owner, 4);
     client.set_cards_per_round(&owner, &1);
-    let round_id = client.create_round(&owner, &Some(Genre::Pop), &1u64, &None);
+    let round_id = client.create_round(&owner, &Some(Genre::Pop), &Vec::new(&env), &None, &0i128);
     client.start_round(&owner, &round_id);
-    let card = client.next_card(&owner, &round_id);
+    let card = next_card_full(&env, &client, &owner, round_id);
     assert!(client.submit_answer(&owner, &round_id, &Answer::Title(card.title.clone())));
     client.finalize_round(&owner, &round_id);
 
@@ -57,12 +57,12 @@ fn lf003_single_card_round_can_be_answered() {
     seed_cards(&env, &client, &owner, 4);
     client.set_cards_per_round(&owner, &1);
 
-    let round_id = client.create_round(&owner, &Some(Genre::Pop), &7u64, &None);
+    let round_id = client.create_round(&owner, &Some(Genre::Pop), &Vec::new(&env), &None, &0i128);
     client.start_round(&owner, &round_id);
 
     // Draw the only card in the round.
     env.ledger().set_timestamp(NOW + 5);
-    let card = client.next_card(&owner, &round_id);
+    let card = next_card_full(&env, &client, &owner, round_id);
 
     // Submitting an answer for the last (and only) card must not panic.
     env.ledger().set_timestamp(NOW + 10);
@@ -100,17 +100,17 @@ fn lf003_three_card_round_last_card_is_answerable() {
     seed_cards(&env, &client, &owner, 6);
     client.set_cards_per_round(&owner, &3);
 
-    let round_id = client.create_round(&owner, &Some(Genre::Pop), &77u64, &None);
+    let round_id = client.create_round(&owner, &Some(Genre::Pop), &Vec::new(&env), &None, &0i128);
     let player2 = Address::generate(&env);
-    client.join_round(&player2, &round_id, &None);
+    client.join_round(&player2, &round_id);
     client.start_round(&owner, &round_id);
     client.start_round(&player2, &round_id);
 
     // Draw and answer cards 1 and 2.
     for i in 0..2u64 {
         env.ledger().set_timestamp(NOW + 5 + i * 30);
-        let card = client.next_card(&owner, &round_id);
-        let p2_card = client.next_card(&player2, &round_id);
+        let card = next_card_full(&env, &client, &owner, round_id);
+        let p2_card = next_card_full(&env, &client, &player2, round_id);
         env.ledger().set_timestamp(NOW + 8 + i * 30);
         client.submit_answer(&owner, &round_id, &Answer::Title(card.title.clone()));
         client.submit_answer(&player2, &round_id, &Answer::Title(p2_card.title.clone()));
@@ -118,8 +118,8 @@ fn lf003_three_card_round_last_card_is_answerable() {
 
     // Draw card 3 (the last one).
     env.ledger().set_timestamp(NOW + 65);
-    let last_card = client.next_card(&owner, &round_id);
-    let p2_last_card = client.next_card(&player2, &round_id);
+    let last_card = next_card_full(&env, &client, &owner, round_id);
+    let p2_last_card = next_card_full(&env, &client, &player2, round_id);
 
     // Round must NOT be completed yet — players must still be able to answer.
     let round = client.get_round(&round_id);
@@ -154,7 +154,7 @@ fn lf003_next_card_after_deck_exhausted_returns_no_more_cards() {
     seed_cards(&env, &client, &owner, 4);
     client.set_cards_per_round(&owner, &2);
 
-    let round_id = client.create_round(&owner, &Some(Genre::Pop), &21u64, &None);
+    let round_id = client.create_round(&owner, &Some(Genre::Pop), &Vec::new(&env), &None, &0i128);
     client.start_round(&owner, &round_id);
 
     // Draw both cards.
@@ -225,19 +225,25 @@ fn create_round_filter_selects_decade_genre_and_difficulty_and_multiplies_points
             decade: Some(1990),
         },
         &Some(3),
-        &22u64,
+        &Vec::new(&env),
     );
     let round_cards = client.get_round_cards(&owner, &round_id);
     assert_eq!(round_cards.len(), 2);
     for card_id in round_cards.iter() {
-        let card = client.get_card(&card_id);
+        // LF-278: `get_card` redacts live cards, so read the stored card.
+        let card: Card = env.as_contract(&client.address, || {
+            env.storage()
+                .persistent()
+                .get(&DataKey::Card(card_id))
+                .unwrap()
+        });
         assert_eq!(card.genre, Genre::RnB);
         assert_eq!(card.year / 10 * 10, 1990);
         assert_eq!(card.difficulty, 3);
     }
 
     client.start_round(&owner, &round_id);
-    let card = client.next_card(&owner, &round_id);
+    let card = next_card_full(&env, &client, &owner, round_id);
     env.ledger().set_timestamp(NOW + 7);
     assert!(client.submit_answer(&owner, &round_id, &Answer::Title(card.title)));
     assert_eq!(client.get_round_scores(&round_id).get(owner).unwrap(), 285);
@@ -254,7 +260,7 @@ fn invalid_round_difficulty_and_decade_are_rejected() {
     };
 
     assert_eq!(
-        client.try_create_round_with_filter(&owner, &filter, &Some(4), &1u64),
+        client.try_create_round_with_filter(&owner, &filter, &Some(4), &Vec::new(&env)),
         Err(Ok(Error::InvalidCardDifficulty.into()))
     );
     assert_eq!(
@@ -265,7 +271,7 @@ fn invalid_round_difficulty_and_decade_are_rejected() {
                 decade: Some(1995),
             },
             &None,
-            &1u64,
+            &Vec::new(&env),
         ),
         Err(Ok(Error::InvalidDecade.into()))
     );
@@ -275,13 +281,13 @@ fn invalid_round_difficulty_and_decade_are_rejected() {
 #[test]
 fn lf159_first_ledger_answer_gets_max_points() {
     let (env, client, owner) = setup();
-    seed_cards(&env, &client, &owner, 3);
+    seed_cards(&env, &client, &owner, 4);
     client.set_cards_per_round(&owner, &1);
-    let round_id = client.create_round(&owner, &Some(Genre::Pop), &1u64, &None);
+    let round_id = client.create_round(&owner, &Some(Genre::Pop), &Vec::new(&env), &None, &0i128);
     client.start_round(&owner, &round_id);
 
     env.ledger().set_timestamp(NOW + 5);
-    let card = client.next_card(&owner, &round_id);
+    let card = next_card_full(&env, &client, &owner, round_id);
     env.ledger().set_timestamp(NOW + 6);
     assert!(client.submit_answer(&owner, &round_id, &Answer::Title(card.title.clone())));
 

@@ -34,7 +34,7 @@ fn get_random_numbers_worst_case_amount_equals_limit() {
     client.set_cards_per_round(&owner, &MAX_CARDS_PER_ROUND);
 
     // This must complete without panicking (no infinite loop).
-    let cards = client.get_cards_of_genre(&Genre::Pop, &12345u64);
+    let cards = client.get_cards_of_genre(&Genre::Pop);
     assert_eq!(
         cards.len(),
         MAX_CARDS_PER_ROUND,
@@ -62,7 +62,7 @@ fn get_random_numbers_returns_correct_count_for_various_inputs() {
 
     for amount in [1u32, 5, 10, 15, 20] {
         client.set_cards_per_round(&owner, &amount);
-        let cards = client.get_cards_of_genre(&Genre::Jazz, &(amount as u64 * 7 + 3));
+        let cards = client.get_cards_of_genre(&Genre::Jazz);
         assert_eq!(
             cards.len(),
             amount,

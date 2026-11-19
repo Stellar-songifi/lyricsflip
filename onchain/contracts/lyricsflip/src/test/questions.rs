@@ -7,7 +7,7 @@ fn build_question_card_title_kind_has_four_unique_options_with_correct_title() {
     client.set_cards_per_round(&owner, &5);
 
     let card = client.get_card(&1);
-    let q = client.build_question_card(&card, &42u64, &QuestionKind::Title);
+    let q = client.build_question_card(&card, &QuestionKind::Title);
 
     assert_eq!(q.kind, QuestionKind::Title);
     assert_four_unique_options_with_correct(&env, &q, &card.title);
@@ -20,7 +20,7 @@ fn build_question_card_artist_kind_has_four_unique_options_with_correct_artist()
     client.set_cards_per_round(&owner, &5);
 
     let card = client.get_card(&1);
-    let q = client.build_question_card(&card, &99u64, &QuestionKind::Artist);
+    let q = client.build_question_card(&card, &QuestionKind::Artist);
 
     assert_eq!(q.kind, QuestionKind::Artist);
     assert_four_unique_options_with_correct(&env, &q, &card.artist);
@@ -51,7 +51,7 @@ fn build_question_card_year_kind_has_four_unique_options_with_correct_year() {
         String::from_str(&env, core::str::from_utf8(&buf[..len]).unwrap_or("0"))
     };
 
-    let q = client.build_question_card(&card, &7u64, &QuestionKind::Year);
+    let q = client.build_question_card(&card, &QuestionKind::Year);
 
     assert_eq!(q.kind, QuestionKind::Year);
     assert_four_unique_options_with_correct(&env, &q, &correct_year_str);
@@ -64,7 +64,7 @@ fn build_question_card_year_distractors_are_close_to_correct_year() {
     client.set_cards_per_round(&owner, &5);
 
     let card = client.get_card(&1); // year = 2018
-    let q = client.build_question_card(&card, &3u64, &QuestionKind::Year);
+    let q = client.build_question_card(&card, &QuestionKind::Year);
 
     // All four options should be within ±5 years of the correct year.
     let options = [
@@ -99,7 +99,7 @@ fn build_question_card_with_four_distinct_cards_has_four_unique_options() {
     client.set_cards_per_round(&owner, &4);
 
     let card = client.get_card(&1);
-    let q = client.build_question_card(&card, &42u64, &QuestionKind::Title);
+    let q = client.build_question_card(&card, &QuestionKind::Title);
 
     assert_eq!(q.kind, QuestionKind::Title);
     assert_four_unique_options_with_correct(&env, &q, &card.title);
@@ -115,7 +115,7 @@ fn build_question_card_with_three_cards_fails_with_not_enough_distinct_cards() {
     client.set_cards_per_round(&owner, &3);
 
     let card = client.get_card(&1);
-    let result = client.try_build_question_card(&card, &99u64, &QuestionKind::Title);
+    let result = client.try_build_question_card(&card, &QuestionKind::Title);
 
     let inner = result.unwrap_err();
     let code: u32 = match inner {
@@ -142,7 +142,7 @@ fn build_question_card_with_fifteen_cards_succeeds() {
     client.set_cards_per_round(&owner, &15);
 
     let card = client.get_card(&1);
-    let q = client.build_question_card(&card, &7u64, &QuestionKind::Title);
+    let q = client.build_question_card(&card, &QuestionKind::Title);
 
     assert_eq!(q.kind, QuestionKind::Title);
     assert_four_unique_options_with_correct(&env, &q, &card.title);
@@ -170,7 +170,7 @@ fn lf160_current_year_card_options_are_within_bounds() {
     );
 
     let card = client.get_card(&1);
-    let q = client.build_question_card(&card, &7u64, &QuestionKind::Year);
+    let q = client.build_question_card(&card, &QuestionKind::Year);
     for year in parse_all_year_options(&q).iter() {
         assert!(
             *year >= 1900 && *year <= current_year,
@@ -188,7 +188,7 @@ fn lf160_min_year_card_options_are_within_bounds() {
     client.add_card(&owner, &sample_card(&env, Genre::Pop, "D", "T4", 1903));
 
     let card = client.get_card(&1);
-    let q = client.build_question_card(&card, &7u64, &QuestionKind::Year);
+    let q = client.build_question_card(&card, &QuestionKind::Year);
     for year in parse_all_year_options(&q).iter() {
         assert!(*year >= 1900, "option {year} is below MIN_CARD_YEAR");
     }
@@ -203,7 +203,7 @@ fn lf160_edge_year_card_still_has_four_unique_options() {
     client.add_card(&owner, &sample_card(&env, Genre::Pop, "D", "T4", 2010));
 
     let card = client.get_card(&1);
-    let q = client.build_question_card(&card, &11u64, &QuestionKind::Year);
+    let q = client.build_question_card(&card, &QuestionKind::Year);
     let opts = [
         q.option_one.clone(),
         q.option_two.clone(),

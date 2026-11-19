@@ -42,15 +42,11 @@ pub(crate) fn __constructor(env: Env, owner: Address) {
     }
     env.storage().instance().set(&DataKey::Owner, &owner);
     // LF-156: Store admins in persistent storage, not instance storage.
-    env.storage()
-        .persistent()
-        .set(&DataKey::Admin(owner.clone()), &true);
-    bump_persistent(&env, &DataKey::Admin(owner.clone()));
+    set_persistent(&env, &DataKey::Admin(owner.clone()), &true);
 
     let mut admins = Vec::new(&env);
     admins.push_back(owner);
-    env.storage().persistent().set(&DataKey::Admins, &admins);
-    bump_persistent(&env, &DataKey::Admins);
+    set_persistent(&env, &DataKey::Admins, &admins);
 
     env.storage().instance().set(&DataKey::Paused, &false);
     env.storage()
@@ -136,10 +132,7 @@ pub(crate) fn is_admin(env: Env, role: Role, address: Address) -> bool {
             .instance()
             .remove(&DataKey::Admin(address.clone()));
         if is_enabled {
-            env.storage()
-                .persistent()
-                .set(&DataKey::Admin(address.clone()), &true);
-            bump_persistent(&env, &DataKey::Admin(address.clone()));
+            set_persistent(&env, &DataKey::Admin(address.clone()), &true);
 
             let mut admins = LyricsFlip::read_admins(&env);
             let mut found = false;
@@ -151,8 +144,7 @@ pub(crate) fn is_admin(env: Env, role: Role, address: Address) -> bool {
             }
             if !found {
                 admins.push_back(address);
-                env.storage().persistent().set(&DataKey::Admins, &admins);
-                bump_persistent(&env, &DataKey::Admins);
+                set_persistent(&env, &DataKey::Admins, &admins);
             }
             return true;
         }
@@ -175,9 +167,14 @@ pub(crate) fn migrate_legacy_admins(env: Env, caller: Address, candidates: Vec<A
         let key = DataKey::Admin(address.clone());
         if let Some(enabled) = env.storage().instance().get::<_, bool>(&key) {
             env.storage().instance().remove(&key);
+            RoleUpdated {
+                account: address.clone(),
+                role: Role::Admin,
+                enabled,
+            }
+            .publish(&env);
             if enabled {
-                env.storage().persistent().set(&key, &true);
-                bump_persistent(&env, &key);
+                set_persistent(&env, &key, &true);
                 let mut found = false;
                 for i in 0..admins.len() {
                     if admins.get(i).unwrap() == address {
@@ -205,8 +202,7 @@ pub(crate) fn migrate_legacy_admins(env: Env, caller: Address, candidates: Vec<A
     }
 
     if index_changed {
-        env.storage().persistent().set(&DataKey::Admins, &admins);
-        bump_persistent(&env, &DataKey::Admins);
+        set_persistent(&env, &DataKey::Admins, &admins);
     }
 }
 
@@ -258,10 +254,7 @@ pub(crate) fn set_role(env: Env, caller: Address, recipient: Address, role: Role
     let mut admins = LyricsFlip::read_admins(&env);
 
     if is_enable {
-        env.storage()
-            .persistent()
-            .set(&DataKey::Admin(recipient.clone()), &true);
-        bump_persistent(&env, &DataKey::Admin(recipient.clone()));
+        set_persistent(&env, &DataKey::Admin(recipient.clone()), &true);
 
         let mut found = false;
         for i in 0..admins.len() {
@@ -272,8 +265,7 @@ pub(crate) fn set_role(env: Env, caller: Address, recipient: Address, role: Role
         }
         if !found {
             admins.push_back(recipient.clone());
-            env.storage().persistent().set(&DataKey::Admins, &admins);
-            bump_persistent(&env, &DataKey::Admins);
+            set_persistent(&env, &DataKey::Admins, &admins);
         }
     } else {
         // LF-156: On revoke, remove the entry instead of writing false
@@ -288,10 +280,7 @@ pub(crate) fn set_role(env: Env, caller: Address, recipient: Address, role: Role
                 new_admins.push_back(a);
             }
         }
-        env.storage()
-            .persistent()
-            .set(&DataKey::Admins, &new_admins);
-        bump_persistent(&env, &DataKey::Admins);
+        set_persistent(&env, &DataKey::Admins, &new_admins);
     }
 
     RoleUpdated {
@@ -335,10 +324,7 @@ pub(crate) fn accept_ownership(env: Env, caller: Address) {
     env.storage()
         .instance()
         .remove(&DataKey::Admin(caller.clone()));
-    env.storage()
-        .persistent()
-        .set(&DataKey::Admin(caller.clone()), &true);
-    bump_persistent(&env, &DataKey::Admin(caller.clone()));
+    set_persistent(&env, &DataKey::Admin(caller.clone()), &true);
 
     let mut admins = LyricsFlip::read_admins(&env);
     let mut found = false;
@@ -350,8 +336,7 @@ pub(crate) fn accept_ownership(env: Env, caller: Address) {
     }
     if !found {
         admins.push_back(caller.clone());
-        env.storage().persistent().set(&DataKey::Admins, &admins);
-        bump_persistent(&env, &DataKey::Admins);
+        set_persistent(&env, &DataKey::Admins, &admins);
     }
 
     OwnershipTransferred {
@@ -370,15 +355,36 @@ pub(crate) fn set_max_players(env: Env, caller: Address, value: u32) {
     if value > MAX_ROUND_PLAYERS {
         panic_with_error!(env, Error::MaxPlayersTooHigh);
     }
+    let old = LyricsFlip::get_max_players(env.clone());
     env.storage().instance().set(&DataKey::MaxPlayers, &value);
+    MaxPlayersUpdated { old, new: value }.publish(&env);
+}
+
+pub(crate) fn set_escrow_contract(env: Env, caller: Address, escrow: Address) {
+    caller.require_auth();
+    LyricsFlip::assert_owner(&env, &caller);
+    env.storage()
+        .instance()
+        .set(&DataKey::EscrowContract, &escrow);
+    EscrowContractUpdated {
+        owner: caller,
+        escrow,
+    }
+    .publish(&env);
 }
 
 pub(crate) fn set_nft_contract(env: Env, caller: Address, nft_contract: Address) {
     caller.require_auth();
     LyricsFlip::assert_owner(&env, &caller);
+    let old = LyricsFlip::get_nft_contract(env.clone());
     env.storage()
         .instance()
         .set(&DataKey::NftContract, &nft_contract);
+    NftContractUpdated {
+        old,
+        new: nft_contract,
+    }
+    .publish(&env);
 }
 
 pub(crate) fn set_answer_window(env: Env, caller: Address, value: u64) {

@@ -507,9 +507,10 @@ Every variant is currently referenced by the contract. The ones marked
 | 44 | `CardInActiveRound` | `update_card` tried to change a card's title/artist/year while a non-finalized round still references it (LF-176) |
 | 45 | `TooManyOpenRounds` | `create_round` rejected because the caller already has `MAX_OPEN_ROUNDS_PER_ADDRESS` open public lobbies (LF-175) |
 | 46 | `MaxPlayersTooHigh` | `set_max_players` got a value above `MAX_ROUND_PLAYERS` (8) (LF-154) |
-| 47 | `InvalidInvite` | `join_round` on a private round with a missing or wrong invite code (LF-277) |
-| 48 | `LobbyTimeoutNotReached` | Non-admin `cancel_round` before the lobby timeout elapsed (LF-277) |
-| 49 | `AdminCannotLeave` | The round admin called `leave_round`; cancel the round instead (LF-277) |
+| 47 | `LobbyExpired` | The lobby is older than its `lobby_timeout`; it can only be cancelled (LF-265) |
+| 48 | `InvalidInvite` | `join_round` on a private round by a caller not on the invitee allowlist (LF-264, LF-277) |
+| 49 | `LobbyTimeoutNotReached` | Non-admin `cancel_round` before the lobby timeout elapsed (LF-277) |
+| 50 | `AdminCannotLeave` | The round admin called `leave_round`; cancel the round instead (LF-277) |
 
 ### `lyricsflip-nft`
 

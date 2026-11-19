@@ -81,6 +81,8 @@ export interface SystemCalls {
   addCard: (card: Omit<Card, 'card_id'>) => Promise<void>;
   /** Adds up to `MAX_CARDS_PER_BATCH` (20) cards in one transaction. */
   addCards: (cards: Omit<Card, 'card_id'>[]) => Promise<bigint[]>;
+  updateCard: (cardId: bigint, card: Omit<Card, 'card_id'>) => Promise<void>;
+  removeCard: (cardId: bigint) => Promise<void>;
   getCard: (cardId: bigint) => Promise<Card>;
   getCardsCount: () => Promise<bigint>;
   setCardsPerRound: (value: number) => Promise<void>;
@@ -191,6 +193,8 @@ type LyricsFlipContract = {
   }) => Promise<contract.AssembledTransaction<boolean>>;
   add_card: (args: { caller: string; card: WireCard }) => Promise<contract.AssembledTransaction<null>>;
   add_cards: (args: { caller: string; cards: WireCard[] }) => Promise<contract.AssembledTransaction<bigint[]>>;
+  update_card: (args: { caller: string; card_id: bigint; card: WireCard }) => Promise<contract.AssembledTransaction<null>>;
+  remove_card: (args: { caller: string; card_id: bigint }) => Promise<contract.AssembledTransaction<null>>;
   get_card: (args: { card_id: bigint }) => Promise<contract.AssembledTransaction<WireCard>>;
   get_cards_count: () => Promise<contract.AssembledTransaction<bigint>>;
   set_cards_per_round: (args: { caller: string; value: number }) => Promise<contract.AssembledTransaction<null>>;
@@ -381,6 +385,20 @@ export function createSystemCalls(config: StellarConfig, publicKey: string | nul
       const caller = requireAccount();
       const client = await getGameClient(config, caller);
       return submit(() => client.add_cards({ caller, cards: cards.map(cardToWire) }));
+    },
+
+    updateCard: async (cardId, card) => {
+      const caller = requireAccount();
+      const client = await getGameClient(config, caller);
+      await submit(() =>
+        client.update_card({ caller, card_id: cardId, card: { ...cardToWire(card), card_id: cardId } }),
+      );
+    },
+
+    removeCard: async (cardId) => {
+      const caller = requireAccount();
+      const client = await getGameClient(config, caller);
+      await submit(() => client.remove_card({ caller, card_id: cardId }));
     },
 
     getCard: async (cardId) => {

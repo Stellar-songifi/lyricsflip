@@ -150,18 +150,8 @@ export function WagerModal() {
         return;
       }
 
-      const difficulty = { easy: 1, medium: 2, hard: 3 }[
-        wagerDetails.difficulty as 'easy' | 'medium' | 'hard'
-      ] ?? 2;
-
-      // Pass the stake in stroops (7 decimals) to createRoundWithFilter
-      const result = await setup.systemCalls.createRoundWithFilter(
-        { genre: genreInfo.variant },
-        difficulty,
-        undefined,
-        stakeStroops,
-      );
-
+      // The solo round is created by the game page with `create_solo_round`
+      // (one signature that also starts it and draws the first card, LF-297).
       // Start game in store with real wager amount
       startGame({
         genre: wagerDetails.genre,
@@ -172,7 +162,7 @@ export function WagerModal() {
       });
 
       closeModal();
-      router.push(`/single-player?roundId=${result}`);
+      router.push(`/single-player?genre=${genreInfo.variant}`);
       setWagerDetails({
         genre: '',
         difficulty: 'medium',

@@ -61,11 +61,6 @@ export interface Card {
   lyrics: string;
 }
 
-/** Raw shape returned by the contract, before `genreFromWire` is applied. */
-export interface WireCard extends Omit<Card, 'genre'> {
-  genre: number;
-}
-
 export interface Round {
   round_id: bigint;
   admin: string;
@@ -116,11 +111,6 @@ export const MILESTONE_NAMES: Record<Milestone, string> = {
   [MILESTONES.Streak5]: 'Streak Master',
   [MILESTONES.TenWins]: 'Music Connoisseur',
 };
-
-/** Raw shape returned by the contract, before `genreFromWire` is applied. */
-export interface WireRound extends Omit<Round, 'genre'> {
-  genre: number;
-}
 
 export interface PlayerStats {
   total_rounds: bigint;

@@ -3,7 +3,7 @@
 import { AdminCards } from "@/components/organisms/admin-cards";
 import { AdminConfig } from "@/components/organisms/admin-config";
 import { AdminRoles } from "@/components/organisms/admin-roles";
-import { OwnerSettings } from "@/components/organisms/OwnerSettings";
+import { OwnerSettings } from "@/components/organisms/owner-settings";
 import { useStellar } from "@/lib/stellar/hooks/use-stellar";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -99,7 +99,7 @@ export default function AdminPage() {
         </div>
       )}
       {isOwner && activeTab === 'owner' ? (
-        <OwnerSettings />
+        <OwnerSettings isOwner walletAddress={account?.address} />
       ) : (
         <>
           <AdminConfig />

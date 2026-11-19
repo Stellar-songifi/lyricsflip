@@ -2,7 +2,6 @@
   "$schema": "https://unpkg.com/knip@5/overview/schema.json",
   "entry": [
     "src/app/**/{page,layout,loading,error,not-found,global-error}.{js,jsx,ts,tsx}",
-    "pages/**/*.{js,jsx,ts,tsx}",
     "src/env.ts"
   ],
   "project": ["src/**/*.{js,jsx,ts,tsx}"]

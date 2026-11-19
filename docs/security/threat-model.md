@@ -61,14 +61,43 @@ backend APIs, logs, or a malicious card admin), letting players cheat.
 
 ### 3.2 Seed grinding
 **Threat:** A player (or colluding keeper) influences or predicts the randomness
-seed used to select cards/questions, biasing outcomes.
+used to select cards/questions, biasing outcomes.
+
+**Mitigations (LF-268):**
+- Card and option randomness is drawn from `env.prng()` (Soroban's host PRNG)
+  via `shuffle`/`gen_range` at draw time. No public function accepts a
+  caller-supplied seed: the `seed` parameter was removed from `create_round`,
+  `create_round_with_filter`, `create_solo_round`, `get_cards_of_*`, and
+  `build_question_card` (breaking ABI change; `VERSION` bumped).
+- Options are shuffled per player and per card at draw time, and the correct
+  option index is stored so it can be returned after finalization (LF-254).
+  Option order is no longer derived from `round_id`, so players cannot predict
+  where the correct option sits.
+- The frontend no longer sends a `randomSeed`; callers cannot influence draws.
+
+**Residual risk (validator-level):** `env.prng()` is not a VRF. Validators can
+observe the PRNG output and, in principle, influence or bias it (e.g. by
+choosing whether to include a transaction or by manipulating ledger inputs).
+This is accepted for casual/low-value rounds. For high-value wagered rounds,
+use a commit–reveal scheme or an external randomness oracle instead of relying
+on the host PRNG.
+
+### 3.2a Private-round invite leakage
+**Threat (LF-264):** Private rounds originally stored `sha256(invite_code)` and
+`join_round` took the **plaintext** `invite_code` as an argument. Transaction
+arguments are public on Stellar, so once the first invitee joined, anyone
+reading the ledger or the RPC `getTransactions` could copy the code and join —
+defeating "private" rounds and letting strangers into wagered games.
 
 **Mitigations:**
-- Derive randomness from a value committed *before* player participation
-  (e.g., ledger sequence + pre-committed seed), not from player-supplied input.
-- Reject seeds submitted after the round opens.
-- Document that Soroban PRNG is not a VRF; for high-value rounds use a commit–
-  reveal or external oracle.
+- Shared-secret invite codes are removed. `create_round` takes an admin-supplied
+  `invitees: Vec<Address>` allowlist, and `join_round` rejects any caller not on
+  that allowlist. No secret is ever passed as a transaction argument.
+- A bad or missing invite now fails with the dedicated `Error::InvalidInvite`
+  instead of the generic `NotAuthorized`.
+- **Acceptance:** a third party who has observed an earlier `join_round`
+  transaction cannot join the private round.
+=======
 
 ### 3.3 Griefing lobbies
 **Threat:** An attacker joins lobbies and never plays, or creates and abandons

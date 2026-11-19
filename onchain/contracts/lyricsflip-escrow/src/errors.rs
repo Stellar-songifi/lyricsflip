@@ -16,6 +16,11 @@ pub enum Error {
     NoWinners = 9,
     RoundAlreadyExists = 10,
     RoundAlreadySettled = 11,
+    NotPendingAdmin = 12,
+    Paused = 13,
+    NotAdmin = 14,
+    NotGame = 15,
+}
     InvalidRoundTransition = 12,
     InvalidAmount = 13,
     NoDeposit = 14,

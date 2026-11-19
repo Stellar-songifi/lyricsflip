@@ -50,15 +50,10 @@ export interface NextCardResult extends TimedResult<QuestionCard> {
 }
 
 export interface SystemCalls {
-  createRound: (
-    genre: Genre,
-    seed?: bigint,
-    wagerAmount?: bigint,
-  ) => Promise<bigint>;
+  createRound: (genre: Genre, wagerAmount?: bigint) => Promise<bigint>;
   createRoundWithFilter: (
     filter: RoundFilter,
     difficulty?: number,
-    seed?: bigint,
     wagerAmount?: bigint,
   ) => Promise<bigint>;
   joinRound: (roundId: bigint) => Promise<void>;
@@ -102,10 +97,10 @@ export interface SystemCalls {
   getRoundCards: (roundId: bigint) => Promise<bigint[]>;
   getRoundPlayers: (roundId: bigint) => Promise<string[]>;
   getPlayerStat: (address: string) => Promise<PlayerStats>;
-  getCardsOfGenre: (genre: Genre, seed?: bigint) => Promise<Card[]>;
-  getCardsOfArtist: (artist: string, seed?: bigint) => Promise<Card[]>;
-  getCardsOfAYear: (year: bigint | number, seed?: bigint) => Promise<Card[]>;
-  buildQuestionCard: (card: Card, kind: QuestionKind, seed?: bigint) => Promise<QuestionCard>;
+  getCardsOfGenre: (genre: Genre) => Promise<Card[]>;
+  getCardsOfArtist: (artist: string) => Promise<Card[]>;
+  getCardsOfAYear: (year: bigint | number) => Promise<Card[]>;
+  buildQuestionCard: (card: Card, kind: QuestionKind) => Promise<QuestionCard>;
   /**
    * Mints the NFT for a reached milestone to the connected wallet. The game
    * contract mints via a cross-contract call (it is the NFT minter), so
@@ -151,8 +146,6 @@ export interface SystemCalls {
   claimEarnings: (roundId: bigint) => Promise<bigint>;
 }
 
-const randomSeed = () => BigInt(Date.now());
-
 const notImplemented =
   (name: string) =>
   async (): Promise<any> => {
@@ -170,12 +163,11 @@ function makeSignTransaction(defaultNetworkPassphrase: string) {
 }
 
 type LyricsFlipContract = {
-  create_round: (args: { caller: string; genre: number; seed: bigint }) => Promise<contract.AssembledTransaction<bigint>>;
+  create_round: (args: { caller: string; genre: number }) => Promise<contract.AssembledTransaction<bigint>>;
   create_round_with_filter: (args: {
     caller: string;
     filter: { genre: number | null; decade: bigint | null };
     difficulty: number | null;
-    seed: bigint;
   }) => Promise<contract.AssembledTransaction<bigint>>;
   join_round: (args: { caller: string; round_id: bigint }) => Promise<contract.AssembledTransaction<null>>;
   cancel_round: (args: { caller: string; round_id: bigint }) => Promise<contract.AssembledTransaction<null>>;
@@ -216,10 +208,10 @@ type LyricsFlipContract = {
   get_round_cards: (args: { round_id: bigint }) => Promise<contract.AssembledTransaction<bigint[]>>;
   get_round_players: (args: { round_id: bigint }) => Promise<contract.AssembledTransaction<string[]>>;
   get_player_stat: (args: { player: string }) => Promise<contract.AssembledTransaction<PlayerStats>>;
-  get_cards_of_genre: (args: { genre: number; seed: bigint }) => Promise<contract.AssembledTransaction<WireCard[]>>;
-  get_cards_of_artist: (args: { artist: string; seed: bigint }) => Promise<contract.AssembledTransaction<WireCard[]>>;
-  get_cards_of_a_year: (args: { year: bigint; seed: bigint }) => Promise<contract.AssembledTransaction<WireCard[]>>;
-  build_question_card: (args: { card: WireCard; seed: bigint; kind: number }) => Promise<contract.AssembledTransaction<QuestionCard>>;
+  get_cards_of_genre: (args: { genre: number }) => Promise<contract.AssembledTransaction<WireCard[]>>;
+  get_cards_of_artist: (args: { artist: string }) => Promise<contract.AssembledTransaction<WireCard[]>>;
+  get_cards_of_a_year: (args: { year: bigint }) => Promise<contract.AssembledTransaction<WireCard[]>>;
+  build_question_card: (args: { card: WireCard; kind: number }) => Promise<contract.AssembledTransaction<QuestionCard>>;
   claim_reward: (args: { caller: string; milestone: number }) => Promise<contract.AssembledTransaction<bigint>>;
   is_milestone_claimed: (args: { player: string; milestone: number }) => Promise<contract.AssembledTransaction<boolean>>;
 };
@@ -327,13 +319,13 @@ export function createSystemCalls(config: StellarConfig, publicKey: string | nul
   };
 
   return {
-    createRound: async (genre, seed = randomSeed(), _wagerAmount) => {
+    createRound: async (genre, _wagerAmount) => {
       const caller = requireAccount();
       const client = await getGameClient(config, caller);
-      return submit(() => client.create_round({ caller, genre: genreToWire(genre), seed }));
+      return submit(() => client.create_round({ caller, genre: genreToWire(genre) }));
     },
 
-    createRoundWithFilter: async (filter, difficulty, seed = randomSeed(), _wagerAmount) => {
+    createRoundWithFilter: async (filter, difficulty, _wagerAmount) => {
       const caller = requireAccount();
       const client = await getGameClient(config, caller);
       return submit(() =>
@@ -344,7 +336,6 @@ export function createSystemCalls(config: StellarConfig, publicKey: string | nul
             decade: filter.decade === undefined ? null : BigInt(filter.decade),
           },
           difficulty: difficulty ?? null,
-          seed,
         }),
       );
     },
@@ -487,29 +478,28 @@ export function createSystemCalls(config: StellarConfig, publicKey: string | nul
       return res.result;
     },
 
-    getCardsOfGenre: async (genre, seed = randomSeed()) => {
+    getCardsOfGenre: async (genre) => {
       const client = await getGameClient(config, publicKey);
-      const res = await client.get_cards_of_genre({ genre: genreToWire(genre), seed });
+      const res = await client.get_cards_of_genre({ genre: genreToWire(genre) });
       return res.result.map(cardFromWire);
     },
 
-    getCardsOfArtist: async (artist, seed = randomSeed()) => {
+    getCardsOfArtist: async (artist) => {
       const client = await getGameClient(config, publicKey);
-      const res = await client.get_cards_of_artist({ artist, seed });
+      const res = await client.get_cards_of_artist({ artist });
       return res.result.map(cardFromWire);
     },
 
-    getCardsOfAYear: async (year, seed = randomSeed()) => {
+    getCardsOfAYear: async (year) => {
       const client = await getGameClient(config, publicKey);
-      const res = await client.get_cards_of_a_year({ year: BigInt(year), seed });
+      const res = await client.get_cards_of_a_year({ year: BigInt(year) });
       return res.result.map(cardFromWire);
     },
 
-    buildQuestionCard: async (card, kind, seed = randomSeed()) => {
+    buildQuestionCard: async (card, kind) => {
       const client = await getGameClient(config, publicKey);
       const res = await client.build_question_card({
         card: cardToWire(card),
-        seed,
         kind: questionKindToWire(kind),
       });
       return res.result;

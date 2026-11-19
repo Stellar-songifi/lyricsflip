@@ -19,7 +19,6 @@ import { getContractErrorCode, parseContractError } from '@/lib/stellar/errors';
 import { getGenreDisplayName } from '@/lib/stellar/genres';
 import {
   Answer,
-  type Card,
   type QuestionCard,
   type Round,
 } from '@/lib/stellar/types';
@@ -132,7 +131,7 @@ function MultiplayerRoundClient() {
   );
 
   // ── Game state (LF-195) ───────────────────────────────────────────────────
-  const [card, setCard] = useState<Card | null>(null);
+  const [card, setCard] = useState<QuestionCard | null>(null);
   const [question, setQuestion] = useState<QuestionCard | null>(null);
   const [selectedOption, setSelectedOption] = useState<SongOption | null>(null);
   const [answerOutcome, setAnswerOutcome] = useState<AnswerOutcome | null>(null);
@@ -333,12 +332,8 @@ function MultiplayerRoundClient() {
     setCard(null);
     try {
       const nextCard = await systemCalls.nextCard(roundId);
-      const questionCard = await systemCalls.buildQuestionCard(
-        nextCard,
-        'Title',
-      );
       setCard(nextCard);
-      setQuestion(questionCard);
+      setQuestion(nextCard);
     } catch (err) {
       if (getContractErrorCode(err) === NO_MORE_CARDS) {
         // Every card in the round has been drawn for this player; the round
@@ -657,8 +652,8 @@ function MultiplayerRoundClient() {
                   lyrics={[
                     {
                       text: question.lyric,
-                      title: card.title,
-                      artist: card.artist,
+                      title: '',
+                      artist: '',
                     },
                   ]}
                   isFlipped={isCardFlipped}
@@ -672,7 +667,7 @@ function MultiplayerRoundClient() {
                   // correct option before the player picks.
                   correctOption={
                     isCardFlipped
-                      ? { title: card.title, artist: card.artist }
+                      ? null
                       : null
                   }
                   disabled={selectedOption !== null || isSubmitting}

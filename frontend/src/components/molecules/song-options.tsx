@@ -4,20 +4,19 @@ import { useEffect, useRef } from 'react';
 
 export type QuestionKind = 'Title' | 'Artist' | 'Year';
 
-interface SongOption {
+export interface SongOption {
   title: string;
   artist: string;
   /** Optional year value; may be provided as a string or number. */
   year?: string | number;
 }
 
-interface SongOptionsProps {
+export interface SongOptionsProps {
   options: SongOption[];
-  selected: SongOption | null;
-  correct: SongOption | null;
+  selectedOption?: SongOption | null;
+  correctOption?: SongOption | null;
   disabled?: boolean;
   onSelect: (option: SongOption, index: number) => void;
-  questionKind?: string;
   /** Which question kind is being asked; controls the compared/displayed value. */
   questionKind?: QuestionKind;
 }
@@ -46,16 +45,15 @@ function getOptionValue(
 
 export function SongOptions({
   options,
-  selected = null,
-  correct = null,
+  selectedOption = null,
+  correctOption = null,
   disabled = false,
   onSelect,
-  questionKind,
   questionKind = 'Title',
 }: SongOptionsProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const buttonRefs = useRef<(HTMLButtonElement | null)[]>([]);
-  const isLocked = disabled || selected !== null;
+  const isLocked = disabled || selectedOption !== null;
 
   // 1–4 hotkeys and arrow-key navigation
   useEffect(() => {
@@ -100,11 +98,6 @@ export function SongOptions({
 
   // Derive an accessible status message for screen readers
   const getLiveMessage = () => {
-    if (!selected) return '';
-    const isCorrect = correct?.title === selected.title;
-    return isCorrect
-      ? `Correct! The answer is ${selected.title}`
-      : `Wrong. The correct answer is ${correct?.title ?? ''}`;
     if (!selectedOption) return '';
     const isCorrect = correctValue === selectedValue;
     return isCorrect
@@ -142,8 +135,6 @@ export function SongOptions({
           </span>
         )}
         {options.map((option, index) => {
-          const isSelected = selected?.title === option.title;
-          const isCorrect = correct?.title === option.title;
           const optionValue = getOptionValue(option, questionKind);
           const isSelected =
             selectedOption !== null && selectedValue === optionValue;

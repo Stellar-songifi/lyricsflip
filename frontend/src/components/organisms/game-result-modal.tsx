@@ -10,6 +10,7 @@ import { createConfig } from '@/lib/stellar/stellar-config';
 import { useState, useEffect } from 'react';
 import { formatAmount, WAGER_ASSET_CODE } from '@/lib/utils';
 import { toast } from 'sonner';
+import type { CardResult } from '@/lib/stellar/types';
 
 export interface GameResultModalProps {
   isOpen?: boolean;
@@ -36,6 +37,7 @@ export const GameResultModal = (props: GameResultModalProps = {}) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fetchedRoundData, setFetchedRoundData] = useState<any>(null);
+  const [summary, setSummary] = useState<CardResult[]>([]);
   const [isClaiming, setIsClaiming] = useState(false);
   const [isClaimed, setIsClaimed] = useState(false);
 
@@ -59,10 +61,12 @@ export const GameResultModal = (props: GameResultModalProps = {}) => {
       try {
         setIsLoading(true);
         const id = BigInt(effectiveRoundId);
-        const [data, scores, cards] = await Promise.all([
+        const [data, scores, cards, roundSummary] = await Promise.all([
           systemCalls.getRound(id),
           systemCalls.getRoundScores(id).catch((): Record<string, number> => ({})),
           systemCalls.getRoundCards(id).catch(() => []),
+          // LF-293: only available once the round is finalized.
+          systemCalls.getRoundSummary(id).catch((): CardResult[] => []),
         ]);
 
         const playerScore =
@@ -71,6 +75,7 @@ export const GameResultModal = (props: GameResultModalProps = {}) => {
             : (scores[data.admin] ?? 0);
 
         if (isMounted) {
+          setSummary(roundSummary);
           setFetchedRoundData({
             ...data,
             score: playerScore,
@@ -202,6 +207,24 @@ export const GameResultModal = (props: GameResultModalProps = {}) => {
                 {`${score} / ${maxRounds}`} ({percent.toFixed()}%)
               </span>
             </div>
+          )}
+
+          {!isCancelled && summary.length > 0 && (
+            <ul className="border-b py-[12px] space-y-2" aria-label="Round breakdown">
+              {summary.map(({ card, perPlayer }) => {
+                const mine = account?.address ? perPlayer[account.address] : undefined;
+                return (
+                  <li key={String(card.card_id)} className="flex justify-between items-center gap-4">
+                    <span className="text-gray-600 text-left">
+                      {card.title} — {card.artist}
+                    </span>
+                    <span className={`font-medium ${mine?.correct ? 'text-[#0AC660]' : 'text-red-500'}`}>
+                      {mine ? `${mine.correct ? '✓' : '✗'} ${mine.points}` : '—'}
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
           )}
 
           {roundData?.odds && (

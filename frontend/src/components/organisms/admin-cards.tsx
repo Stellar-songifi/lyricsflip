@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/atoms/button";
 import { Input } from "@/components/atoms/input";
 import { useStellar } from "@/lib/stellar/hooks/use-stellar";
@@ -31,6 +31,15 @@ const validateCard = (fields: CardFields): CardErrors => {
     if (![1, 2, 3].includes(difficulty)) errors.difficulty = "Difficulty must be 1, 2, or 3";
     return errors;
 };
+
+const fromCard = (card: Card): CardFields => ({
+    genre: card.genre,
+    artist: card.artist,
+    title: card.title,
+    year: card.year.toString(),
+    difficulty: String(card.difficulty),
+    lyrics: card.lyrics,
+});
 
 const toCard = (fields: CardFields): NewCard => ({
     genre: fields.genre as Genre,
@@ -95,6 +104,16 @@ export const AdminCards = () => {
     const [catalogue, setCatalogue] = useState<Card[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [search, setSearch] = useState("");
+    const [editingId, setEditingId] = useState<bigint | null>(null);
+
+    const filteredCatalogue = useMemo(() => {
+        const q = search.trim().toLowerCase();
+        if (!q) return catalogue;
+        return catalogue.filter((c) =>
+            [c.title, c.artist, c.genre, c.year.toString(), c.card_id.toString()].some((v) => v.toLowerCase().includes(q)),
+        );
+    }, [catalogue, search]);
 
     const loadCatalogue = useCallback(async () => {
         if (!systemCalls) return;
@@ -124,11 +143,40 @@ export const AdminCards = () => {
         setIsLoading(true);
         setError(null);
         try {
-            await systemCalls.addCard(toCard(fields));
+            if (editingId !== null) await systemCalls.updateCard(editingId, toCard(fields));
+            else await systemCalls.addCard(toCard(fields));
             setFields(emptyFields);
+            setEditingId(null);
             await loadCatalogue();
         } catch (err) {
-            setError(err instanceof Error ? err.message : "Failed to add card");
+            setError(err instanceof Error ? err.message : "Failed to save card");
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleEdit = (card: Card) => {
+        setEditingId(card.card_id);
+        setFields(fromCard(card));
+        setFieldErrors({});
+    };
+
+    const cancelEdit = () => {
+        setEditingId(null);
+        setFields(emptyFields);
+        setFieldErrors({});
+    };
+
+    const handleRemove = async (card: Card) => {
+        if (!systemCalls || !window.confirm(`Remove card #${card.card_id} "${card.title}"?`)) return;
+        setIsLoading(true);
+        setError(null);
+        try {
+            await systemCalls.removeCard(card.card_id);
+            if (editingId === card.card_id) cancelEdit();
+            await loadCatalogue();
+        } catch (err) {
+            setError(err instanceof Error ? err.message : "Failed to remove card");
         } finally {
             setIsLoading(false);
         }
@@ -181,7 +229,7 @@ export const AdminCards = () => {
     return (
         <div className="p-4 mt-6 bg-white rounded-lg shadow space-y-8">
             <section>
-                <h2 className="text-xl font-bold mb-4">Add Card</h2>
+                <h2 className="text-xl font-bold mb-4">{editingId !== null ? `Edit Card #${editingId}` : "Add Card"}</h2>
                 <form onSubmit={handleAddCard} className="space-y-4" noValidate>
                     {field("genre", (
                         <select id="card-genre" value={fields.genre} onChange={update("genre")} className="w-full px-3 py-2 border rounded">
@@ -201,7 +249,14 @@ export const AdminCards = () => {
                     {field("lyrics", (
                         <textarea id="card-lyrics" value={fields.lyrics} onChange={update("lyrics")} rows={4} className="w-full px-3 py-2 border rounded" />
                     ))}
-                    <Button type="submit" disabled={isLoading}>{isLoading ? "Saving..." : "Add Card"}</Button>
+                    <div className="flex gap-2">
+                        <Button type="submit" disabled={isLoading}>
+                            {isLoading ? "Saving..." : editingId !== null ? "Save Changes" : "Add Card"}
+                        </Button>
+                        {editingId !== null && (
+                            <Button type="button" onClick={cancelEdit} disabled={isLoading}>Cancel</Button>
+                        )}
+                    </div>
                 </form>
             </section>
 
@@ -243,24 +298,35 @@ export const AdminCards = () => {
 
             <section>
                 <h2 className="text-xl font-bold mb-2">Catalogue</h2>
-                {catalogue.length === 0 ? (
-                    <p className="text-sm text-gray-600">No cards yet.</p>
+                <Input
+                    aria-label="Search cards"
+                    placeholder="Search by title, artist, genre, year or ID"
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    className="mb-3"
+                />
+                {filteredCatalogue.length === 0 ? (
+                    <p className="text-sm text-gray-600">{catalogue.length === 0 ? "No cards yet." : "No cards match your search."}</p>
                 ) : (
                     <div className="overflow-x-auto">
                         <table className="w-full text-sm border">
                             <thead>
                                 <tr className="bg-gray-100 text-left">
                                     <th className="p-2">ID</th><th className="p-2">Genre</th><th className="p-2">Artist</th>
-                                    <th className="p-2">Title</th><th className="p-2">Year</th><th className="p-2">Difficulty</th>
+                                    <th className="p-2">Title</th><th className="p-2">Year</th><th className="p-2">Difficulty</th><th className="p-2">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                {catalogue.map((card) => (
+                                {filteredCatalogue.map((card) => (
                                     <tr key={card.card_id.toString()}>
                                         <td className="p-2">{card.card_id.toString()}</td><td className="p-2">{card.genre}</td>
                                         <td className="p-2">{card.artist}</td><td className="p-2">{card.title}</td>
                                         <td className="p-2">{card.year.toString()}</td>
                                         <td className="p-2">{card.difficulty}</td>
+                                        <td className="p-2 space-x-2 whitespace-nowrap">
+                                            <button type="button" className="text-blue-600 hover:underline" onClick={() => handleEdit(card)} disabled={isLoading}>Edit</button>
+                                            <button type="button" className="text-red-600 hover:underline" onClick={() => handleRemove(card)} disabled={isLoading}>Remove</button>
+                                        </td>
                                     </tr>
                                 ))}
                             </tbody>

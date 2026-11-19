@@ -24,6 +24,8 @@ export interface ErrorReportContext {
   route?: string;
   /** Optional short, human-readable label for the operation (e.g. "submit_answer"). */
   operation?: string;
+  /** Where the report came from (e.g. "global-error"). */
+  source?: string;
 }
 
 /** Shape of the payload actually sent to the tracker. */

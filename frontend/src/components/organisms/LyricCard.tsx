@@ -35,7 +35,7 @@ export const LyricCard = ({
   };
 
   return (
-    <div className="w-full max-w-[24rem] mx-auto h-[500px] [perspective:1000px]">
+    <div className="w-full max-w-[24rem] mx-auto h-[420px] sm:h-[500px] [perspective:1000px]">
       <div className={`relative w-full h-full transition-transform duration-300 [transform-style:preserve-3d] ${isFlipped ? '[transform:rotateY(180deg)]' : ''}`}>
         {/* Front Face */}
         <div className="absolute inset-0 [backface-visibility:hidden]">

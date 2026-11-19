@@ -253,7 +253,7 @@ export function WagerModal() {
           <label className="text-sm font-medium" htmlFor="your-wager">
             Your Wager
           </label>
-          <div className="flex bg-white focus-within:outline-none focus-within:ring-1 focus-within:ring-ring disabled:cursor-not-allowed disabled:opacity-50 p-3 rounded-[4px]">
+          <div className="flex bg-white focus-within:outline-none focus-within:ring-1 focus-within:ring-ring disabled:cursor-not-allowed disabled:opacity-50 p-3 rounded-[4px] gap-2">
             <Input
               type="number"
               name="your-wager"
@@ -265,11 +265,11 @@ export function WagerModal() {
                   wagerAmount: e.target.value,
                 }))
               }
-              className={`border-none shadow-none focus-visible:ring-0 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 ${formErrors.wagerAmount ? 'border-red-500' : ''}`}
+              className={`border-none shadow-none focus-visible:ring-0 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 flex-1 min-w-0 ${formErrors.wagerAmount ? 'border-red-500' : ''}`}
               placeholder="Enter amount"
             />
             <Select value={'STRK'}>
-              <SelectTrigger className="rounded-full w-full max-w-[66px] border-[#DBE2E8] text-[10px] font-light">
+              <SelectTrigger className="rounded-full w-[66px] flex-shrink-0 border-[#DBE2E8] text-[10px] font-light">
                 <SelectValue placeholder="Select currency" />
               </SelectTrigger>
               <SelectContent>

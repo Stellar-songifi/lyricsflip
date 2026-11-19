@@ -163,39 +163,44 @@ export default function SinglePlayerGame() {
   }
 
   return (
-    <div className="container mt-4 mx-auto h-fit w-full mb-20 lg:mb-12 p-4 lg:p-0 md:mt-24 lg:mt-32">
+    <div className="container mt-4 mx-auto h-fit w-full mb-20 lg:mb-12 px-4 lg:px-0 md:mt-24 lg:mt-32">
       <div className="mb-6">
         <button
           onClick={handleBack}
-          className="flex items-center text-gray-600 mb-4"
+          className="flex items-center text-gray-600 mb-4 min-h-[44px]"
         >
           <ArrowLeft className="h-4 w-4 mr-2" />
           Back
         </button>
-        <h1 className="text-2xl font-bold">Wager (Single Player)</h1>
+        <h1 className="text-xl sm:text-2xl font-bold">Wager (Single Player)</h1>
         <p className="text-gray-600 text-sm">
           {`${round.genre.toString()} Genre | Expert Difficulty`}
         </p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-start-2 lg:col-span-1 order-1 lg:order-2">
+      {/* On small screens: card first, stats below.
+          On lg+: three-column layout with card centred and stats on right. */}
+      <div className="flex flex-col gap-6 lg:grid lg:grid-cols-3">
+        {/* Stats panel stacks below the card on small screens */}
+        <div className="order-2 lg:order-3 lg:col-start-3 lg:col-span-1">
+          <StatisticsPanel
+            time={`${timeLeft}`}
+            potWin={`${round.wager_amount.toString()} STRK`}
+            scores={`${score} / ${totalCards}`}
+          />
+        </div>
+
+        {/* Lyric card is first on all screen sizes */}
+        <div className="order-1 lg:order-2 lg:col-start-2 lg:col-span-1">
           <LyricCard
             lyrics={[
               {
                 text: question?.lyric || 'Loading...',
                 title: card?.title || '',
                 artist: card?.artist || '',
-              }
+              },
             ]}
             isFlipped={isCardFlipped}
-          />
-        </div>
-        <div className="lg:col-start-3 lg:col-span-1 order-2 lg:order-3">
-          <StatisticsPanel
-            time={`${timeLeft}`}
-            potWin={`${round.wager_amount.toString()} STRK`}
-            scores={`${score} / ${totalCards}`}
           />
         </div>
       </div>
@@ -217,7 +222,7 @@ export default function SinglePlayerGame() {
             <button
               onClick={handleNextCard}
               disabled={!!txStatus}
-              className="px-4 py-2 bg-purple-500 text-white rounded disabled:opacity-50"
+              className="px-6 py-3 bg-purple-500 text-white rounded disabled:opacity-50 min-h-[44px]"
             >
               Next card
             </button>

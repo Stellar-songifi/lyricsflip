@@ -8,6 +8,7 @@ import { Button } from '@/components/atoms/button';
 import { Modal } from './modal';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useStellar } from '@/lib/stellar/hooks/use-stellar';
+import { createConfig } from '@/lib/stellar/stellar-config';
 import { formatAmount, WAGER_ASSET_CODE } from '@/lib/utils';
 import { toast } from 'sonner';
 
@@ -30,6 +31,7 @@ const GameResultPopup: React.FC<GameResultPopupProps> = ({
   const router = useRouter();
   const searchParams = useSearchParams();
   const { systemCalls, account } = useStellar();
+  const { wageringEnabled } = createConfig();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fetchedRoundData, setFetchedRoundData] = useState<any>(null);
@@ -301,7 +303,7 @@ const GameResultPopup: React.FC<GameResultPopupProps> = ({
     return (
       <div className="flex flex-col gap-3 justify-center mt-10 w-full">
         {/* Claim Winnings button disappears once claim succeeds */}
-        {isWin && !isClaimed && (
+        {wageringEnabled && isWin && !isClaimed && (
           <Button
             variant="purple"
             size="lg"

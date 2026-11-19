@@ -1,6 +1,7 @@
 import { X } from 'lucide-react';
 import { useState } from 'react';
 import { useStellar } from '@/lib/stellar/hooks/use-stellar';
+import { generateInviteCode } from '@/lib/stellar/client';
 import type { Genre } from '@/lib/stellar/types';
 import { useRouter } from 'next/navigation';
 import { useXlmBalance } from '@/lib/stellar/hooks/use-xlm-balance';
@@ -31,6 +32,7 @@ export default function CreateChallenge() {
     amount: '',
   });
   const [isLoading, setIsLoading] = useState(false);
+  const [isPrivate, setIsPrivate] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const handleChange = (
@@ -102,8 +104,15 @@ export default function CreateChallenge() {
         setError('Invalid genre selected');
         return;
       }
-      const roundId = await systemCalls.createRound(genre);
-      router.push(`/multiplayer/${roundId}`);
+      // LF-305: the invite code lives only in the URL fragment, never on-chain
+      // or in server logs; the contract stores its hash.
+      const inviteCode = isPrivate ? generateInviteCode() : undefined;
+      const roundId = await systemCalls.createRound(genre, undefined, undefined, inviteCode);
+      router.push(
+        inviteCode
+          ? `/multiplayer/${roundId}#invite=${inviteCode}`
+          : `/multiplayer/${roundId}`,
+      );
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create challenge');
     } finally {
@@ -267,6 +276,15 @@ export default function CreateChallenge() {
               </span>
             </p>
           </div>
+
+          <label className="flex items-center gap-2 mt-6 text-[14px] font-[500]">
+            <input
+              type="checkbox"
+              checked={isPrivate}
+              onChange={(e) => setIsPrivate(e.target.checked)}
+            />
+            Private — only players with the invite link can join
+          </label>
 
           <div className="w-full mt-20">
             <button

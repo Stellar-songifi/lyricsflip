@@ -17,7 +17,7 @@ pub use events::{
     CardsPerRoundUpdated, ContractUpgraded, LobbyTimeoutUpdated, OwnershipTransferStarted,
     OwnershipTransferred, Paused, PlayerReady, RewardClaimed, RoleUpdated, RoundBufferUpdated,
     RoundCancelled, RoundCompleted, RoundCreated, RoundDurationUpdated, RoundJoined, RoundLeft,
-    RoundStarted, SchemaMigrated, Unpaused,
+    RoundStarted, SchemaMigrated, Unpaused, EscrowContractUpdated,
 };
 pub use types::{
     Answer, AnswerResult, Card, CardPos, DataKey, Genre, LegacyCard, LegacyRound, Milestone,
@@ -28,6 +28,16 @@ use soroban_sdk::{
     contract, contractclient, contractimpl, panic_with_error, Address, Bytes, BytesN, Env, Map,
     String, TryFromVal, Val, Vec,
 };
+
+#[contractclient(name = "EscrowClient")]
+pub trait EscrowInterface {
+    fn create_round(env: Env, round_id: u64, creator: Address, token: Address);
+    fn deposit(env: Env, round_id: u64, from: Address, amount: i128);
+    fn refund(env: Env, round_id: u64, player: Address) -> i128;
+    fn cancel_round(env: Env, round_id: u64, players: Vec<Address>);
+    fn settle_round(env: Env, round_id: u64, winners: Vec<Address>);
+    fn claim_winnings(env: Env, caller: Address, round_id: u64) -> i128;
+}
 
 /// Bumped on every release that changes the contract's code; see `upgrade`.
 pub const VERSION: u32 = 1;
@@ -355,6 +365,16 @@ impl LyricsFlip {
             .set(&DataKey::Round(round_id), &round);
 
         let winners = Self::determine_round_winners(&env, round_id);
+        if round.wager_amount > 0 {
+            let escrow = env.storage().instance().get::<_, Address>(&DataKey::EscrowContract)
+                .unwrap_or_else(|| panic_with_error!(env, Error::NotAuthorized));
+            let escrow_client = EscrowClient::new(&env, &escrow);
+            if winners.is_empty() {
+                escrow_client.cancel_round(&round_id, &Self::read_round_players(&env, round_id));
+            } else {
+                escrow_client.settle_round(&round_id, &winners);
+            }
+        }
         if winners.len() > 0 {
             for player in Self::read_round_players(&env, round_id).iter() {
                 let mut is_winner = false;
@@ -766,6 +786,8 @@ impl LyricsFlip {
         genre: Option<Genre>,
         seed: u64,
         invite_hash: Option<BytesN<32>>,
+        wager_token: Option<Address>,
+        wager_amount: i128,
     ) -> u64 {
         if genre.is_none() {
             panic_with_error!(env, Error::NonExistingGenre);
@@ -781,6 +803,8 @@ impl LyricsFlip {
             seed,
             invite_hash,
             false,
+            wager_token,
+            wager_amount,
         )
     }
 
@@ -792,7 +816,7 @@ impl LyricsFlip {
         difficulty: Option<u32>,
         seed: u64,
     ) -> u64 {
-        Self::create_round_internal(&env, caller, filter, difficulty, seed, None, false)
+        Self::create_round_internal(&env, caller, filter, difficulty, seed, None, false, None, 0)
     }
 
     fn create_round_internal(
@@ -803,8 +827,12 @@ impl LyricsFlip {
         seed: u64,
         invite_hash: Option<BytesN<32>>,
         solo: bool,
+        wager_token: Option<Address>,
+        wager_amount: i128,
     ) -> u64 {
         caller.require_auth();
+        if wager_amount < 0 { panic_with_error!(env, Error::InvalidRoundDuration); }
+        if wager_amount > 0 && wager_token.is_none() { panic_with_error!(env, Error::NotAuthorized); }
         // LF-175: cap public open lobbies per address. Private and solo
         // rounds never appear in `OpenRounds`, so they are exempt.
         if !solo && invite_hash.is_none() {
@@ -898,7 +926,8 @@ impl LyricsFlip {
             round_id,
             admin: caller.clone(),
             genre,
-            wager_amount: 0,
+            wager_amount: wager_amount,
+            wager_token: wager_token.clone(),
             start_time: 0,
             is_started: false,
             is_completed: false,
@@ -947,6 +976,15 @@ impl LyricsFlip {
             &DataKey::RoundCreatedAt(round_id),
             &env.ledger().timestamp(),
         );
+
+        if wager_amount > 0 {
+            let escrow = env.storage().instance().get::<_, Address>(&DataKey::EscrowContract)
+                .unwrap_or_else(|| panic_with_error!(env, Error::NotAuthorized));
+            let token_address = wager_token.clone().unwrap();
+            let client = EscrowClient::new(env, &escrow);
+            client.create_round(&round_id, &caller, &token_address);
+            client.deposit(&round_id, &caller, &wager_amount);
+        }
 
         // LF-162: private rounds are not discoverable in the public lobby.
         // LF-175: solo rounds skip the lobby entirely, so they neither
@@ -1762,6 +1800,13 @@ impl LyricsFlip {
     }
 
     /// Sets the nft contract.
+    pub fn set_escrow_contract(env: Env, caller: Address, escrow: Address) {
+        caller.require_auth();
+        Self::assert_owner(&env, &caller);
+        env.storage().instance().set(&DataKey::EscrowContract, &escrow);
+        EscrowContractUpdated { owner: caller, escrow }.publish(&env);
+    }
+
     pub fn set_nft_contract(env: Env, caller: Address, nft_contract: Address) {
         caller.require_auth();
         Self::assert_owner(&env, &caller);
@@ -1832,6 +1877,15 @@ impl LyricsFlip {
     /// Mints the NFT for `milestone` to `caller` through a cross-contract
     /// call. This contract must be the NFT contract's minter. Each milestone
     /// can be claimed once per player.
+    pub fn claim_winnings(env: Env, caller: Address, round_id: u64) -> i128 {
+        caller.require_auth();
+        let round = Self::read_round(&env, round_id);
+        if round.wager_amount == 0 { return 0; }
+        let escrow = env.storage().instance().get::<_, Address>(&DataKey::EscrowContract)
+            .unwrap_or_else(|| panic_with_error!(env, Error::NotAuthorized));
+        EscrowClient::new(&env, &escrow).claim_winnings(&caller, &round_id)
+    }
+
     pub fn claim_reward(env: Env, caller: Address, milestone: Milestone) -> u128 {
         caller.require_auth();
         Self::require_not_paused(&env);
@@ -2577,8 +2631,11 @@ impl LyricsFlip {
     /// Returns the wager refunded to `player`. Wagers are not escrowed yet
     /// (see LF-013), so this only reports `round.wager_amount`; once escrow
     /// lands, the token transfer back to `player` belongs here.
-    fn refund_wager(_env: &Env, round: &Round, _player: &Address) -> i128 {
-        round.wager_amount
+    fn refund_wager(env: &Env, round: &Round, player: &Address) -> i128 {
+        if round.wager_amount == 0 { return 0; }
+        let escrow = env.storage().instance().get::<_, Address>(&DataKey::EscrowContract)
+            .unwrap_or_else(|| panic_with_error!(env, Error::NotAuthorized));
+        EscrowClient::new(env, &escrow).refund(&round.round_id, player)
     }
 
     /// Panics with `Error::Paused` when the emergency pause is active.
@@ -2760,6 +2817,8 @@ impl LyricsFlip {
             seed,
             None,
             true,
+            None,
+            0,
         );
 
         // Mark started immediately (mirrors start_round's writes for the
@@ -2768,7 +2827,7 @@ impl LyricsFlip {
         let start_time = env.ledger().timestamp();
         round.is_started = true;
         round.start_time = start_time;
-        round.end_time = start_time + DEFAULT_ROUND_DURATION_SECONDS;
+        round.end_time = start_time + round.round_duration;
         round.solo = true;
         env.storage()
             .persistent()
@@ -2790,14 +2849,12 @@ impl LyricsFlip {
             .get(0)
             .unwrap_or_else(|| panic_with_error!(env, Error::NoMoreCards));
         let card = Self::read_card(&env, card_id);
-        env.storage().persistent().set(
-            &DataKey::PlayerCardIndex((round_id, caller.clone())),
-            &1u32,
-        );
-        env.storage().persistent().set(
-            &DataKey::PlayerCardStartedAt((round_id, caller.clone(), card_id)),
-            &env.ledger().timestamp(),
-        );
+        let player_card_index_key = DataKey::PlayerCardIndex((round_id, caller.clone()));
+        env.storage().persistent().set(&player_card_index_key, &1u32);
+        bump_persistent(&env, &player_card_index_key);
+        let player_card_started_key = DataKey::PlayerCardStartedAt((round_id, caller.clone(), card_id));
+        env.storage().persistent().set(&player_card_started_key, &env.ledger().timestamp());
+        bump_persistent(&env, &player_card_started_key);
         CardDrawn {
             round_id,
             index: 0,
@@ -2953,4 +3010,3 @@ impl LyricsFlip {
         (is_correct, points)
     }
 }
-

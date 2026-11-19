@@ -136,6 +136,7 @@ pub struct Round {
     pub admin: Address,
     pub genre: Genre,
     pub wager_amount: i128,
+    pub wager_token: Option<Address>,
     pub start_time: u64,
     pub is_started: bool,
     pub is_completed: bool,
@@ -176,6 +177,7 @@ impl From<LegacyRound> for Round {
             admin: r.admin,
             genre: r.genre,
             wager_amount: r.wager_amount,
+            wager_token: None,
             start_time: r.start_time,
             is_started: r.is_started,
             is_completed: r.is_completed,
@@ -218,6 +220,7 @@ impl From<RoundV3> for Round {
             admin: r.admin,
             genre: r.genre,
             wager_amount: r.wager_amount,
+            wager_token: None,
             start_time: r.start_time,
             is_started: r.is_started,
             is_completed: r.is_completed,
@@ -379,6 +382,7 @@ pub enum DataKey {
     /// Caps how many free (0-wager) lobbies one account can park in
     /// `OpenRounds`; decremented on start, cancel, and expiry.
     OpenRoundsOf(Address),
+    EscrowContract,
 }
 
 #[contracttype]

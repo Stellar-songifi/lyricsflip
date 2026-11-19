@@ -136,6 +136,7 @@ pub struct Round {
     pub admin: Address,
     pub genre: Genre,
     pub wager_amount: i128,
+    pub wager_token: Option<Address>,
     pub start_time: u64,
     pub is_started: bool,
     pub is_completed: bool,
@@ -179,6 +180,7 @@ impl From<LegacyRound> for Round {
             admin: r.admin,
             genre: r.genre,
             wager_amount: r.wager_amount,
+            wager_token: None,
             start_time: r.start_time,
             is_started: r.is_started,
             is_completed: r.is_completed,
@@ -267,6 +269,7 @@ impl From<RoundV3> for Round {
             admin: r.admin,
             genre: r.genre,
             wager_amount: r.wager_amount,
+            wager_token: None,
             start_time: r.start_time,
             is_started: r.is_started,
             is_completed: r.is_completed,
@@ -442,6 +445,11 @@ pub struct CardResult {
     pub kind: QuestionKind,
     /// `(correct, points)` per player who answered this card.
     pub per_player: Map<Address, (bool, u64)>,
+    /// LF-286: number of rounds in a player's round-history index.
+    PlayerRoundCount(Address),
+    /// LF-286: the player's `n`th round id, in join order (oldest first).
+    PlayerRoundAt((Address, u32)),
+    EscrowContract,
 }
 
 #[contracttype]
@@ -450,5 +458,5 @@ pub struct AnswerResult {
     pub correct: bool,
     pub points: u64,
     pub correct_option: u32,
-    pub next: Vec<Card>,
+    pub next: Option<QuestionCard>,
 }

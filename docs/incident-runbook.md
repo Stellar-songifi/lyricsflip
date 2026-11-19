@@ -34,7 +34,24 @@ runbook current; rehearse it on testnet before mainnet launch.
 3. Provide updates at least every 30 minutes until resolved.
 4. After resolution, publish a short post-incident summary.
 
-## 4. Post-incident
+## 4. Revoking and restoring a milestone badge (LF-284)
+
+Revoke a badge minted in error:
+
+1. Burn it from the NFT contract with the owner key:
+   `stellar contract invoke --id <NFT_ID> -- burn_from --spender <OWNER> --owner <PLAYER> --token_id <TOKEN_ID>`.
+2. Leave the game contract's `MilestoneClaimed` flag set, so the player
+   cannot claim the badge again.
+
+Restore a badge that was revoked or burned by mistake:
+
+1. Clear the claimed flag on the game contract with the owner key:
+   `stellar contract invoke --id <GAME_ID> -- reset_milestone --caller <OWNER> --player <PLAYER> --milestone <FirstWin|Streak5|TenWins>`.
+2. Confirm a `MilestoneReset` event was emitted and that
+   `is_milestone_claimed` now returns `false`.
+3. Ask the player to call `claim_reward` again. A new token id is minted.
+
+## 5. Post-incident
 
 - File follow-up issues for root cause and prevention.
 - Update this runbook and the monitoring alerts if gaps were found.

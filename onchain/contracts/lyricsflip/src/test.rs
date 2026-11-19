@@ -1259,6 +1259,7 @@ fn error_codes_are_stable() {
         (Error::CardInActiveRound, 44),
         (Error::TooManyOpenRounds, 45),
         (Error::MaxPlayersTooHigh, 46),
+        (Error::LobbyExpired, 47),
     ];
     for (variant, code) in expected {
         assert_eq!(variant as u32, code, "{:?} was renumbered", variant);
@@ -1487,6 +1488,332 @@ fn anyone_can_cancel_only_after_lobby_timeout() {
     env.ledger().set_timestamp(1_000 + LOBBY_TIMEOUT_SECONDS);
     client.cancel_round(&stranger, &round_id);
     assert!(client.get_round(&round_id).is_cancelled);
+}
+
+// ---------------------------------------------------------------------------
+// LF-265 – expired lobbies can only be cancelled
+// ---------------------------------------------------------------------------
+
+/// One second before `lobby_timeout` the lobby is still fully usable: it can be
+/// joined, started and is listed by `get_open_rounds`.
+#[test]
+fn lf265_lobby_usable_one_second_before_timeout() {
+    let (env, client, owner) = setup();
+    seed_cards(&env, &client, &owner, 5);
+    client.set_cards_per_round(&owner, &3);
+    env.ledger().set_timestamp(1_000);
+    let round_id = client.create_round(&owner, &Some(Genre::Pop), &1u64, &None);
+
+    env.ledger().set_timestamp(1_000 + LOBBY_TIMEOUT_SECONDS - 1);
+
+    let open = client.get_open_rounds(&0, &10);
+    assert_eq!(open.len(), 1, "lobby must still be listed before expiry");
+    assert_eq!(open.get(0).unwrap(), round_id);
+
+    let player2 = Address::generate(&env);
+    client.join_round(&player2, &round_id, &None);
+    client.start_round(&owner, &round_id);
+    client.start_round(&player2, &round_id);
+    assert!(client.get_round(&round_id).is_started);
+}
+
+/// Exactly at `lobby_timeout` the lobby is expired: joining and starting are
+/// rejected with `LobbyExpired` and `get_open_rounds` no longer lists it.
+#[test]
+fn lf265_lobby_expired_at_timeout() {
+    let (env, client, owner) = setup();
+    seed_cards(&env, &client, &owner, 5);
+    client.set_cards_per_round(&owner, &3);
+    env.ledger().set_timestamp(1_000);
+    let round_id = client.create_round(&owner, &Some(Genre::Pop), &1u64, &None);
+
+    env.ledger().set_timestamp(1_000 + LOBBY_TIMEOUT_SECONDS);
+
+    assert_eq!(
+        client.get_open_rounds(&0, &10).len(),
+        0,
+        "expired lobby must not be listed"
+    );
+
+    let player2 = Address::generate(&env);
+    assert_eq!(
+        client.try_join_round(&player2, &round_id, &None),
+        Err(Ok(Error::LobbyExpired.into()))
+    );
+    assert_eq!(
+        client.try_start_round(&owner, &round_id),
+        Err(Ok(Error::LobbyExpired.into()))
+    );
+
+    // Cancelling is still allowed.
+    client.cancel_round(&Address::generate(&env), &round_id);
+    assert!(client.get_round(&round_id).is_cancelled);
+}
+
+/// One second after `lobby_timeout` the lobby is still expired.
+#[test]
+fn lf265_lobby_expired_after_timeout() {
+    let (env, client, owner) = setup();
+    seed_cards(&env, &client, &owner, 5);
+    client.set_cards_per_round(&owner, &3);
+    env.ledger().set_timestamp(1_000);
+    let round_id = client.create_round(&owner, &Some(Genre::Pop), &1u64, &None);
+
+    env.ledger().set_timestamp(1_000 + LOBBY_TIMEOUT_SECONDS + 1);
+
+    assert_eq!(client.get_open_rounds(&0, &10).len(), 0);
+
+    let player2 = Address::generate(&env);
+    assert_eq!(
+        client.try_join_round(&player2, &round_id, &None),
+        Err(Ok(Error::LobbyExpired.into()))
+    );
+    assert_eq!(
+        client.try_start_round(&owner, &round_id),
+        Err(Ok(Error::LobbyExpired.into()))
+    );
+}
+
+/// `get_open_rounds` skips expired rounds but keeps listing live ones.
+#[test]
+fn lf265_get_open_rounds_skips_expired_rounds() {
+    let (env, client, owner) = setup();
+    seed_cards(&env, &client, &owner, 5);
+    client.set_cards_per_round(&owner, &3);
+    env.ledger().set_timestamp(1_000);
+    let old_round = client.create_round(&owner, &Some(Genre::Pop), &1u64, &None);
+
+    // A second lobby created after the first one expires.
+    env.ledger().set_timestamp(1_000 + LOBBY_TIMEOUT_SECONDS);
+    let other = Address::generate(&env);
+    let fresh_round = client.create_round(&other, &Some(Genre::Pop), &2u64, &None);
+
+    let open = client.get_open_rounds(&0, &10);
+    assert_eq!(open.len(), 1);
+    assert_eq!(open.get(0).unwrap(), fresh_round);
+    assert_ne!(open.get(0).unwrap(), old_round);
+}
+
+// ---------------------------------------------------------------------------
+// LF-271 – tie-breaking and edge-case outcomes (see docs/game-rules.md)
+// ---------------------------------------------------------------------------
+
+/// Decision table row: exact score + time tie -> co-winners, each gets
+/// `rounds_won += 1` and the pot is split evenly with dust to the earliest
+/// winner by index.
+#[test]
+fn lf271_tie_co_winners_split_pot_evenly_with_dust_to_first() {
+    let (env, client, owner) = setup();
+    seed_cards(&env, &client, &owner, 3);
+    client.set_cards_per_round(&owner, &1);
+
+    let round_id = client.create_round(&owner, &Some(Genre::Pop), &271u64, &None);
+    let player2 = Address::generate(&env);
+    let player3 = Address::generate(&env);
+    client.join_round(&player2, &round_id, &None);
+    client.join_round(&player3, &round_id, &None);
+    client.start_round(&owner, &round_id);
+    client.start_round(&player2, &round_id);
+    client.start_round(&player3, &round_id);
+
+    env.ledger().set_timestamp(NOW + 5);
+    let c1 = client.next_card(&owner, &round_id);
+    let c2 = client.next_card(&player2, &round_id);
+    let _ = client.next_card(&player3, &round_id);
+    env.ledger().set_timestamp(NOW + 10);
+    assert!(client.submit_answer(&owner, &round_id, &Answer::Title(c1.title.clone())));
+    assert!(client.submit_answer(&player2, &round_id, &Answer::Title(c2.title.clone())));
+
+    client.finalize_round(&owner, &round_id);
+
+    // Both tied winners are credited.
+    assert_eq!(client.get_player_stat(&owner).rounds_won, 1);
+    assert_eq!(client.get_player_stat(&player2).rounds_won, 1);
+    assert_eq!(client.get_player_stat(&player3).rounds_won, 0);
+}
+
+/// Decision table row: zero scores -> no winners, no `rounds_won` changes.
+#[test]
+fn lf271_zero_scores_produce_no_winners() {
+    let (env, client, owner) = setup();
+    seed_cards(&env, &client, &owner, 3);
+    client.set_cards_per_round(&owner, &1);
+
+    let round_id = client.create_round(&owner, &Some(Genre::Pop), &272u64, &None);
+    let player2 = Address::generate(&env);
+    client.join_round(&player2, &round_id, &None);
+    client.start_round(&owner, &round_id);
+    client.start_round(&player2, &round_id);
+
+    env.ledger().set_timestamp(NOW + 5);
+    let _ = client.next_card(&owner, &round_id);
+    let _ = client.next_card(&player2, &round_id);
+    env.ledger().set_timestamp(NOW + 10);
+    assert!(!client.submit_answer(
+        &owner,
+        &round_id,
+        &Answer::Title(String::from_str(&env, "nope"))
+    ));
+    assert!(!client.submit_answer(
+        &player2,
+        &round_id,
+        &Answer::Title(String::from_str(&env, "nope-two"))
+    ));
+
+    client.finalize_round(&owner, &round_id);
+    assert_eq!(client.get_player_stat(&owner).rounds_won, 0);
+    assert_eq!(client.get_player_stat(&player2).rounds_won, 0);
+}
+
+/// Decision table row: a player who never answers is excluded from the
+/// winners and has their streak reset.
+#[test]
+fn lf271_non_answering_player_is_excluded_and_streak_reset() {
+    let (env, client, owner) = setup();
+    seed_cards(&env, &client, &owner, 3);
+    client.set_cards_per_round(&owner, &1);
+
+    let round_id = client.create_round(&owner, &Some(Genre::Pop), &273u64, &None);
+    let player2 = Address::generate(&env);
+    client.join_round(&player2, &round_id, &None);
+    client.start_round(&owner, &round_id);
+    client.start_round(&player2, &round_id);
+
+    env.ledger().set_timestamp(NOW + 5);
+    let card = client.next_card(&owner, &round_id);
+    let _ = client.next_card(&player2, &round_id);
+    env.ledger().set_timestamp(NOW + 10);
+    assert!(client.submit_answer(&owner, &round_id, &Answer::Title(card.title.clone())));
+
+    client.finalize_round(&owner, &round_id);
+
+    assert_eq!(client.get_player_stat(&owner).rounds_won, 1);
+    assert_eq!(client.get_player_stat(&player2).rounds_won, 0);
+    assert_eq!(
+        client.get_player_stat(&player2).current_streak,
+        0,
+        "a player who never answered must lose their streak"
+    );
+}
+
+/// Decision table row: a correct-but-slow player beats a fast player who
+/// scored less (score dominates total answer time).
+#[test]
+fn lf271_slow_correct_player_beats_fast_lower_score() {
+    let (env, client, owner) = setup();
+    seed_cards(&env, &client, &owner, 3);
+    client.set_cards_per_round(&owner, &2);
+
+    let round_id = client.create_round(&owner, &Some(Genre::Pop), &274u64, &None);
+    let player2 = Address::generate(&env);
+    client.join_round(&player2, &round_id, &None);
+    client.start_round(&owner, &round_id);
+    client.start_round(&player2, &round_id);
+
+    // Owner answers both cards correctly but slowly.
+    env.ledger().set_timestamp(NOW + 5);
+    let c1 = client.next_card(&owner, &round_id);
+    let _ = client.next_card(&player2, &round_id);
+    env.ledger().set_timestamp(NOW + 12);
+    assert!(client.submit_answer(&owner, &round_id, &Answer::Title(c1.title.clone())));
+    env.ledger().set_timestamp(NOW + 35);
+    let c2 = client.next_card(&owner, &round_id);
+    let _ = client.next_card(&player2, &round_id);
+    env.ledger().set_timestamp(NOW + 42);
+    assert!(client.submit_answer(&owner, &round_id, &Answer::Title(c2.title.clone())));
+
+    // Player2 answers one card fast and one wrong.
+    env.ledger().set_timestamp(NOW + 43);
+    assert!(!client.submit_answer(
+        &player2,
+        &round_id,
+        &Answer::Title(String::from_str(&env, "wrong"))
+    ));
+
+    client.finalize_round(&owner, &round_id);
+    assert_eq!(client.get_player_stat(&owner).rounds_won, 1);
+    assert_eq!(client.get_player_stat(&player2).rounds_won, 0);
+}
+
+/// Decision table row: solo round -> the single player wins when score > 0.
+#[test]
+fn lf271_solo_round_single_player_wins_with_score() {
+    let (env, client, owner) = setup();
+    seed_cards(&env, &client, &owner, 10);
+    client.set_cards_per_round(&owner, &1);
+
+    let round_id = client.create_solo_round(&owner, &Some(Genre::Pop), &275u64);
+    env.ledger().set_timestamp(NOW + 5);
+    let card = client.next_card(&owner, &round_id);
+    env.ledger().set_timestamp(NOW + 10);
+    assert!(client.submit_answer(&owner, &round_id, &Answer::Title(card.title.clone())));
+
+    client.finalize_round(&owner, &round_id);
+    assert_eq!(client.get_player_stat(&owner).rounds_won, 1);
+}
+
+/// Decision table row: a winner who left the round is excluded from the
+/// payout and does not receive `rounds_won`.
+#[test]
+fn lf271_departed_winner_is_excluded() {
+    let (env, client, owner) = setup();
+    seed_cards(&env, &client, &owner, 3);
+    client.set_cards_per_round(&owner, &1);
+
+    let round_id = client.create_round(&owner, &Some(Genre::Pop), &276u64, &None);
+    let player2 = Address::generate(&env);
+    client.join_round(&player2, &round_id, &None);
+    // player2 leaves before the round starts.
+    client.leave_round(&player2, &round_id);
+    client.start_round(&owner, &round_id);
+
+    env.ledger().set_timestamp(NOW + 5);
+    let card = client.next_card(&owner, &round_id);
+    env.ledger().set_timestamp(NOW + 10);
+    assert!(client.submit_answer(&owner, &round_id, &Answer::Title(card.title.clone())));
+
+    client.finalize_round(&owner, &round_id);
+    assert_eq!(client.get_player_stat(&owner).rounds_won, 1);
+    assert_eq!(client.get_player_stat(&player2).rounds_won, 0);
+}
+
+// ---------------------------------------------------------------------------
+// LF-272 – skipping a card resets the streak
+// ---------------------------------------------------------------------------
+
+#[test]
+fn lf272_skipping_a_card_resets_streak() {
+    let (env, client, owner) = setup();
+    seed_cards(&env, &client, &owner, 10);
+    client.set_cards_per_round(&owner, &6);
+
+    let round_id = client.create_round(&owner, &Some(Genre::Pop), &272u64, &None);
+    client.start_round(&owner, &round_id);
+
+    // Answer 4 cards correctly.
+    for i in 0..4u64 {
+        env.ledger().set_timestamp(NOW + 5 + i * 30);
+        let card = client.next_card(&owner, &round_id);
+        env.ledger().set_timestamp(NOW + 8 + i * 30);
+        assert!(client.submit_answer(&owner, &round_id, &Answer::Title(card.title.clone())));
+    }
+    assert_eq!(client.get_player_stat(&owner).current_streak, 4);
+
+    // Skip the fifth card: draw the next one without submitting.
+    env.ledger().set_timestamp(NOW + 5 + 4 * 30);
+    let _skipped = client.next_card(&owner, &round_id);
+    assert_eq!(
+        client.get_player_stat(&owner).current_streak,
+        0,
+        "skipping a card must reset the streak"
+    );
+
+    // Answer the next card correctly: streak restarts at 1.
+    env.ledger().set_timestamp(NOW + 5 + 5 * 30);
+    let card = client.next_card(&owner, &round_id);
+    env.ledger().set_timestamp(NOW + 8 + 5 * 30);
+    assert!(client.submit_answer(&owner, &round_id, &Answer::Title(card.title.clone())));
+    assert_eq!(client.get_player_stat(&owner).current_streak, 1);
 }
 
 // ---------------------------------------------------------------------------

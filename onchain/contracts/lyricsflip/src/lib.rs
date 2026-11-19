@@ -13,7 +13,13 @@ mod test_budget;
 
 pub use errors::Error;
 pub use events::{
-    AnswerSubmitted, CardAdded, CardDrawn, CardRemoved, CardUpdated, CardsPerRoundUpdated,
+    AnswerSubmitted,
+    AnswerWindowUpdated,
+    CardAdded,
+    CardDrawn,
+    CardRemoved,
+    CardUpdated,
+    CardsPerRoundUpdated,
     OwnershipTransferStarted, OwnershipTransferred, PlayerReady, RewardClaimed, RoleUpdated,
     RoundCancelled, RoundCompleted, RoundCreated, RoundJoined, RoundLeft, RoundStarted,
 };
@@ -43,6 +49,11 @@ pub const DEFAULT_MAX_PLAYERS: u32 = 8;
 /// rule). Answers submitted after the window are accepted but scored as
 /// wrong, so every player can still complete the round.
 pub const CARD_ANSWER_WINDOW_SECONDS: u64 = 15;
+
+/// Lower bound for the per-round answer window (`set_answer_window`).
+pub const MIN_ANSWER_WINDOW_SECONDS: u64 = 5;
+/// Upper bound for the per-round answer window (`set_answer_window`).
+pub const MAX_ANSWER_WINDOW_SECONDS: u64 = 180;
 /// Points for an instant correct answer; each elapsed second costs
 /// `POINTS_DECAY_PER_SECOND`, down to `MIN_CORRECT_POINTS`.
 pub const MAX_CORRECT_POINTS: u64 = 100;
@@ -471,6 +482,7 @@ impl LyricsFlip {
             genre,
             wager_amount: 0,
             start_time: 0,
+            answer_window: Self::read_answer_window(&env),
             is_started: false,
             is_completed: false,
             end_time: 0,
@@ -750,6 +762,24 @@ impl LyricsFlip {
         card
     }
 
+    /// Sets the default answer window (seconds) used when creating new
+    /// rounds. Rounds already created keep the window they were created with.
+    ///
+    /// The owner can set it anywhere from `MIN_ANSWER_WINDOW_SECONDS` (5 s)
+    /// to `MAX_ANSWER_WINDOW_SECONDS` (180 s).
+    pub fn set_answer_window(env: Env, caller: Address, value: u64) {
+        caller.require_auth();
+        Self::assert_admin(&env, &caller);
+        if value < MIN_ANSWER_WINDOW_SECONDS || value > MAX_ANSWER_WINDOW_SECONDS {
+            panic_with_error!(env, Error::InvalidAnswerWindow);
+        }
+        env.storage()
+            .instance()
+            .set(&DataKey::AnswerWindow, &value);
+        bump_instance(&env);
+        AnswerWindowUpdated { value }.publish(&env);
+    }
+
     pub fn set_cards_per_round(env: Env, caller: Address, value: u32) {
         caller.require_auth();
         Self::assert_admin(&env, &caller);
@@ -986,8 +1016,9 @@ impl LyricsFlip {
         bump_persistent(&env, &DataKey::RoundAnswerTimes(round_id));
 
         // Answers after the card window are scored as wrong (not rejected),
-        // so the player still counts as having answered the card.
-        let is_answer_correct = answer_time <= CARD_ANSWER_WINDOW_SECONDS
+        // so the player still counts as having answered the card. The cut-off
+        // is the round's snapshotted `answer_window` (LF-307).
+        let is_answer_correct = answer_time <= round.answer_window
             && match answer {
                 Answer::Artist(value) => value == current_card.artist,
                 Answer::Year(value) => value == current_card.year,
@@ -1486,6 +1517,16 @@ impl LyricsFlip {
             cards.push_back(Self::get_card(env.clone(), card_id));
         }
         cards
+    }
+
+    /// The answer window (seconds) used when creating new rounds: the
+    /// admin-configured `AnswerWindow` value, or `CARD_ANSWER_WINDOW_SECONDS`
+    /// before anyone has set one.
+    fn read_answer_window(env: &Env) -> u64 {
+        env.storage()
+            .instance()
+            .get(&DataKey::AnswerWindow)
+            .unwrap_or(CARD_ANSWER_WINDOW_SECONDS)
     }
 
     fn read_round(env: &Env, round_id: u64) -> Round {

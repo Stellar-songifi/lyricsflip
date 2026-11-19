@@ -1222,6 +1222,7 @@ fn error_codes_are_stable() {
         (Error::DuplicateCard, 31),
         (Error::BatchTooLarge, 32),
         (Error::NotPendingOwner, 33),
+        (Error::InvalidAnswerWindow, 34),
     ];
     for (variant, code) in expected {
         assert_eq!(variant as u32, code, "{:?} was renumbered", variant);

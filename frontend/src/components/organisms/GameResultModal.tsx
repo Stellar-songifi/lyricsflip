@@ -6,8 +6,9 @@ import { Check } from 'lucide-react';
 import { useStellar } from '@/lib/stellar/hooks/useStellar';
 import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
+import type { Round } from '@/lib/stellar/types';
 
-interface GameResultData {
+interface GameResultData extends Round {
   score?: number;
   maxRounds?: number;
   odds?: string | number;

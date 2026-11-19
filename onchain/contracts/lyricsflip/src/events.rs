@@ -158,3 +158,9 @@ pub struct OwnershipTransferred {
 pub struct CardsPerRoundUpdated {
     pub value: u32,
 }
+
+#[contractevent]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct AnswerWindowUpdated {
+    pub value: u64,
+}

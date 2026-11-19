@@ -378,6 +378,7 @@ Every variant is currently referenced by the contract. The ones marked
 | 31 | `DuplicateCard` | Another card already has this `title` + `artist` |
 | 32 | `BatchTooLarge` | `add_cards` got more than `MAX_CARDS_PER_BATCH` cards |
 | 33 | `NotPendingOwner` | Caller of `accept_ownership` is not the pending owner |
+| 34 | `InvalidAnswerWindow` | `set_answer_window` was called outside the 5–180 second range |
 | 26 | `NotPendingOwner` | Caller of `accept_ownership` is not the pending owner |
 | 18 | `RoundNotReady` | `finalize_round` called before all answers submitted and before the deadline |
 | 19 | `RoundAlreadyFinalized` | `finalize_round` called a second time on an already-finalized round |

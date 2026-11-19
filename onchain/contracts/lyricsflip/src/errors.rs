@@ -45,4 +45,5 @@ pub enum Error {
     DuplicateCard = 31,
     BatchTooLarge = 32,
     NotPendingOwner = 33,
+    InvalidAnswerWindow = 34,
 }

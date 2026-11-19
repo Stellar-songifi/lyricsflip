@@ -216,6 +216,14 @@ pub struct RoundBufferUpdated {
     pub value: u64,
 }
 
+/// LF-284: the owner cleared a player's `MilestoneClaimed` flag so a revoked
+/// or burned badge can be claimed again.
+#[contractevent]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct MilestoneReset {
+    #[topic]
+    pub player: Address,
+    pub milestone: Milestone,
 #[contractevent]
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct MaxPlayersUpdated {

@@ -1,5 +1,6 @@
 "use client"
 import Navbar, { MobileNav } from '@/components/molecules/navbar';
+import { NetworkMismatchBanner } from '@/components/molecules/network-mismatch-banner';
 import { metadata } from "./metadata";
 import { ClientProvider } from '@/components/providers/client-provider';
 import { Inter, JetBrains_Mono } from 'next/font/google';
@@ -55,6 +56,7 @@ export default function RootLayout({
           }>
             <DynamicStellarProvider>
               <Navbar />
+              <NetworkMismatchBanner />
               {children}
               <MobileNav />
             </DynamicStellarProvider>

@@ -20,12 +20,13 @@ export interface UseStellarResult {
   isLoading: boolean;
   error: Error | null;
   warnings: string[];
+  networkMismatch: boolean;
   connect: () => Promise<void>;
   disconnect: () => Promise<void>;
 }
 
 export function useStellar(): UseStellarResult {
-  const { setup, account, isLoading, error, warnings, connect, disconnect }: StellarContextType =
+  const { setup, account, isLoading, error, warnings, networkMismatch, connect, disconnect }: StellarContextType =
     useContext(StellarContext);
 
   return {
@@ -35,6 +36,7 @@ export function useStellar(): UseStellarResult {
     isLoading,
     error,
     warnings,
+    networkMismatch,
     connect,
     disconnect,
   };

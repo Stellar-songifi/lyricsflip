@@ -245,7 +245,8 @@
     "correct": "C'est correct !",
     "wrong": "Erreur ! La bonne réponse était {title} de {artist}",
     "roundComplete": "Partie terminée : {score} / {total} correct",
-    "nextCard": "Carte suivante"
+    "nextCard": "Carte suivante",
+    "pointsDecay": "Vous pouvez gagner jusqu'à {points} points pour cette carte."
   },
   "statistics": {
     "title": "STATISTIQUES",

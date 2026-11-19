@@ -6,11 +6,13 @@ import { QuestionCard } from '@/components/question-card';
 import type { SongOption } from '@/lib/stellar/types';
 import {
   answerForOption,
+  CARD_ANSWER_WINDOW_SECONDS,
   QUESTION_KIND_VALUES,
   type Card,
   type QuestionCard as QuestionCardType,
   type Round,
 } from '@/lib/stellar/types';
+import { useCardTimer } from '@/features/game/hooks/use-card-timer';
 import { useStellar } from '@/lib/stellar/hooks/useStellar';
 import { useSearchParams } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
@@ -37,7 +39,7 @@ export default function SinglePlayerGame() {
   const [correctOption, setCorrectOption] = useState<SongOption | null>(null);
   const [isCardFlipped, setIsCardFlipped] = useState(false);
   const [score, setScore] = useState(0);
-  const [timeLeft, setTimeLeft] = useState(300); // 5 minutes default
+  const [drawClosedAtMs, setDrawClosedAtMs] = useState<number | null>(null);
   const [lastAnswerCorrect, setLastAnswerCorrect] = useState<boolean | null>(null);
   const [resultAnnouncement, setResultAnnouncement] = useState<string | null>(null);
 
@@ -50,7 +52,8 @@ export default function SinglePlayerGame() {
     setLastAnswerCorrect(null);
     setResultAnnouncement(null);
     setTxStatus(t('drawingCard'));
-    const nextCard = await systemCalls.nextCard(id);
+    const { card: nextCard, closedAtMs } = await systemCalls.nextCard(id);
+    setDrawClosedAtMs(closedAtMs);
     setTxStatus(t('buildingQuestion'));
     // Cycle the question kind per card so all three kinds can be played.
     const kind = QUESTION_KIND_VALUES[answeredCount % QUESTION_KIND_VALUES.length];
@@ -100,14 +103,10 @@ export default function SinglePlayerGame() {
     fetchRoundData();
   }, [roundId, systemCalls, loadNextCard, t]);
 
-  useEffect(() => {
-    if (isGameStarted && timeLeft > 0) {
-      const timer = setInterval(() => {
-        setTimeLeft(prev => prev - 1);
-      }, 1000);
-      return () => clearInterval(timer);
-    }
-  }, [isGameStarted, timeLeft]);
+  const { timeLeft, points } = useCardTimer({
+    answerWindowSeconds: round?.answer_window ?? CARD_ANSWER_WINDOW_SECONDS,
+    closedAtMs: drawClosedAtMs ?? undefined,
+  });
 
   const options: SongOption[] = question
     ? [question.option_one, question.option_two, question.option_three, question.option_four].map(
@@ -221,6 +220,10 @@ export default function SinglePlayerGame() {
       </div>
 
       {txStatus && <p className="mt-4 text-sm text-gray-600">{txStatus}</p>}
+
+      <p className="mt-4 text-sm text-gray-400" data-testid="points-decay">
+        {t('pointsDecay', { points })}
+      </p>
 
       <QuestionCard
         kind={question?.kind ?? QUESTION_KIND_VALUES[0]}

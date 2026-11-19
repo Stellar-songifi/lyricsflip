@@ -1,5 +1,7 @@
 import { render } from '@testing-library/react';
+import { NextIntlClientProvider } from 'next-intl';
 import { StatisticsPanel } from '@/components/molecules/statistics-panel';
+import enMessages from '../../../messages/en.json';
 
 // Mock Next.js dependencies
 jest.mock('next/navigation', () => ({
@@ -32,11 +34,13 @@ jest.mock('@/components/organisms/GameResultPopup', () => ({
 describe('StatisticsPanel', () => {
   test('renders without crashing', () => {
     const { container } = render(
-      <StatisticsPanel 
-        time={''} 
-        potWin={''} 
-        scores={''} 
-      />
+      <NextIntlClientProvider messages={enMessages} locale="en">
+        <StatisticsPanel 
+          time={''} 
+          potWin={''} 
+          scores={''} 
+        />
+      </NextIntlClientProvider>
     );
     expect(container).toBeTruthy();
   });

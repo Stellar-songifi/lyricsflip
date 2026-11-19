@@ -31,7 +31,8 @@ export interface SystemCalls {
   createRound: (genre: Genre, seed?: bigint) => Promise<bigint>;
   joinRound: (roundId: bigint) => Promise<void>;
   startRound: (roundId: bigint) => Promise<void>;
-  nextCard: (roundId: bigint) => Promise<Card>;
+  /** Draws the next card; also returns the ledger-close time of the draw tx. */
+  nextCard: (roundId: bigint) => Promise<{ card: Card; closedAtMs: number }>;
   submitAnswer: (roundId: bigint, answer: Answer) => Promise<boolean>;
   addCard: (card: Omit<Card, 'card_id'>) => Promise<void>;
   /** Adds up to `MAX_CARDS_PER_BATCH` (20) cards in one transaction. */
@@ -39,6 +40,8 @@ export interface SystemCalls {
   getCard: (cardId: bigint) => Promise<Card>;
   getCardsCount: () => Promise<bigint>;
   setCardsPerRound: (value: number) => Promise<void>;
+  /** Sets the default answer window (5–180 s) used when creating new rounds. */
+  setAnswerWindow: (value: number) => Promise<void>;
   setRole: (recipient: string, isEnable: boolean) => Promise<void>;
   isAdmin: (address: string) => Promise<boolean>;
   isOwner: (address: string) => Promise<boolean>;
@@ -105,6 +108,7 @@ type LyricsFlipContract = {
   get_card: (args: { card_id: bigint }) => Promise<contract.AssembledTransaction<WireCard>>;
   get_cards_count: () => Promise<contract.AssembledTransaction<bigint>>;
   set_cards_per_round: (args: { caller: string; value: number }) => Promise<contract.AssembledTransaction<null>>;
+  set_answer_window: (args: { caller: string; value: number }) => Promise<contract.AssembledTransaction<null>>;
   set_role: (args: {
     caller: string;
     recipient: string;
@@ -178,8 +182,19 @@ export function createSystemCalls(config: StellarConfig, publicKey: string | nul
       // simulated) by a connected, fee-paying account.
       const caller = requireAccount();
       const client = await getGameClient(config, caller);
-      const wireCard = await submit(() => client.next_card({ round_id: roundId }));
-      return cardFromWire(wireCard);
+      const assembled = await client.next_card({ round_id: roundId });
+      await assembled.sign();
+      const sent = await assembled.signAndSend();
+      // Ledger-close time of the draw transaction (LF-307): the countdown the
+      // UI shows starts here, not at the moment this line runs.
+      const closedAtMs = sent.sendTransactionResponse?.latestLedgerCloseTime ?? Date.now();
+      return { card: cardFromWire(sent.result), closedAtMs };
+    },
+
+    setAnswerWindow: async (value) => {
+      const caller = requireAccount();
+      const client = await getGameClient(config, caller);
+      await submit(() => client.set_answer_window({ caller, value }));
     },
 
     submitAnswer: async (roundId, answer) => {

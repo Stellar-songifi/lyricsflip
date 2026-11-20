@@ -1,0 +1,10 @@
+{
+  "name": "LyricsFlip Achievement – Streak Five",
+  "description": "Awarded to a player who reached a correct-answer streak of 5 in LyricsFlip.",
+  "image": "https://<host>/images/1.png",
+  "external_url": "https://lyricsflip.io",
+  "attributes": [
+    { "trait_type": "Kind",      "value": 1 },
+    { "trait_type": "Milestone", "value": "Streak5" }
+  ]
+}

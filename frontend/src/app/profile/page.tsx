@@ -1,193 +1,125 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { Share, ArrowLeft, Copy } from 'lucide-react';
-import { useStellar } from '@/lib/stellar/hooks/useStellar';
-import type { PlayerStats } from '@/lib/stellar/types';
 import { NftBadgeGallery } from '@/components/organisms/nft-badge-gallery';
-import { Button } from '@/components/atoms/button';
+import { UnclaimedWinnings } from '@/components/organisms/unclaimed-winnings';
+import { useStellar } from '@/lib/stellar/hooks/use-stellar';
+import { useEffect, useState } from 'react';
+import type { PlayerStats } from '@/lib/stellar/types';
+import { useRouter } from 'next/navigation';
+import { ArrowLeft } from 'lucide-react';
 
-interface ProfileViewProps {
-  /** When provided (routed from /profile/[address]) renders that address.
-   *  When omitted the page falls back to the connected wallet's address. */
-  address?: string;
-}
-
-function StatCard({
-  label,
-  value,
-}: {
-  label: string;
-  value: string | number;
-}) {
-  return (
-    <div className="bg-white rounded-xl border border-gray-200 p-4 flex flex-col gap-1 shadow-sm">
-      <span className="text-xs text-gray-500 uppercase tracking-wide">
-        {label}
-      </span>
-      <span className="text-2xl font-bold text-gray-900">{value}</span>
-    </div>
-  );
-}
-
-export default function ProfileView({ address: propAddress }: ProfileViewProps = {}) {
+/**
+ * Profile page – shows on-chain player stats, unclaimed winnings, and the NFT badge gallery.
+ *
+ * Part of Issue #476 / LF-059 and Issue #685 / LF-199.
+ */
+export default function ProfilePage() {
   const router = useRouter();
-  const { systemCalls, account } = useStellar();
-
-  // Resolve which address to display.
-  const address = propAddress ?? account?.address ?? null;
-
+  const { account, systemCalls, connect } = useStellar();
   const [stats, setStats] = useState<PlayerStats | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [copied, setCopied] = useState(false);
+  const [statsError, setStatsError] = useState<string | null>(null);
+  const [isLoadingStats, setIsLoadingStats] = useState(false);
 
-  const shortAddress = address
-    ? `${address.slice(0, 6)}…${address.slice(-4)}`
-    : null;
-
-  const profileUrl =
-    typeof window !== 'undefined' && address
-      ? `${window.location.origin}/profile/${address}`
-      : '';
-
+  // Load player stats from the contract
   useEffect(() => {
-    if (!address || !systemCalls) return;
-    let cancelled = false;
-    setIsLoading(true);
-    setError(null);
+    if (!account?.address || !systemCalls) return;
+
+    setIsLoadingStats(true);
+    setStatsError(null);
 
     systemCalls
-      .getPlayerStat(address)
-      .then((data) => {
-        if (!cancelled) setStats(data);
+      .getPlayerStat(account.address)
+      .then(setStats)
+      .catch((err: unknown) => {
+        setStatsError(err instanceof Error ? err.message : 'Failed to load stats');
       })
-      .catch((err) => {
-        if (!cancelled) {
-          setError(
-            err instanceof Error ? err.message : 'Failed to load player stats',
-          );
-        }
-      })
-      .finally(() => {
-        if (!cancelled) setIsLoading(false);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [address, systemCalls]);
-
-  const handleShare = () => {
-    if (!profileUrl) return;
-    if (navigator.share) {
-      navigator
-        .share({
-          title: `${shortAddress}'s LyricsFlip Profile`,
-          url: profileUrl,
-        })
-        .catch(() => {});
-    } else {
-      navigator.clipboard.writeText(profileUrl).then(() => {
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
-      });
-    }
-  };
-
-  // No address and no wallet connected.
-  if (!address) {
-    return (
-      <div className="container mx-auto px-4 py-16 text-center">
-        <h1 className="text-2xl font-bold mb-4">Profile</h1>
-        <p className="text-gray-600 mb-6">
-          Connect your wallet to view your profile.
-        </p>
-        <Button onClick={() => router.push('/')}>Go Home</Button>
-      </div>
-    );
-  }
+      .finally(() => setIsLoadingStats(false));
+  }, [account?.address, systemCalls]);
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-2xl">
+    <main
+      className="container mx-auto px-4 py-8 mt-16 lg:mt-24 max-w-3xl"
+      aria-label="Player profile"
+    >
       {/* Back navigation */}
       <button
-        onClick={() => router.back()}
-        className="flex items-center text-gray-600 mb-6"
+        onClick={() => router.push('/')}
+        className="flex items-center text-gray-600 mb-6 focus-visible:ring-2 focus-visible:ring-purple-500 rounded"
+        aria-label="Back to home"
       >
-        <ArrowLeft className="h-4 w-4 mr-2" />
+        <ArrowLeft className="h-4 w-4 mr-2" aria-hidden="true" />
         Back
       </button>
 
-      {/* Header */}
-      <div className="flex items-start justify-between mb-8">
-        <div>
-          <h1 className="text-2xl font-bold break-all">{shortAddress}</h1>
-          <p className="text-sm text-gray-500 mt-1 break-all">{address}</p>
-        </div>
-        <button
-          onClick={handleShare}
-          title={copied ? 'Copied!' : 'Share profile'}
-          className="ml-4 flex items-center gap-1 text-purple-600 hover:text-purple-800 text-sm font-medium shrink-0"
-        >
-          {copied ? <Copy className="h-4 w-4" /> : <Share className="h-4 w-4" />}
-          {copied ? 'Copied' : 'Share'}
-        </button>
-      </div>
+      <h1 className="text-3xl font-bold text-gray-900 mb-2">Profile</h1>
 
-      {/* Stats section */}
-      <section className="mb-8">
-        <h2 className="text-lg font-semibold mb-3">On-chain Stats</h2>
-        {isLoading ? (
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            {Array.from({ length: 4 }).map((_, i) => (
-              <div
-                key={i}
-                className="rounded-xl border bg-gray-100 h-20 animate-pulse"
-              />
-            ))}
-          </div>
-        ) : error ? (
-          <p className="text-sm text-red-500">{error}</p>
-        ) : stats ? (
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <StatCard
-              label="Rounds Played"
-              value={stats.total_rounds.toString()}
-            />
-            <StatCard
-              label="Rounds Won"
-              value={stats.rounds_won.toString()}
-            />
-            <StatCard
-              label="Current Streak"
-              value={stats.current_streak.toString()}
-            />
-            <StatCard
-              label="Best Streak"
-              value={stats.max_streak.toString()}
-            />
-          </div>
-        ) : (
-          <p className="text-sm text-gray-500">No stats found for this address.</p>
-        )}
-      </section>
-
-      {/* Badge gallery */}
-      <section className="mb-8">
-        <h2 className="text-lg font-semibold mb-3">NFT Badges</h2>
-        <NftBadgeGallery address={address} />
-      </section>
-
-      {/* Round history placeholder */}
-      <section>
-        <h2 className="text-lg font-semibold mb-3">Round History</h2>
-        <p className="text-sm text-gray-500">
-          Full round history will be available once the indexer endpoint is
-          wired up (LF-286).
+      {/* Wallet address */}
+      {account?.address ? (
+        <p className="text-sm text-gray-500 mb-6 font-mono break-all" aria-label="Wallet address">
+          {account.address}
         </p>
-      </section>
+      ) : (
+        <div className="mb-6">
+          <p className="text-gray-600 text-sm mb-3">
+            Connect your wallet to view your profile and badges.
+          </p>
+          <button
+            onClick={connect}
+            className="px-4 py-2 bg-purple-600 text-white rounded-lg text-sm font-medium hover:bg-purple-700 focus-visible:ring-2 focus-visible:ring-purple-700"
+          >
+            Connect Wallet
+          </button>
+        </div>
+      )}
+
+      {/* On-chain stats */}
+      {account?.address && (
+        <section aria-label="Player statistics" className="mb-8">
+          <h2 className="text-xl font-bold text-gray-900 mb-4">Stats</h2>
+
+          {isLoadingStats && (
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              {[...Array(4)].map((_, i) => (
+                <div key={i} className="animate-pulse bg-gray-100 rounded-xl h-20" aria-hidden="true" />
+              ))}
+            </div>
+          )}
+
+          {statsError && (
+            <p role="alert" className="text-red-600 text-sm">
+              {statsError}
+            </p>
+          )}
+
+          {stats && !isLoadingStats && (
+            <dl className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              <StatCard label="Total Rounds" value={stats.total_rounds.toString()} />
+              <StatCard label="Rounds Won" value={stats.rounds_won.toString()} />
+              <StatCard label="Current Streak" value={stats.current_streak.toString()} />
+              <StatCard label="Best Streak" value={stats.max_streak.toString()} />
+            </dl>
+          )}
+        </section>
+      )}
+
+      {/* Unclaimed winnings (LF-199) */}
+      {account?.address && (
+        <UnclaimedWinnings address={account.address} />
+      )}
+
+      {/* NFT badge gallery */}
+      <NftBadgeGallery address={account?.address} />
+    </main>
+  );
+}
+
+// ── Stat display card ──────────────────────────────────────────────────────
+
+function StatCard({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex flex-col items-center justify-center p-4 bg-purple-50 border border-purple-100 rounded-xl">
+      <dt className="text-xs text-gray-500 font-medium mb-1 text-center">{label}</dt>
+      <dd className="text-2xl font-bold text-purple-700">{value}</dd>
     </div>
   );
 }

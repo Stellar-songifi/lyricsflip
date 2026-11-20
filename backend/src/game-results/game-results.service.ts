@@ -53,6 +53,13 @@ export class GameResultsService {
       );
     }
 
+    // Derive per-player answer stats from game data when not explicitly provided
+    const stats = this.extractPlayerStats(createGameResultDto.gameData);
+    createGameResultDto.correctAnswers =
+      createGameResultDto.correctAnswers ?? stats.correctAnswers;
+    createGameResultDto.totalAnswers =
+      createGameResultDto.totalAnswers ?? stats.totalAnswers;
+
     // Create and save the entity
     const gameResult = this.gameResultsRepository.create(createGameResultDto);
     const savedResult = await this.gameResultsRepository.save(gameResult);
@@ -65,6 +72,8 @@ export class GameResultsService {
         savedResult.gameId,
         savedResult.score,
         savedResult.achievements || [],
+        savedResult.correctAnswers ?? 0,
+        savedResult.totalAnswers ?? 0,
       ),
     );
 
@@ -73,6 +82,36 @@ export class GameResultsService {
     );
 
     return savedResult;
+  }
+
+  /**
+   * Extract correct/total answer counts from arbitrary game data payloads.
+   * Supports a few common shapes so callers don't have to normalize.
+   */
+  private extractPlayerStats(gameData: any): {
+    correctAnswers: number;
+    totalAnswers: number;
+  } {
+    if (!gameData || typeof gameData !== 'object') {
+      return { correctAnswers: 0, totalAnswers: 0 };
+    }
+
+    const correctAnswers =
+      gameData.correctAnswers ??
+      gameData.correct_answers ??
+      (Array.isArray(gameData.answers)
+        ? gameData.answers.filter((a: any) => a && a.correct).length
+        : 0);
+
+    const totalAnswers =
+      gameData.totalAnswers ??
+      gameData.total_answers ??
+      (Array.isArray(gameData.answers) ? gameData.answers.length : 0);
+
+    return {
+      correctAnswers: Number(correctAnswers) || 0,
+      totalAnswers: Number(totalAnswers) || 0,
+    };
   }
 
   /**
@@ -103,6 +142,9 @@ export class GameResultsService {
           rank: index + 1,
           achievements: result.achievements || [],
           gameId: result.gameId,
+          correctAnswers: result.correctAnswers ?? 0,
+          totalAnswers: result.totalAnswers ?? 0,
+          accuracy: this.computeAccuracy(result.correctAnswers, result.totalAnswers),
         };
 
         return entry;
@@ -110,6 +152,18 @@ export class GameResultsService {
     );
 
     return leaderboard;
+  }
+
+  /**
+   * Compute accuracy as a 0..1 ratio, guarding against divide-by-zero.
+   */
+  private computeAccuracy(
+    correctAnswers?: number | null,
+    totalAnswers?: number | null,
+  ): number {
+    const total = totalAnswers ?? 0;
+    if (total <= 0) return 0;
+    return (correctAnswers ?? 0) / total;
   }
 
   /**
@@ -140,5 +194,49 @@ export class GameResultsService {
       skip: offset,
       take: limit,
     });
+  }
+
+  /**
+   * Aggregate per-player stats for a user across all games.
+   * Returns totals required by the profile page and leaderboard.
+   */
+  async getUserStats(userId: string): Promise<{
+    totalPoints: number;
+    correctAnswers: number;
+    totalAnswers: number;
+    bestRoundScore: number;
+    rounds: number;
+    accuracy: number;
+  }> {
+    const raw = await this.gameResultsRepository
+      .createQueryBuilder('gr')
+      .select('COALESCE(SUM(gr.score), 0)', 'totalPoints')
+      .addSelect('COALESCE(SUM(gr.correctAnswers), 0)', 'correctAnswers')
+      .addSelect('COALESCE(SUM(gr.totalAnswers), 0)', 'totalAnswers')
+      .addSelect('COALESCE(MAX(gr.score), 0)', 'bestRoundScore')
+      .addSelect('COUNT(gr.id)', 'rounds')
+      .where('gr.userId = :userId', { userId })
+      .getRawOne<{
+        totalPoints: string;
+        correctAnswers: string;
+        totalAnswers: string;
+        bestRoundScore: string;
+        rounds: string;
+      }>();
+
+    const totalPoints = Number(raw?.totalPoints) || 0;
+    const correctAnswers = Number(raw?.correctAnswers) || 0;
+    const totalAnswers = Number(raw?.totalAnswers) || 0;
+    const bestRoundScore = Number(raw?.bestRoundScore) || 0;
+    const rounds = Number(raw?.rounds) || 0;
+
+    return {
+      totalPoints,
+      correctAnswers,
+      totalAnswers,
+      bestRoundScore,
+      rounds,
+      accuracy: this.computeAccuracy(correctAnswers, totalAnswers),
+    };
   }
 }

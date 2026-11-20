@@ -55,6 +55,28 @@ export class UserService {
   public FindOneById(id: string): Promise<User | null> {
     return this.userRepository.findOneBy({ id });
   }
+
+  /**
+   * Finds the user tied to a Stellar wallet address, creating one on first
+   * sign-in. Used by wallet-based auth (auth/providers/wallet-auth.provider.ts),
+   * which never collects an email/password.
+   */
+  public async findOrCreateByStellarAddress(
+    stellarAddress: string,
+  ): Promise<User> {
+    const existing = await this.userRepository.findOneBy({ stellarAddress });
+    if (existing) {
+      return existing;
+    }
+
+    const newUser = this.userRepository.create({
+      stellarAddress,
+      // Deterministic and guaranteed unique (stellarAddress already is),
+      // unlike a name derived from a slice of the address.
+      username: `wallet_${stellarAddress}`,
+    });
+    return this.userRepository.save(newUser);
+  }
   //update password
 
   public async updateUserPassword(

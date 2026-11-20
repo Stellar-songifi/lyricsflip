@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { In, Repository } from 'typeorm';
-import { Song } from './entities/song.entity';
+import { In, Not, Repository } from 'typeorm';
+import { Song, SongStatus } from './entities/song.entity';
 import { Tag } from './entities/tag.entity';
 import { CreateSongDto } from './dto/create-song.dto';
 import { UpdateSongDto } from './dto/update-song.dto';
@@ -39,16 +39,22 @@ export class SongsService {
 
     const qb = this.songRepository
       .createQueryBuilder('song')
-      .leftJoinAndSelect('song.tags', 'tag');
+      .leftJoinAndSelect('song.tags', 'tag')
+      // Draft songs are unreviewed and stay out of the public catalogue.
+      .where('song.status != :draft', { draft: SongStatus.DRAFT });
 
     if (query.genre) {
       qb.andWhere('song.genre = :genre', { genre: query.genre });
     }
     if (query.difficulty) {
-      qb.andWhere('song.difficulty = :difficulty', { difficulty: query.difficulty });
+      qb.andWhere('song.difficulty = :difficulty', {
+        difficulty: query.difficulty,
+      });
     }
     if (query.q) {
-      qb.andWhere('(song.title ILIKE :q OR song.artist ILIKE :q)', { q: `%${query.q}%` });
+      qb.andWhere('(song.title ILIKE :q OR song.artist ILIKE :q)', {
+        q: `%${query.q}%`,
+      });
     }
     if (query.tag) {
       // Filter through a subquery so the joined `tags` still lists every tag.
@@ -75,7 +81,9 @@ export class SongsService {
   }
 
   async findByOnChainCardId(cardId: string): Promise<Song> {
-    const song = await this.songRepository.findOne({ where: { onChainCardId: cardId } });
+    const song = await this.songRepository.findOne({
+      where: { onChainCardId: cardId },
+    });
     if (!song) {
       throw new NotFoundException(`Song for on-chain card ${cardId} not found`);
     }
@@ -83,7 +91,36 @@ export class SongsService {
   }
 
   findByGenre(genre: Genre): Promise<Song[]> {
-    return this.songRepository.find({ where: { genre } });
+    return this.songRepository.find({
+      where: { genre, status: Not(SongStatus.DRAFT) },
+    });
+  }
+
+  /** Every song, regardless of curation status — for admin listing. */
+  findAllForAdmin(): Promise<Song[]> {
+    return this.songRepository.find();
+  }
+
+  findByStatus(status: SongStatus): Promise<Song[]> {
+    return this.songRepository.find({ where: { status } });
+  }
+
+  /**
+   * Moves a song from 'draft' to 'approved', making it eligible for the
+   * next on-chain sync run (see SongSyncService).
+   */
+  async approve(id: string): Promise<Song> {
+    const song = await this.findOne(id);
+    song.status = SongStatus.APPROVED;
+    return this.songRepository.save(song);
+  }
+
+  /** Records the id the contract returned for a synced song. */
+  async markSynced(id: string, onChainCardId: string): Promise<Song> {
+    const song = await this.findOne(id);
+    song.status = SongStatus.ON_CHAIN;
+    song.onChainCardId = onChainCardId;
+    return this.songRepository.save(song);
   }
 
   async update(id: string, dto: UpdateSongDto): Promise<Song> {
@@ -112,10 +149,11 @@ export class SongsService {
     const qb = this.songRepository
       .createQueryBuilder('song')
       .leftJoinAndSelect('song.tags', 'tag')
+      .where('song.status != :draft', { draft: SongStatus.DRAFT })
       .orderBy('RANDOM()')
       .take(1);
     if (genre) {
-      qb.where('song.genre = :genre', { genre });
+      qb.andWhere('song.genre = :genre', { genre });
     }
     const song = await qb.getOne();
     if (!song) {
@@ -126,11 +164,15 @@ export class SongsService {
 
   /** Finds tags by name, creating any that don't exist yet. */
   private async resolveTags(names?: string[]): Promise<Tag[]> {
-    const unique = [...new Set((names ?? []).map((n) => n.trim()).filter(Boolean))];
+    const unique = [
+      ...new Set((names ?? []).map((n) => n.trim()).filter(Boolean)),
+    ];
     if (unique.length === 0) {
       return [];
     }
-    const existing = await this.tagRepository.find({ where: { name: In(unique) } });
+    const existing = await this.tagRepository.find({
+      where: { name: In(unique) },
+    });
     const known = new Set(existing.map((t) => t.name));
     const created = unique
       .filter((name) => !known.has(name))

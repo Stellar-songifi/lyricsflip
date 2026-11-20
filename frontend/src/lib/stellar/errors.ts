@@ -8,53 +8,172 @@ export interface ContractErrorInfo {
   message: string;
 }
 
-export const LYRICSFLIP_ERRORS: Record<number, ContractErrorInfo> = {
-  1: { name: 'AlreadyInitialized', message: 'The contract is already initialized.' },
-  2: { name: 'NonExistingRound', message: 'That round does not exist.' },
-  3: { name: 'RoundAlreadyStarted', message: 'That round has already started.' },
-  4: { name: 'NonExistingGenre', message: 'Pick a genre to create a round.' },
-  5: { name: 'RoundAlreadyJoined', message: 'You have already joined this round.' },
-  6: { name: 'InvalidCardsPerRound', message: 'Cards per round must be greater than zero.' },
-  7: { name: 'ArtistCardsIsZero', message: 'There are no cards for that artist yet.' },
-  8: { name: 'EmptyYearCards', message: 'There are no cards for that year yet.' },
-  9: { name: 'EmptyGenreCards', message: 'There are no cards for that genre yet.' },
-  10: { name: 'RoundNotStarted', message: 'That round has not started yet.' },
-  11: { name: 'RoundCompleted', message: 'That round is already finished.' },
-  12: { name: 'NotAParticipant', message: 'You are not a player in this round.' },
-  13: { name: 'AlreadyReady', message: 'You are already marked as ready.' },
-  14: { name: 'NotAuthorized', message: 'You are not authorized to do that.' },
-  15: { name: 'AmountExceedsLimit', message: 'Not enough cards to build a round.' },
-  16: { name: 'LimitMustBeGreaterThanZero', message: 'No cards have been added yet.' },
-  17: { name: 'NonExistingCard', message: 'That card does not exist.' },
-  20: { name: 'RoundCancelled', message: 'That round was cancelled.' },
-  20: { name: 'NotEnoughDistinctCards', message: 'Not enough distinct answers to build a question card.' },
-  21: { name: 'RoundFull', message: 'That round is full.' },
-  22: { name: 'InvalidMaxPlayers', message: 'A round needs room for at least 2 players.' },
-  23: { name: 'NftContractNotSet', message: 'NFT rewards are not configured yet.' },
-  24: { name: 'MilestoneNotReached', message: 'You have not reached that milestone yet.' },
-  25: { name: 'MilestoneAlreadyClaimed', message: 'You already claimed that reward.' },
-  26: { name: 'InvalidCardTitle', message: 'A card needs a title.' },
-  27: { name: 'InvalidCardArtist', message: 'A card needs an artist.' },
-  28: { name: 'InvalidCardLyrics', message: 'A card needs lyrics.' },
-  29: { name: 'InvalidCardYear', message: 'The card year must be between 1900 and this year.' },
-  30: { name: 'LyricsTooLong', message: 'The lyrics are too long (max 1000 bytes).' },
-  31: { name: 'DuplicateCard', message: 'A card with that title and artist already exists.' },
-  32: { name: 'BatchTooLarge', message: 'Too many cards in one batch (max 20).' },
-  33: { name: 'NotPendingOwner', message: 'You are not the pending owner of this contract.' },
+/**
+ * Mapping of numeric error code to contract Error enum variant name for lyricsflip.
+ * Stable ABI codes 1..44 matching `onchain/contracts/lyricsflip/src/errors.rs`.
+ */
+export const CONTRACT_ERROR_NAMES: Record<number, string> = {
+  1: 'AlreadyInitialized',
+  2: 'NonExistingRound',
+  3: 'RoundAlreadyStarted',
+  4: 'NonExistingGenre',
+  5: 'RoundAlreadyJoined',
+  6: 'InvalidCardsPerRound',
+  7: 'ArtistCardsIsZero',
+  8: 'EmptyYearCards',
+  9: 'EmptyGenreCards',
+  10: 'RoundNotStarted',
+  11: 'RoundCompleted',
+  12: 'NotAParticipant',
+  13: 'AlreadyReady',
+  14: 'NotAuthorized',
+  15: 'AmountExceedsLimit',
+  16: 'LimitMustBeGreaterThanZero',
+  17: 'NonExistingCard',
+  18: 'RoundNotReady',
+  19: 'RoundAlreadyFinalized',
+  20: 'NotEnoughDistinctCards',
+  21: 'RoundFull',
+  22: 'InvalidMaxPlayers',
+  23: 'NftContractNotSet',
+  24: 'MilestoneNotReached',
+  25: 'MilestoneAlreadyClaimed',
+  26: 'InvalidCardTitle',
+  27: 'InvalidCardArtist',
+  28: 'InvalidCardLyrics',
+  29: 'InvalidCardYear',
+  30: 'LyricsTooLong',
+  31: 'DuplicateCard',
+  32: 'BatchTooLarge',
+  33: 'NotPendingOwner',
+  34: 'NoMoreCards',
+  35: 'RoundCancelled',
+  36: 'InvalidCardDifficulty',
+  37: 'InvalidDecade',
+  38: 'NoActiveCard',
+  39: 'AlreadyAnswered',
+  40: 'Paused',
+  41: 'InvalidAnswerWindow',
+  42: 'InvalidLobbyTimeout',
+  43: 'InvalidRoundDuration',
+  44: 'CardInActiveRound',
+  45: 'TooManyOpenRounds',
+  46: 'MaxPlayersTooHigh',
+  47: 'LobbyExpired',
+  48: 'InvalidInvite',
+  49: 'LobbyTimeoutNotReached',
+  50: 'AdminCannotLeave',
 };
 
-export const LYRICSFLIP_NFT_ERRORS: Record<number, ContractErrorInfo> = {
-  1: { name: 'AlreadyInitialized', message: 'The NFT contract is already initialized.' },
-  2: { name: 'NotMinter', message: 'Only the minter can mint rewards.' },
-  3: { name: 'TokenAlreadyExists', message: 'That token has already been minted.' },
-  4: { name: 'TokenDoesNotExist', message: 'That token does not exist.' },
-  5: { name: 'IncorrectOwner', message: 'That token is not owned by this account.' },
-  6: { name: 'InsufficientApproval', message: 'You are not approved to manage that token.' },
-  7: { name: 'InvalidLiveUntilLedger', message: 'That approval expiry is already in the past.' },
-  8: { name: 'NotOwner', message: 'Only the contract owner can do that.' },
-  9: { name: 'NotPendingOwner', message: 'You are not the pending owner of this contract.' },
-  10: { name: 'BaseUriTooLong', message: 'That base URI is too long.' },
+/**
+ * Hand-written user-friendly UI messages keyed by contract error name.
+ */
+export const LYRICSFLIP_ERROR_MESSAGES: Record<string, string> = {
+  AlreadyInitialized: 'The contract is already initialized.',
+  NonExistingRound: 'That round does not exist.',
+  RoundAlreadyStarted: 'That round has already started.',
+  NonExistingGenre: 'Pick a genre to create a round.',
+  RoundAlreadyJoined: 'You have already joined this round.',
+  InvalidCardsPerRound: 'Cards per round must be between 1 and 20.',
+  ArtistCardsIsZero: 'There are no cards for that artist yet.',
+  EmptyYearCards: 'There are no cards for that year yet.',
+  EmptyGenreCards: 'There are no cards for that genre yet.',
+  RoundNotStarted: 'That round has not started yet.',
+  RoundCompleted: 'That round is already finished.',
+  NotAParticipant: 'You are not a player in this round.',
+  AlreadyReady: 'You are already marked as ready.',
+  NotAuthorized: 'You are not authorized to do that.',
+  AmountExceedsLimit: 'Not enough cards to build a round.',
+  LimitMustBeGreaterThanZero: 'No cards have been added yet.',
+  NonExistingCard: 'That card does not exist.',
+  RoundNotReady: 'The round is not ready to be finalized yet.',
+  RoundAlreadyFinalized: 'That round has already been finalized.',
+  NotEnoughDistinctCards: 'Not enough distinct answers to build a question card.',
+  RoundFull: 'That round is full.',
+  InvalidMaxPlayers: 'A round needs room for at least 2 players.',
+  MaxPlayersTooHigh: 'A round can have at most 8 players.',
+  LobbyExpired: 'This lobby has expired and can only be cancelled.',
+  InvalidInvite: 'You are not on the invite list for this private round.',
+  LobbyTimeoutNotReached: 'Only the host can cancel this lobby until it times out.',
+  AdminCannotLeave: 'As the host, cancel the round instead of leaving it.',
+  NftContractNotSet: 'NFT rewards are not configured yet.',
+  MilestoneNotReached: 'You have not reached that milestone yet.',
+  MilestoneAlreadyClaimed: 'You already claimed that reward.',
+  InvalidCardTitle: 'A card needs a title.',
+  InvalidCardArtist: 'A card needs an artist.',
+  InvalidCardLyrics: 'A card needs lyrics.',
+  InvalidCardYear: 'The card year must be between 1900 and this year.',
+  LyricsTooLong: 'The lyrics are too long (max 1000 bytes).',
+  DuplicateCard: 'A card with that title and artist already exists.',
+  BatchTooLarge: 'Too many cards in one batch (max 20).',
+  NotPendingOwner: 'You are not the pending owner of this contract.',
+  NoMoreCards: 'All cards have been drawn; finalize the round.',
+  RoundCancelled: 'That round was cancelled.',
+  InvalidCardDifficulty: 'Card difficulty must be 1, 2, or 3.',
+  InvalidDecade: 'Choose a decade beginning in a valid year.',
+  NoActiveCard: 'No card has been drawn yet for this round.',
+  AlreadyAnswered: 'You have already answered this card.',
+  Paused: 'The game is temporarily paused.',
+  InvalidAnswerWindow: 'The answer window must be between 5 and 180 seconds.',
+  InvalidLobbyTimeout: 'The lobby timeout must be between 30 and 86400 seconds.',
+  InvalidRoundDuration: 'That round duration or buffer is out of range.',
+  CardInActiveRound: 'This card is in an active round and its answer fields cannot change yet.',
+  TooManyOpenRounds: 'You already have the maximum number of open lobbies. Start or cancel one first.',
 };
+
+/**
+ * Builds a numeric error table from a code-to-name mapping and a friendly messages map.
+ */
+export function buildErrorTable(
+  codeToName: Record<number, string>,
+  friendlyMessages: Record<string, string>,
+): Record<number, ContractErrorInfo> {
+  const table: Record<number, ContractErrorInfo> = {};
+  for (const [codeStr, name] of Object.entries(codeToName)) {
+    const code = Number(codeStr);
+    const message = friendlyMessages[name] ?? `Contract error: ${name}`;
+    table[code] = { name, message };
+  }
+  return table;
+}
+
+export const LYRICSFLIP_ERRORS: Record<number, ContractErrorInfo> = buildErrorTable(
+  CONTRACT_ERROR_NAMES,
+  LYRICSFLIP_ERROR_MESSAGES,
+);
+
+export const NFT_ERROR_NAMES: Record<number, string> = {
+  1: 'AlreadyInitialized',
+  2: 'NotMinter',
+  3: 'TokenAlreadyExists',
+  4: 'TokenDoesNotExist',
+  5: 'IncorrectOwner',
+  6: 'InsufficientApproval',
+  7: 'InvalidLiveUntilLedger',
+  8: 'NotOwner',
+  9: 'NotPendingOwner',
+  10: 'BaseUriTooLong',
+  11: 'InsufficientBalance',
+};
+
+export const NFT_ERROR_MESSAGES: Record<string, string> = {
+  AlreadyInitialized: 'The NFT contract is already initialized.',
+  NotMinter: 'Only the minter can mint rewards.',
+  TokenAlreadyExists: 'That token has already been minted.',
+  TokenDoesNotExist: 'That token does not exist.',
+  IncorrectOwner: 'That token is not owned by this account.',
+  InsufficientApproval: 'You are not approved to manage that token.',
+  InvalidLiveUntilLedger: 'That approval expiry is already in the past.',
+  NotOwner: 'Only the contract owner can do that.',
+  NotPendingOwner: 'You are not the pending owner of this contract.',
+  BaseUriTooLong: 'That base URI is too long.',
+  InsufficientBalance: 'Balance is insufficient or missing.',
+};
+
+export const LYRICSFLIP_NFT_ERRORS: Record<number, ContractErrorInfo> = buildErrorTable(
+  NFT_ERROR_NAMES,
+  NFT_ERROR_MESSAGES,
+);
 
 /**
  * Extracts the numeric code from a Soroban contract error, which surfaces in
@@ -81,9 +200,63 @@ export function isUserRejection(error: unknown): boolean {
 }
 
 /**
- * Turns an SDK/wallet error into a message fit for the UI: a known contract
- * error code maps to its friendly message, a declined signature says so, and
- * anything else falls back to the original message.
+ * Well-known Horizon REST API and Soroban RPC error strings that indicate
+ * wallet/account funding problems. These appear in simulation and submission
+ * responses before a contract error code is available.
+ *
+ * Patterns are tested case-insensitively against the full error message.
+ */
+const HORIZON_RPC_ERROR_PATTERNS: Array<{ pattern: RegExp; message: string }> = [
+  // Horizon 404 for an account that doesn't exist on-chain yet
+  {
+    pattern: /account not found|404.*account|account.*404/i,
+    message: 'This account does not exist on-chain yet. Fund it with Friendbot (testnet) or send XLM to it first.',
+  },
+  // Soroban simulation: source account not found
+  {
+    pattern: /source account not found/i,
+    message: 'Your account has no XLM and cannot be found on-chain. Fund it to continue.',
+  },
+  // Transaction submission: insufficient balance to cover fee + base reserve
+  {
+    pattern: /txInsufficientBalance|insufficient balance|insufficient_balance/i,
+    message: 'Your XLM balance is too low to cover transaction fees. Add XLM to your wallet.',
+  },
+  // Horizon result code: fee bump failed due to low fee
+  {
+    pattern: /txInsufficientFee|insufficient_fee/i,
+    message: 'Transaction fee is too low. Try again.',
+  },
+  // General balance/fee messages from RPC error responses
+  {
+    pattern: /balance.*insufficient|not enough.*balance|no.*xlm/i,
+    message: 'Your XLM balance is too low to complete this transaction.',
+  },
+  // Soroban ledger entry / TTL errors that can look like account issues
+  {
+    pattern: /entry.*not found|ledger.*not found/i,
+    message: 'An on-chain entry was not found. The account or contract data may be missing.',
+  },
+];
+
+/**
+ * Returns a friendly message when the error text matches a known Horizon or
+ * Soroban RPC error pattern, or `undefined` if no pattern matches.
+ */
+export function parseHorizonRpcError(error: unknown): string | undefined {
+  const text = error instanceof Error ? error.message : String(error);
+  for (const { pattern, message } of HORIZON_RPC_ERROR_PATTERNS) {
+    if (pattern.test(text)) return message;
+  }
+  return undefined;
+}
+
+/**
+ * Turns an SDK/wallet error into a message fit for the UI:
+ *  1. A known contract error code maps to its friendly message.
+ *  2. A declined signature says so.
+ *  3. Known Horizon / RPC error strings are mapped to helpful guidance.
+ *  4. Anything else falls back to the original message.
  */
 export function parseContractError(
   error: unknown,
@@ -95,6 +268,10 @@ export function parseContractError(
   }
   if (isUserRejection(error)) {
     return { message: 'You rejected the signature request.' };
+  }
+  const horizonMessage = parseHorizonRpcError(error);
+  if (horizonMessage) {
+    return { message: horizonMessage };
   }
   const text = error instanceof Error ? error.message : String(error);
   return { message: text || 'Something went wrong.' };

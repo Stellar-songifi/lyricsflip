@@ -1,6 +1,6 @@
 'use client';
 
-import { useStellar } from '@/lib/stellar/hooks/useStellar';
+import { useStellar } from '@/lib/stellar/hooks/use-stellar';
 import { AlertTriangle } from 'lucide-react';
 
 /**

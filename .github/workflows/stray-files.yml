@@ -1,0 +1,52 @@
+name: Stray file guard
+
+on:
+  pull_request:
+
+permissions: read-all
+
+jobs:
+  no-ts-outside-workspaces:
+    name: No .ts/.tsx outside frontend/ backend/ onchain/
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Reject TypeScript files outside workspace folders
+        shell: bash
+        run: |
+          # Find any .ts or .tsx file that is NOT under frontend/, backend/, or onchain/
+          mapfile -t stray < <(
+            git ls-files '*.ts' '*.tsx' \
+              | grep -Ev '^(frontend|backend|onchain)/'
+          )
+          if [[ ${#stray[@]} -gt 0 ]]; then
+            echo "::error::TypeScript files found outside workspace folders:"
+            printf '  %s\n' "${stray[@]}"
+            echo ""
+            echo "All .ts/.tsx files must live under frontend/, backend/, or onchain/."
+            exit 1
+          fi
+          echo "✅ No stray TypeScript files found."
+
+  no-ts-outside-frontend-src:
+    name: No .ts/.tsx under frontend/ outside src/ (except config)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Reject TypeScript files under frontend/ outside src/
+        shell: bash
+        run: |
+          # Config files (e.g. *.config.ts, jest.setup.ts, .storybook/) are allowed.
+          mapfile -t stray < <(
+            git ls-files 'frontend/*.ts' 'frontend/*.tsx' \
+              | grep -Ev '^frontend/(src|\.storybook)/' \
+              | grep -Ev '^frontend/[^/]+\.(config|setup)\.ts$'
+          )
+          if [[ ${#stray[@]} -gt 0 ]]; then
+            echo "::error::TypeScript files found under frontend/ outside src/:"
+            printf '  %s\n' "${stray[@]}"
+            exit 1
+          fi
+          echo "✅ No stray frontend TypeScript files found."

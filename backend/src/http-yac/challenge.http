@@ -1,6 +1,6 @@
 # CHALLENGE API
 
-@baseUrl = http://localhost:3000
+@baseUrl = http://localhost:3000/api/v1
 
 # Challenge Endpoints
 
@@ -33,4 +33,3 @@ Content-Type: application/json
 
 ### remove (Template)
 DELETE {{baseUrl}}/challenge/:id
-

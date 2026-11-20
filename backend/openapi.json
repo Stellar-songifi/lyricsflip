@@ -1,0 +1,118 @@
+{
+  "openapi": "3.0.0",
+  "paths": {
+    "/health/live": {
+      "get": {
+        "operationId": "HealthController_live",
+        "summary": "Liveness probe",
+        "description": "Returns 200 while the process is running. No dependency checks.",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "health"
+        ]
+      }
+    },
+    "/health/ready": {
+      "get": {
+        "operationId": "HealthController_ready",
+        "summary": "Readiness probe",
+        "description": "Returns 200 when all dependencies are healthy, 503 when any are down.",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "The Health Check is successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "ok"
+                    },
+                    "info": {
+                      "type": "object",
+                      "nullable": true
+                    },
+                    "error": {
+                      "type": "object",
+                      "nullable": true
+                    },
+                    "details": {
+                      "type": "object"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The Health Check is not successful"
+          }
+        },
+        "tags": [
+          "health"
+        ]
+      }
+    },
+    "/health": {
+      "get": {
+        "operationId": "HealthController_check",
+        "summary": "Readiness probe (alias)",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "The Health Check is successful"
+          },
+          "503": {
+            "description": "The Health Check is not successful"
+          }
+        },
+        "tags": [
+          "health"
+        ]
+      }
+    }
+  },
+  "info": {
+    "title": "Songify LyricFlip API",
+    "description": "API documentation for the Songify LyricFlip backend",
+    "version": "1.0",
+    "contact": {
+      "name": "Songify Support",
+      "url": "https://songify.com/support",
+      "email": "support@songify.com"
+    },
+    "license": {
+      "name": "MIT License",
+      "url": "https://opensource.org/licenses/MIT"
+    },
+    "termsOfService": "https://songify.com/terms"
+  },
+  "tags": [
+    { "name": "lyricflip" },
+    { "name": "songs" },
+    { "name": "users" },
+    { "name": "players" },
+    { "name": "leaderboard" },
+    { "name": "indexer" },
+    { "name": "admin" },
+    { "name": "health" },
+    { "name": "auth" }
+  ],
+  "servers": [],
+  "components": {
+    "securitySchemes": {
+      "access-token": {
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "type": "http"
+      }
+    }
+  }
+}

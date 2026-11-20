@@ -1,0 +1,64 @@
+name: Feature request
+description: Suggest an improvement or new capability for the project.
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the idea. Please add enough detail so the team can review the proposal quickly.
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      description: Which area should this feature affect?
+      options:
+        - Frontend
+        - Backend
+        - Contracts
+        - Indexer
+        - Docs
+        - Other
+    validations:
+      required: true
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      description: How important is this feature?
+      options:
+        - Low
+        - Medium
+        - High
+        - Critical
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem to solve
+      description: What user or technical problem are we addressing?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: Describe the proposed behavior or implementation.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: What needs to be true for this feature to be considered complete?
+      placeholder: |
+        - Users can ...
+        - The relevant API or UI exposes ...
+        - Errors and edge cases are handled ...
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: Additional notes
+      description: Include design references, dependencies, or implementation context.

@@ -1,0 +1,39 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release-please:
+    name: Release Please
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run release-please
+        id: release
+        uses: googleapis/release-please-action@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+          target-branch: main
+
+      - name: Summarize releases
+        if: ${{ steps.release.outputs.releases_created == 'true' }}
+        run: |
+          echo "### Releases created :rocket:" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Package | Tag |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| --- | --- |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| onchain | \`${{ steps.release.outputs['onchain--tag_name'] }}\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| frontend | \`${{ steps.release.outputs['frontend--tag_name'] }}\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| backend | \`${{ steps.release.outputs['backend--tag_name'] }}\` |" >> "$GITHUB_STEP_SUMMARY"

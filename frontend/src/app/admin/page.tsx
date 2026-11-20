@@ -1,18 +1,24 @@
 'use client';
 
-import { AdminCards } from "@/components/organisms/AdminCards";
-import { AdminConfig } from "@/components/organisms/AdminConfig";
-import { AdminRoles } from "@/components/organisms/AdminRoles";
-import { useStellar } from "@/lib/stellar/hooks/useStellar";
+import { AdminCards } from "@/components/organisms/admin-cards";
+import { AdminConfig } from "@/components/organisms/admin-config";
+import { AdminRoles } from "@/components/organisms/admin-roles";
+import OwnerSettings from "@/components/organisms/OwnerSettings";
+import { OwnerSettings } from "@/components/organisms/owner-settings";
+import { useStellar } from "@/lib/stellar/hooks/use-stellar";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 const REDIRECT_DELAY_MS = 2000;
 
+type AdminTab = 'admin' | 'owner';
+
 export default function AdminPage() {
   const { account, systemCalls } = useStellar();
   const router = useRouter();
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
+  const [isOwner, setIsOwner] = useState<boolean | null>(null);
+  const [activeTab, setActiveTab] = useState<AdminTab>('admin');
 
   useEffect(() => {
     if (!account) {
@@ -23,11 +29,18 @@ export default function AdminPage() {
 
     let cancelled = false;
     setIsAdmin(null);
+    setIsOwner(null);
     systemCalls
       .isAdmin(account.address)
       .catch(() => false)
       .then((result) => {
         if (!cancelled) setIsAdmin(result);
+      });
+    systemCalls
+      .isOwner(account.address)
+      .catch(() => false)
+      .then((result) => {
+        if (!cancelled) setIsOwner(result);
       });
     return () => {
       cancelled = true;
@@ -66,9 +79,36 @@ export default function AdminPage() {
   return (
     <main className="container mx-auto p-4">
       <h1 className="text-2xl font-bold mb-4">Admin Dashboard</h1>
-      <AdminConfig />
-      <AdminCards />
-      <AdminRoles />
+      {isOwner && (
+        <div role="tablist" className="mb-4 flex gap-2 border-b">
+          <button
+            role="tab"
+            aria-selected={activeTab === 'admin'}
+            onClick={() => setActiveTab('admin')}
+            className={`px-4 py-2 ${activeTab === 'admin' ? 'border-b-2 border-blue-600 font-semibold' : 'text-gray-600'}`}
+          >
+            Admin
+          </button>
+          <button
+            role="tab"
+            aria-selected={activeTab === 'owner'}
+            onClick={() => setActiveTab('owner')}
+            className={`px-4 py-2 ${activeTab === 'owner' ? 'border-b-2 border-blue-600 font-semibold' : 'text-gray-600'}`}
+          >
+            Owner
+          </button>
+        </div>
+      )}
+      {isOwner && activeTab === 'owner' ? (
+        <OwnerSettings isOwner walletAddress={account?.address ?? null} />
+        <OwnerSettings isOwner walletAddress={account?.address} />
+      ) : (
+        <>
+          <AdminConfig />
+          <AdminCards />
+          <AdminRoles />
+        </>
+      )}
     </main>
   );
 }

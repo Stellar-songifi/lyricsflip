@@ -17,12 +17,7 @@ import { NotificationModule } from '../notification/notification.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([
-      Friend,
-      Profile,
-      Activity,
-      Challenge,
-    ]),
+    TypeOrmModule.forFeature([Friend, Profile, Activity, Challenge]),
     NotificationModule,
   ],
   controllers: [
@@ -31,11 +26,6 @@ import { NotificationModule } from '../notification/notification.module';
     ActivityController,
     ChallengeController,
   ],
-  providers: [
-    FriendService,
-    ProfileService,
-    ActivityService,
-    ChallengeService,
-  ],
+  providers: [FriendService, ProfileService, ActivityService, ChallengeService],
 })
-export class SocialModule {}
+export class SocialFeatureModule {}

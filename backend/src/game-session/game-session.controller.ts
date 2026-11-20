@@ -1,4 +1,12 @@
-import { Controller, Post, Get, Param, Body, UseGuards, ParseUUIDPipe } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Get,
+  Param,
+  Body,
+  UseGuards,
+  ParseUUIDPipe,
+} from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
@@ -21,6 +29,7 @@ export class GameSessionController {
   // Start a new game session.
   @Post()
   @ApiOperation({
+    deprecated: true,
     summary: 'Start a new game session',
     description: 'Creates a new game session and returns the session details.',
   })
@@ -38,7 +47,7 @@ export class GameSessionController {
 
   // List sessions that are still in progress.
   @Get('active')
-  @ApiOperation({ summary: 'List in-progress game sessions' })
+  @ApiOperation({ deprecated: true, summary: 'List in-progress game sessions' })
   getActiveSessions() {
     return this.gameSessionService.getActiveSessions();
   }
@@ -47,6 +56,7 @@ export class GameSessionController {
   @Post(':id/guess')
   @AnswerThrottle()
   @ApiOperation({
+    deprecated: true,
     summary: 'Submit a guess for a game session',
     description:
       'Allows a player to submit a guess for an ongoing game session.',
@@ -80,6 +90,7 @@ export class GameSessionController {
   // Retrieve the details of a specific game session.
   @Get(':id')
   @ApiOperation({
+    deprecated: true,
     summary: 'Get game session details',
     description: 'Retrieves details of a specific game session by its ID.',
   })

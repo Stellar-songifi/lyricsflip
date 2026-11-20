@@ -1,5 +1,6 @@
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
+import { env } from '@/env';
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -9,6 +10,70 @@ export const formatTime = (seconds: number): string => {
   const minutes = Math.floor(seconds / 60);
   const remainingSeconds = seconds % 60;
   return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+};
+
+/** Number of open rounds shown per page of the multiplayer lobby. */
+export const LOBBY_PAGE_SIZE = 5;
+
+/** Code of the Stellar asset used for wagers (e.g. `XLM`). */
+export const WAGER_ASSET_CODE = env.NEXT_PUBLIC_WAGER_ASSET_CODE;
+
+/** Stellar assets use 7 decimal places. */
+export const STELLAR_DECIMALS = 7;
+
+/**
+ * Minimum and maximum allowable wager amounts in stroops (7 decimals).
+ * Minimum: 1 XLM = 10_000_000 stroops
+ * Maximum: 1,000 XLM = 10_000_000_000 stroops
+ */
+export const MIN_WAGER_STROOPS = BigInt(10_000_000); // 1 XLM
+export const MAX_WAGER_STROOPS = BigInt(10_000_000_000); // 1,000 XLM
+
+/**
+ * Format an on-chain i128 amount (in the asset's smallest unit) as a
+ * human-readable decimal string with thousands separators.
+ */
+export const formatAmount = (
+  amount: bigint | number | string,
+  decimals: number = STELLAR_DECIMALS,
+): string => {
+  let value = BigInt(amount);
+  const negative = value < BigInt(0);
+  if (negative) value = -value;
+
+  const base = BigInt(10) ** BigInt(decimals);
+  const whole = (value / base).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  const fraction =
+    decimals > 0
+      ? (value % base)
+          .toString()
+          .padStart(decimals, '0')
+          .replace(/0+$/, '')
+      : '';
+
+  return `${negative ? '-' : ''}${whole}${fraction ? `.${fraction}` : ''}`;
+};
+
+/**
+ * Convert a human-readable decimal amount (e.g. "5" or "5.25") to stroops (7 decimals)
+ * using precise bigint math without floating-point errors.
+ */
+export const parseAmountToStroops = (
+  amount: string | number,
+  decimals: number = STELLAR_DECIMALS,
+): bigint => {
+  const str = String(amount).trim();
+  if (!str || isNaN(Number(str))) return BigInt(0);
+
+  const [wholePart, fractionPart = ''] = str.split('.');
+  const sanitizedWhole = wholePart.replace(/,/g, '') || '0';
+  const paddedFraction = fractionPart.padEnd(decimals, '0').slice(0, decimals);
+
+  const base = BigInt(10) ** BigInt(decimals);
+  const wholeVal = BigInt(sanitizedWhole) * base;
+  const fractionVal = BigInt(paddedFraction);
+
+  return wholeVal >= BigInt(0) ? wholeVal + fractionVal : wholeVal - fractionVal;
 };
 
 export const GENRE_LYRICS = {

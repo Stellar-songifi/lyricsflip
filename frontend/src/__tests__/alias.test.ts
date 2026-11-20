@@ -1,26 +1,17 @@
 // src/__tests__/alias.test.ts
 import { render } from '@testing-library/react';
-import GameComponent from "@/components/GameComponent";
+import { ConfigErrorScreen } from '@/components/organisms/config-error-screen';
 import React from 'react';
 
-// Mock the Stellar hooks
-jest.mock('@/lib/stellar/hooks/useStellar', () => ({
-  useStellar: () => ({
-    account: null,
-    systemCalls: {},
-    setup: null,
-    isLoading: false,
-    error: null,
-  })
-}));
-
-describe('GameComponent', () => {
-  test("GameComponent should be imported correctly", () => {
-    expect(GameComponent).toBeDefined();
+describe('Alias resolution', () => {
+  test('ConfigErrorScreen should be imported correctly via @ alias', () => {
+    expect(ConfigErrorScreen).toBeDefined();
   });
 
-  test("GameComponent should render without crashing", () => {
-    const { container } = render(React.createElement(GameComponent));
+  test('ConfigErrorScreen should render without crashing', () => {
+    const { container } = render(
+      React.createElement(ConfigErrorScreen, { issues: ['Test warning'] }),
+    );
     expect(container).toBeTruthy();
   });
 });

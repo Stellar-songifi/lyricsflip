@@ -57,12 +57,8 @@ export interface Card {
   artist: string;
   title: string;
   year: bigint;
+  difficulty: number;
   lyrics: string;
-}
-
-/** Raw shape returned by the contract, before `genreFromWire` is applied. */
-export interface WireCard extends Omit<Card, 'genre'> {
-  genre: number;
 }
 
 export interface Round {
@@ -76,16 +72,45 @@ export interface Round {
   end_time: bigint;
   next_card_index: number;
   is_cancelled: boolean;
+  answer_window?: bigint;
+  lobby_timeout?: bigint;
+  round_duration?: bigint;
+  /** LF-162: true when joining requires the invite code. */
+  is_private?: boolean;
+  /** LF-291: player cap for this round (≤ the global max). */
+  max_players?: number;
+}
+
+/** LF-293: one card of a finalized round with every player's result. */
+export interface CardResult {
+  card: Card;
+  kind: QuestionKind;
+  /** `{ correct, points }` per player address that answered this card. */
+  perPlayer: Record<string, { correct: boolean; points: number }>;
+}
+
+/** Raw `CardResult` returned by the contract. */
+export interface WireCardResult {
+  card: WireCard;
+  kind: QuestionKind;
+  per_player: Map<string, [boolean, bigint]>;
+}
+
+export interface RoundFilter {
+  genre?: Genre;
+  decade?: bigint | number;
 }
 
 /** Mirrors the contract's `Milestone` enum (encoded as a plain `u32`). */
 export const MILESTONES = { FirstWin: 0, Streak5: 1, TenWins: 2 } as const;
 export type Milestone = (typeof MILESTONES)[keyof typeof MILESTONES];
 
-/** Raw shape returned by the contract, before `genreFromWire` is applied. */
-export interface WireRound extends Omit<Round, 'genre'> {
-  genre: number;
-}
+/** Display name for each milestone badge (the NFT's `token_kind`). */
+export const MILESTONE_NAMES: Record<Milestone, string> = {
+  [MILESTONES.FirstWin]: 'First Win',
+  [MILESTONES.Streak5]: 'Streak Master',
+  [MILESTONES.TenWins]: 'Music Connoisseur',
+};
 
 export interface PlayerStats {
   total_rounds: bigint;
@@ -103,6 +128,11 @@ export interface QuestionCard {
   option_two: string;
   option_three: string;
   option_four: string;
+}
+
+/** Raw QuestionCard shape returned by Soroban before kind conversion. */
+export interface WireQuestionCard extends Omit<QuestionCard, 'kind'> {
+  kind: number;
 }
 
 /**
@@ -137,6 +167,32 @@ export const Answer = {
   artist: (value: string): Answer => ({ tag: 'Artist', values: [value] }),
   year: (value: bigint | number): Answer => ({ tag: 'Year', values: [BigInt(value)] }),
   title: (value: string): Answer => ({ tag: 'Title', values: [value] }),
+};
+
+/**
+ * Safely parses a year option string (as returned by the contract) into a `bigint`.
+ * Returns `null` when the option is not a valid integer, so callers can fall back
+ * to option indexes or surface a friendly error instead of throwing mid-round.
+ */
+export const parseYearOption = (option: string): bigint | null => {
+  const trimmed = option.trim();
+  if (!/^-?\d+$/.test(trimmed)) {
+    return null;
+  }
+  try {
+    return BigInt(trimmed);
+  } catch {
+    return null;
+  }
+};
+
+/** Builds a `Year` answer from an option string, throwing if the option is not a valid year. */
+export const yearAnswerFromOption = (option: string): Answer => {
+  const year = parseYearOption(option);
+  if (year === null) {
+    throw new Error(`Invalid year option: ${option}`);
+  }
+  return Answer.year(year);
 };
 
 export interface StellarAccount {

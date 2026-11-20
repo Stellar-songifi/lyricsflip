@@ -13,7 +13,7 @@ jest.mock('next/navigation', () => ({
 }));
 
 // Mock Stellar hooks
-jest.mock('@/lib/stellar/hooks/useStellar', () => ({
+jest.mock('@/lib/stellar/hooks/use-stellar', () => ({
   useStellar: () => ({
     account: null,
     systemCalls: {},
@@ -24,7 +24,7 @@ jest.mock('@/lib/stellar/hooks/useStellar', () => ({
 }));
 
 // Mock GameResultPopup component
-jest.mock('@/components/organisms/GameResultPopup', () => ({
+jest.mock('@/components/organisms/game-result-popup', () => ({
   __esModule: true,
   default: () => null,
 }));

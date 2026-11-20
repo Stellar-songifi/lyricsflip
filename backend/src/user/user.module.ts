@@ -9,7 +9,8 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { User } from './user.entity';
 import { ConfigModule } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
-import jwtConfig from 'src/auth/authConfig/jwt.config';
+import jwtConfig from '@app/auth/authConfig/jwt.config';
+import { LeaderboardModule } from '../leaderboard/leaderboard.module';
 
 @Module({
   controllers: [UserController],
@@ -24,6 +25,7 @@ import jwtConfig from 'src/auth/authConfig/jwt.config';
     forwardRef(() => AuthModule),
     ConfigModule.forFeature(jwtConfig),
     JwtModule.registerAsync(jwtConfig.asProvider()),
+    forwardRef(() => LeaderboardModule),
   ],
   exports: [UserService, FindOneUserByEmailProvider],
 })

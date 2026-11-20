@@ -1,5 +1,5 @@
 use crate::types::{Genre, Milestone, Role};
-use soroban_sdk::{contractevent, Address, Map, Vec};
+use soroban_sdk::{contractevent, Address, BytesN, Map, Vec};
 
 #[contractevent]
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -112,6 +112,17 @@ pub struct CardDrawn {
     #[topic]
     pub round_id: u64,
     pub index: u32,
+}
+
+/// LF-278: emitted by `finalize_round`, once per card in the round. The
+/// card id is only published after the round can no longer be played, so
+/// `CardDrawn` never maps a live card to its answer.
+#[contractevent]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct CardRevealed {
+    #[topic]
+    pub round_id: u64,
+    pub index: u32,
     pub card_id: u64,
 }
 
@@ -157,4 +168,94 @@ pub struct OwnershipTransferred {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct CardsPerRoundUpdated {
     pub value: u32,
+}
+
+#[contractevent]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct Paused {
+    #[topic]
+    pub owner: Address,
+}
+
+#[contractevent]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct Unpaused {
+    #[topic]
+    pub owner: Address,
+}
+
+#[contractevent]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ContractUpgraded {
+    #[topic]
+    pub owner: Address,
+    pub new_wasm_hash: BytesN<32>,
+    pub old_version: u32,
+    pub new_version: u32,
+}
+
+#[contractevent]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct SchemaMigrated {
+    #[topic]
+    pub caller: Address,
+    pub old_schema_version: u32,
+    pub new_schema_version: u32,
+}
+
+#[contractevent]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct AnswerWindowUpdated {
+    pub value: u64,
+}
+
+#[contractevent]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct LobbyTimeoutUpdated {
+    pub value: u64,
+}
+
+#[contractevent]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct RoundDurationUpdated {
+    pub value: u64,
+}
+
+#[contractevent]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct RoundBufferUpdated {
+    pub value: u64,
+}
+
+/// LF-284: the owner cleared a player's `MilestoneClaimed` flag so a revoked
+/// or burned badge can be claimed again.
+#[contractevent]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct MilestoneReset {
+    #[topic]
+    pub player: Address,
+    pub milestone: Milestone,
+}
+
+#[contractevent]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct MaxPlayersUpdated {
+    pub old: u32,
+    pub new: u32,
+}
+
+#[contractevent]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct NftContractUpdated {
+    pub old: Option<Address>,
+    pub new: Address,
+}
+
+#[contractevent]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct EscrowContractUpdated {
+    #[topic]
+    pub owner: Address,
+    #[topic]
+    pub escrow: Address,
 }

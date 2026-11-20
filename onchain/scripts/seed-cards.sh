@@ -23,6 +23,29 @@ CARDS_JSON="${REPO_ROOT}/seed/songs.json"
 
 IDENTITY="me"
 
+# ---------------------------------------------------------------------------
+# Network configuration
+# ---------------------------------------------------------------------------
+# The "local" network targets the Stellar quickstart container defined in
+# docker-compose.yml (started with `--local --enable rpc`).  Its standalone
+# network passphrase differs from testnet, so we pass explicit RPC URL and
+# passphrase flags instead of relying on a named network in the CLI config.
+LOCAL_RPC_URL="${LOCAL_RPC_URL:-http://localhost:8000/soroban/rpc}"
+LOCAL_NETWORK_PASSPHRASE="Standalone Network ; February 2017"
+
+NETWORK_ARGS=()
+case "${NETWORK}" in
+  local)
+    NETWORK_ARGS=(
+      --rpc-url "${LOCAL_RPC_URL}"
+      --network-passphrase "${LOCAL_NETWORK_PASSPHRASE}"
+    )
+    ;;
+  *)
+    NETWORK_ARGS=(--network "${NETWORK}")
+    ;;
+esac
+
 log() { echo "[seed-cards.sh] $*"; }
 
 # ---------------------------------------------------------------------------
@@ -82,7 +105,7 @@ while IFS= read -r CARD_JSON; do
   stellar contract invoke \
     --id "${CONTRACT_ID}" \
     --source "${IDENTITY}" \
-    --network "${NETWORK}" \
+    "${NETWORK_ARGS[@]}" \
     -- add_card \
     --caller "${OWNER_ADDRESS}" \
     --card "${CARD_STRUCT}" 2>&1

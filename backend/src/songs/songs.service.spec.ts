@@ -2,14 +2,21 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { NotFoundException } from '@nestjs/common';
 import { SongsService } from './songs.service';
-import { Song } from './entities/song.entity';
+import { Song, SongStatus } from './entities/song.entity';
 import { Tag } from './entities/tag.entity';
 import { Genre } from './enums/genre.enum';
 import { CreateSongDto } from './dto/create-song.dto';
 
 const queryBuilder = () => {
   const qb: Record<string, jest.Mock> = {};
-  for (const method of ['leftJoinAndSelect', 'andWhere', 'where', 'orderBy', 'skip', 'take']) {
+  for (const method of [
+    'leftJoinAndSelect',
+    'andWhere',
+    'where',
+    'orderBy',
+    'skip',
+    'take',
+  ]) {
     qb[method] = jest.fn().mockReturnValue(qb);
   }
   qb.getManyAndCount = jest.fn().mockResolvedValue([[], 0]);
@@ -33,7 +40,9 @@ describe('SongsService', () => {
   const tagRepository = {
     find: jest.fn(),
     create: jest.fn((data) => data),
-    save: jest.fn(async (tags) => tags.map((t, i) => ({ id: `new-${i}`, ...t }))),
+    save: jest.fn(async (tags) =>
+      tags.map((t, i) => ({ id: `new-${i}`, ...t })),
+    ),
   };
 
   const dto: CreateSongDto = {
@@ -97,7 +106,12 @@ describe('SongsService', () => {
         limit: 10,
       });
 
-      expect(qb.andWhere).toHaveBeenCalledWith('song.genre = :genre', { genre: Genre.Rock });
+      expect(qb.where).toHaveBeenCalledWith('song.status != :draft', {
+        draft: SongStatus.DRAFT,
+      });
+      expect(qb.andWhere).toHaveBeenCalledWith('song.genre = :genre', {
+        genre: Genre.Rock,
+      });
       expect(qb.andWhere).toHaveBeenCalledWith(
         '(song.title ILIKE :q OR song.artist ILIKE :q)',
         { q: '%love%' },
@@ -105,20 +119,31 @@ describe('SongsService', () => {
       expect(qb.orderBy).toHaveBeenCalledWith('song.year', 'ASC');
       expect(qb.skip).toHaveBeenCalledWith(10);
       expect(qb.take).toHaveBeenCalledWith(10);
-      expect(result).toEqual({ data: [{ id: 'song-1' }], total: 21, page: 2, limit: 10 });
+      expect(result).toEqual({
+        data: [{ id: 'song-1' }],
+        total: 21,
+        page: 2,
+        limit: 10,
+      });
     });
   });
 
   describe('findOne', () => {
     it('throws when the song does not exist', async () => {
       songRepository.findOne.mockResolvedValue(null);
-      await expect(service.findOne('missing')).rejects.toThrow(NotFoundException);
+      await expect(service.findOne('missing')).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 
   describe('update', () => {
     it('merges fields and replaces tags only when given', async () => {
-      songRepository.findOne.mockResolvedValue({ id: 'song-1', title: 'Old', tags: [] });
+      songRepository.findOne.mockResolvedValue({
+        id: 'song-1',
+        title: 'Old',
+        tags: [],
+      });
 
       const updated = await service.update('song-1', { title: 'New' });
 
@@ -140,15 +165,88 @@ describe('SongsService', () => {
     it('increments the stored count', async () => {
       songRepository.findOne.mockResolvedValue({ id: 'song-1', playCount: 4 });
       const song = await service.incrementPlayCount('song-1');
-      expect(songRepository.increment).toHaveBeenCalledWith({ id: 'song-1' }, 'playCount', 1);
+      expect(songRepository.increment).toHaveBeenCalledWith(
+        { id: 'song-1' },
+        'playCount',
+        1,
+      );
       expect(song.playCount).toBe(5);
     });
   });
 
   describe('getRandom', () => {
     it('throws when there are no songs', async () => {
-      await expect(service.getRandom(Genre.Jazz)).rejects.toThrow(NotFoundException);
-      expect(qb.where).toHaveBeenCalledWith('song.genre = :genre', { genre: Genre.Jazz });
+      await expect(service.getRandom(Genre.Jazz)).rejects.toThrow(
+        NotFoundException,
+      );
+      expect(qb.where).toHaveBeenCalledWith('song.status != :draft', {
+        draft: SongStatus.DRAFT,
+      });
+      expect(qb.andWhere).toHaveBeenCalledWith('song.genre = :genre', {
+        genre: Genre.Jazz,
+      });
+    });
+  });
+
+  describe('findByGenre', () => {
+    it('excludes draft songs', async () => {
+      songRepository.find.mockResolvedValue([]);
+
+      await service.findByGenre(Genre.Rock);
+
+      expect(songRepository.find).toHaveBeenCalledWith({
+        where: { genre: Genre.Rock, status: expect.anything() },
+      });
+    });
+  });
+
+  describe('findAllForAdmin', () => {
+    it('returns every song regardless of status', async () => {
+      songRepository.find.mockResolvedValue([{ id: 'song-1' }]);
+
+      const result = await service.findAllForAdmin();
+
+      expect(songRepository.find).toHaveBeenCalledWith();
+      expect(result).toEqual([{ id: 'song-1' }]);
+    });
+  });
+
+  describe('findByStatus', () => {
+    it('queries by status', async () => {
+      songRepository.find.mockResolvedValue([]);
+
+      await service.findByStatus(SongStatus.APPROVED);
+
+      expect(songRepository.find).toHaveBeenCalledWith({
+        where: { status: SongStatus.APPROVED },
+      });
+    });
+  });
+
+  describe('approve', () => {
+    it('moves a song to approved', async () => {
+      songRepository.findOne.mockResolvedValue({
+        id: 'song-1',
+        status: SongStatus.DRAFT,
+      });
+
+      const result = await service.approve('song-1');
+
+      expect(result.status).toBe(SongStatus.APPROVED);
+    });
+  });
+
+  describe('markSynced', () => {
+    it('moves a song to on_chain and stores its on-chain card id', async () => {
+      songRepository.findOne.mockResolvedValue({
+        id: 'song-1',
+        status: SongStatus.APPROVED,
+      });
+
+      const result = await service.markSynced('song-1', '42');
+
+      expect(result.status).toBe(SongStatus.ON_CHAIN);
+      expect(result.onChainCardId).toBe('42');
     });
   });
 });

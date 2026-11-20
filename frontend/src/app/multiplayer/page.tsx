@@ -1,312 +1,345 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
-import { useState, useMemo } from 'react';
-import { ArrowLeft, RefreshCw, Users } from 'lucide-react';
-import { useStellar } from '@/lib/stellar/hooks/useStellar';
-import { GENRE_VALUES, type Genre } from '@/lib/stellar/types';
 import { Button } from '@/components/atoms/button';
+import { GENRE_VALUES, type Genre } from '@/lib/stellar/types';
+import { useStellar } from '@/lib/stellar/hooks/use-stellar';
+import { generateInviteCode } from '@/lib/stellar/client';
+import { ArrowLeft } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { useEffect, useMemo, useState } from 'react';
+import { getGenreDisplayName } from '@/lib/stellar/genres';
+import {
+  formatAmount,
+  LOBBY_PAGE_SIZE,
+  WAGER_ASSET_CODE,
+} from '@/lib/utils';
 import { useOpenRounds, type OpenRound } from '@/hooks/use-open-rounds';
+import { useProfileStore } from '@/store/use-profile-store';
 
-const PAGE_SIZE = 10;
-
-function formatTimeLeft(seconds: number): string {
-  if (seconds <= 0) return 'Expired';
-  const m = Math.floor(seconds / 60);
-  const s = seconds % 60;
-  if (m >= 60) {
-    const h = Math.floor(m / 60);
-    return `${h}h ${m % 60}m`;
-  }
-  return `${m}:${String(s).padStart(2, '0')}`;
-}
-
-function RoundRow({
-  item,
-  onJoin,
-}: {
-  item: OpenRound;
-  onJoin: (id: bigint) => void;
-}) {
-  const { round, secondsLeft, playerCount } = item;
-  const isExpiringSoon = secondsLeft < 60;
-
-  return (
-    <tr className="border-b last:border-0 hover:bg-gray-50 transition-colors">
-      <td className="px-4 py-3 text-sm font-mono text-gray-700">
-        {round.round_id.toString()}
-      </td>
-      <td className="px-4 py-3 text-sm">{round.genre}</td>
-      <td className="px-4 py-3 text-sm">
-        {round.wager_amount > 0n ? (
-          <span className="font-medium">{round.wager_amount.toString()} XLM</span>
-        ) : (
-          <span className="text-gray-400">Free</span>
-        )}
-      </td>
-      <td className="px-4 py-3 text-sm">
-        <span className="flex items-center gap-1">
-          <Users className="h-3.5 w-3.5 text-gray-400" />
-          {playerCount}
-        </span>
-      </td>
-      <td className="px-4 py-3 text-sm font-mono truncate max-w-[120px] text-gray-500">
-        {`${round.admin.slice(0, 6)}…${round.admin.slice(-4)}`}
-      </td>
-      <td
-        className={`px-4 py-3 text-sm font-medium ${
-          isExpiringSoon ? 'text-red-500' : 'text-gray-700'
-        }`}
-      >
-        {formatTimeLeft(secondsLeft)}
-      </td>
-      <td className="px-4 py-3">
-        <Button
-          onClick={() => onJoin(round.round_id)}
-          className="text-xs px-3 py-1 h-auto"
-        >
-          Join
-        </Button>
-      </td>
-    </tr>
-  );
-}
+const relativeAge = (createdAtSeconds: number | null, nowSeconds: number) => {
+  if (createdAtSeconds === null) return 'just now';
+  const elapsed = Math.max(0, nowSeconds - createdAtSeconds);
+  if (elapsed < 60) return `${elapsed}s ago`;
+  if (elapsed < 3600) return `${Math.floor(elapsed / 60)}m ago`;
+  return `${Math.floor(elapsed / 3600)}h ago`;
+};
 
 export default function MultiplayerLobbyPage() {
   const router = useRouter();
   const { systemCalls, account, connect } = useStellar();
-
-  // ── Create round ──────────────────────────────────────────────────────────
   const [genre, setGenre] = useState<Genre>(GENRE_VALUES[0]);
-  const [isCreating, setIsCreating] = useState(false);
-  const [createError, setCreateError] = useState<string | null>(null);
+  const [roundId, setRoundId] = useState('');
+  const [inviteCode, setInviteCode] = useState('');
+  const [isPrivate, setIsPrivate] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [errorState, setError] = useState<string | null>(null);
+  const [busyRoundId, setBusyRoundId] = useState<string | null>(null);
+  const [page, setPage] = useState(0);
+
+  const openRounds = useOpenRounds({ systemCalls });
+  const profiles = useProfileStore((state) => state.profiles);
+  const fetchProfiles = useProfileStore((state) => state.fetchProfiles);
+
+  const displayName = (address: string) =>
+    profiles[address]?.username ?? `${address.slice(0, 6)}…`;
+
+  const playerAddresses = useMemo(
+    () => openRounds.rounds.flatMap((entry) => entry.players),
+    [openRounds.rounds],
+  );
+
+  useEffect(() => {
+    if (playerAddresses.length > 0) {
+      void fetchProfiles(playerAddresses);
+    }
+  }, [playerAddresses, fetchProfiles]);
+
+  const totalPages = Math.max(
+    1,
+    Math.ceil(openRounds.rounds.length / LOBBY_PAGE_SIZE),
+  );
+  const currentPage = Math.min(page, totalPages - 1);
+  const visibleRounds = useMemo(
+    () =>
+      openRounds.rounds.slice(
+        currentPage * LOBBY_PAGE_SIZE,
+        currentPage * LOBBY_PAGE_SIZE + LOBBY_PAGE_SIZE,
+      ),
+    [currentPage, openRounds.rounds],
+  );
+  const nowSeconds = Math.floor(Date.now() / 1000);
 
   const handleCreateRound = async () => {
     if (!account) {
       await connect();
       return;
     }
+
     if (!systemCalls) {
-      setCreateError('System calls not initialized');
+      setError('System calls not initialized');
       return;
     }
-    setIsCreating(true);
-    setCreateError(null);
+
+    setIsLoading(true);
+    setError(null);
+
     try {
-      const id = await systemCalls.createRound(genre);
-      router.push(`/multiplayer/${id}`);
+      // LF-305: private rounds carry their invite code in the URL fragment.
+      const code = isPrivate ? generateInviteCode() : undefined;
+      const id = await systemCalls.createRound(genre, undefined, undefined, code);
+      await openRounds.refresh();
+      router.push(code ? `/multiplayer/${id}#invite=${code}` : `/multiplayer/${id}`);
     } catch (err) {
-      setCreateError(err instanceof Error ? err.message : 'Failed to create round');
+      setError(err instanceof Error ? err.message : 'Failed to create round');
     } finally {
-      setIsCreating(false);
+      setIsLoading(false);
     }
   };
 
-  // ── Join by ID ─────────────────────────────────────────────────────────────
-  const [roundId, setRoundId] = useState('');
-  const [joinError, setJoinError] = useState<string | null>(null);
-
-  const handleJoinById = () => {
+  const handleJoinRound = () => {
     if (!/^\d+$/.test(roundId.trim())) {
-      setJoinError('Round ID must be a number');
+      setError('Round ID must be a number');
       return;
     }
-    router.push(`/multiplayer/${roundId.trim()}`);
+
+    const code = inviteCode.trim();
+    router.push(
+      code
+        ? `/multiplayer/${roundId.trim()}#invite=${encodeURIComponent(code)}`
+        : `/multiplayer/${roundId.trim()}`,
+    );
   };
 
-  // ── Lobby browser ──────────────────────────────────────────────────────────
-  const { rounds, isLoading, error: browseError, refresh } = useOpenRounds();
-  const [filterGenre, setFilterGenre] = useState<Genre | 'All'>('All');
-  const [filterWager, setFilterWager] = useState<'All' | 'Free' | 'Wager'>('All');
-  const [page, setPage] = useState(1);
+  const handleJoinFromList = async (entry: OpenRound) => {
+    const id = entry.round.round_id;
+    if (!account) {
+      await connect();
+      return;
+    }
+    if (!systemCalls) return;
 
-  const filtered = useMemo(() => {
-    return rounds.filter((item) => {
-      if (filterGenre !== 'All' && item.round.genre !== filterGenre) return false;
-      if (filterWager === 'Free' && item.round.wager_amount !== 0n) return false;
-      if (filterWager === 'Wager' && item.round.wager_amount === 0n) return false;
-      return true;
-    });
-  }, [rounds, filterGenre, filterWager]);
-
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
-
-  const handleFilterGenreChange = (value: string) => {
-    setFilterGenre(value as Genre | 'All');
-    setPage(1);
+    setBusyRoundId(id.toString());
+    setError(null);
+    try {
+      if (!entry.players.includes(account.address)) {
+        await systemCalls.joinRound(id);
+      }
+      await openRounds.refresh();
+      router.push(`/multiplayer/${id.toString()}`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to join round');
+    } finally {
+      setBusyRoundId(null);
+    }
   };
 
-  const handleFilterWagerChange = (value: string) => {
-    setFilterWager(value as 'All' | 'Free' | 'Wager');
-    setPage(1);
-  };
-
-  const handleJoinFromBrowser = (id: bigint) => {
-    router.push(`/multiplayer/${id.toString()}`);
+  const handleCancelFromList = async (entry: OpenRound) => {
+    if (!systemCalls) return;
+    const id = entry.round.round_id;
+    setBusyRoundId(id.toString());
+    setError(null);
+    try {
+      await systemCalls.cancelRound(id);
+      await openRounds.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to cancel round');
+    } finally {
+      setBusyRoundId(null);
+    }
   };
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-4 py-8 mt-16 md:mt-24">
       <button
         onClick={() => router.push('/')}
-        className="flex items-center text-gray-600 mb-4"
+        className="flex items-center text-gray-600 mb-4 min-h-[44px]"
       >
         <ArrowLeft className="h-4 w-4 mr-2" />
         Back
       </button>
-      <h1 className="text-3xl font-bold mb-8">Multiplayer Game</h1>
 
-      <div className="max-w-2xl mx-auto space-y-10">
-        {/* ── Create round ──────────────────────────────────────────────── */}
-        <section>
-          <h2 className="text-xl font-bold mb-4">Create multiplayer round</h2>
+      <h1 className="text-2xl sm:text-3xl font-bold mb-8">Multiplayer Game</h1>
+
+      <div className="max-w-md mx-auto space-y-8">
+        {/* Create a new round */}
+        <div>
+          <h2 className="text-xl font-bold mb-4">Create a round</h2>
           <select
             value={genre}
             onChange={(e) => setGenre(e.target.value as Genre)}
-            className="w-full px-4 py-2 border rounded mb-4"
+            className="w-full px-4 py-3 border rounded mb-4 min-h-[44px] text-sm"
           >
             {GENRE_VALUES.map((g) => (
               <option key={g} value={g}>
-                {g}
+                {getGenreDisplayName(g)}
               </option>
             ))}
           </select>
-          <Button onClick={handleCreateRound} disabled={isCreating} className="w-full">
-            {isCreating ? 'Creating…' : account ? 'Create Round' : 'Connect wallet to create'}
+          <label className="mb-4 flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={isPrivate}
+              onChange={(e) => setIsPrivate(e.target.checked)}
+            />
+            Private (invite link only)
+          </label>
+          <Button
+            onClick={handleCreateRound}
+            disabled={isLoading}
+            className="w-full min-h-[44px]"
+          >
+            {isLoading
+              ? 'Creating…'
+              : account
+                ? 'Create Round'
+                : 'Connect wallet to create'}
           </Button>
-          {createError && (
-            <p className="text-red-500 text-sm mt-2">{createError}</p>
-          )}
-        </section>
+        </div>
 
-        {/* ── Join by ID ─────────────────────────────────────────────────── */}
-        <section>
+        {/* Join an existing round */}
+        <div>
           <h2 className="text-xl font-bold mb-4">Join with a round ID</h2>
           <input
             type="text"
+            inputMode="numeric"
+            aria-label="Round ID"
             value={roundId}
             onChange={(e) => setRoundId(e.target.value)}
             placeholder="Enter Round ID"
-            className="w-full px-4 py-2 border rounded mb-4"
+            className="w-full px-4 py-3 border rounded mb-4 min-h-[44px] text-sm"
           />
-          <Button onClick={handleJoinById} disabled={!roundId} className="w-full">
+          <input
+            type="text"
+            aria-label="Invite code"
+            value={inviteCode}
+            onChange={(e) => setInviteCode(e.target.value)}
+            placeholder="Invite code (private rounds)"
+            className="w-full px-4 py-3 border rounded mb-4 min-h-[44px] text-sm"
+          />
+          <Button
+            onClick={handleJoinRound}
+            disabled={!roundId}
+            className="w-full min-h-[44px]"
+          >
             Join Round
           </Button>
-          {joinError && (
-            <p className="text-red-500 text-sm mt-2">{joinError}</p>
-          )}
-        </section>
-
-        {/* ── Lobby browser ─────────────────────────────────────────────── */}
-        <section>
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-xl font-bold">Open Rounds</h2>
-            <button
-              onClick={refresh}
-              title="Refresh"
-              className="text-gray-500 hover:text-gray-800 transition-colors"
-            >
-              <RefreshCw className="h-4 w-4" />
-            </button>
-          </div>
-
-          {/* Filters */}
-          <div className="flex flex-wrap gap-3 mb-4">
-            <div>
-              <label className="text-xs text-gray-500 block mb-1">Genre</label>
-              <select
-                value={filterGenre}
-                onChange={(e) => handleFilterGenreChange(e.target.value)}
-                className="px-3 py-1.5 border rounded text-sm"
-              >
-                <option value="All">All genres</option>
-                {GENRE_VALUES.map((g) => (
-                  <option key={g} value={g}>
-                    {g}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="text-xs text-gray-500 block mb-1">Wager</label>
-              <select
-                value={filterWager}
-                onChange={(e) => handleFilterWagerChange(e.target.value)}
-                className="px-3 py-1.5 border rounded text-sm"
-              >
-                <option value="All">All</option>
-                <option value="Free">Free</option>
-                <option value="Wager">Wager</option>
-              </select>
-            </div>
-          </div>
-
-          {isLoading ? (
-            <div className="space-y-2">
-              {Array.from({ length: 4 }).map((_, i) => (
-                <div key={i} className="h-10 bg-gray-100 rounded animate-pulse" />
-              ))}
-            </div>
-          ) : browseError ? (
-            <p className="text-sm text-red-500">{browseError}</p>
-          ) : paginated.length === 0 ? (
-            <p className="text-sm text-gray-500">
-              No open rounds match your filters right now.
-            </p>
-          ) : (
-            <>
-              <div className="overflow-x-auto rounded-lg border border-gray-200">
-                <table className="w-full text-left">
-                  <thead className="bg-gray-50 text-xs text-gray-500 uppercase">
-                    <tr>
-                      <th className="px-4 py-2">Round ID</th>
-                      <th className="px-4 py-2">Genre</th>
-                      <th className="px-4 py-2">Wager</th>
-                      <th className="px-4 py-2">Players</th>
-                      <th className="px-4 py-2">Host</th>
-                      <th className="px-4 py-2">Time Left</th>
-                      <th className="px-4 py-2" />
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {paginated.map((item) => (
-                      <RoundRow
-                        key={item.round.round_id.toString()}
-                        item={item}
-                        onJoin={handleJoinFromBrowser}
-                      />
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-
-              {/* Pagination */}
-              {totalPages > 1 && (
-                <div className="flex justify-between items-center mt-3 text-sm">
-                  <button
-                    onClick={() => setPage((p) => Math.max(1, p - 1))}
-                    disabled={page === 1}
-                    className="px-3 py-1 rounded border disabled:opacity-40"
-                  >
-                    Previous
-                  </button>
-                  <span className="text-gray-500">
-                    Page {page} of {totalPages}
-                  </span>
-                  <button
-                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                    disabled={page === totalPages}
-                    className="px-3 py-1 rounded border disabled:opacity-40"
-                  >
-                    Next
-                  </button>
-                </div>
-              )}
-            </>
-          )}
-        </section>
+        </div>
       </div>
+
+      {/* Open rounds */}
+      <section className="mx-auto mt-12 max-w-3xl" aria-labelledby="open-rounds-heading">
+        <div className="mb-4 flex items-center justify-between">
+          <h2 id="open-rounds-heading" className="text-xl font-bold">
+            Open rounds
+          </h2>
+          <button
+            onClick={() => void openRounds.refresh()}
+            className="text-sm text-purple-600 underline"
+          >
+            Refresh
+          </button>
+        </div>
+
+        {openRounds.isLoading && (
+          <p className="text-gray-500">Loading open rounds…</p>
+        )}
+
+        {!openRounds.isLoading && openRounds.rounds.length === 0 && (
+          <p className="text-gray-500">
+            No open rounds right now. Create one to get started.
+          </p>
+        )}
+
+        {openRounds.rounds.length > 0 && (
+          <>
+            <ul className="space-y-3" data-testid="open-rounds-list">
+              {visibleRounds.map((entry) => {
+                const id = entry.round.round_id.toString();
+                const isOwner = entry.round.admin === account?.address;
+                const isPlayer = !!account && entry.players.includes(account.address);
+                const isBusy = busyRoundId === id;
+
+                return (
+                  <li
+                    key={id}
+                    className="flex flex-col gap-2 rounded border border-gray-200 p-4 sm:flex-row sm:items-center sm:justify-between"
+                  >
+                    <div className="text-sm">
+                      <p className="font-semibold">
+                        Round {id} ·{' '}
+                        {getGenreDisplayName(entry.round.genre)}
+                      </p>
+                      <p className="text-gray-500">
+                        {entry.playerCount}/{entry.maxPlayers} players ·{' '}
+                        {formatAmount(entry.round.wager_amount)}{' '}
+                        {WAGER_ASSET_CODE} ·{' '}
+                        {relativeAge(entry.createdAtSeconds, nowSeconds)}
+                      </p>
+                      {entry.players.length > 0 && (
+                        <p className="text-gray-500">
+                          {entry.players.map(displayName).join(', ')}
+                        </p>
+                      )}
+                    </div>
+                    <div className="flex gap-2">
+                      {isOwner && (
+                        <Button
+                          onClick={() => void handleCancelFromList(entry)}
+                          disabled={isBusy}
+                          className="min-h-[44px]"
+                        >
+                          {isBusy ? 'Cancelling…' : 'Cancel'}
+                        </Button>
+                      )}
+                      <Button
+                        onClick={() => void handleJoinFromList(entry)}
+                        disabled={isBusy}
+                        className="min-h-[44px]"
+                      >
+                        {isBusy
+                          ? 'Joining…'
+                          : isPlayer
+                            ? 'Open'
+                            : 'Join'}
+                      </Button>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+
+            {totalPages > 1 && (
+              <div className="mt-4 flex items-center justify-center gap-4 text-sm">
+                <button
+                  onClick={() => setPage((prev) => Math.max(0, prev - 1))}
+                  disabled={currentPage === 0}
+                  className="disabled:opacity-40"
+                >
+                  Previous
+                </button>
+                <span aria-live="polite">
+                  Page {currentPage + 1} of {totalPages}
+                </span>
+                <button
+                  onClick={() =>
+                    setPage((prev) => Math.min(totalPages - 1, prev + 1))
+                  }
+                  disabled={currentPage >= totalPages - 1}
+                  className="disabled:opacity-40"
+                >
+                  Next
+                </button>
+              </div>
+            )}
+          </>
+        )}
+
+        {openRounds.error && (
+          <p className="mt-4 text-sm text-red-500">{openRounds.error}</p>
+        )}
+      </section>
+
+      {errorState && <p className="text-red-500 mt-4 text-center">{errorState}</p>}
     </div>
   );
 }

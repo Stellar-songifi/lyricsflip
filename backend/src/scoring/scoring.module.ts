@@ -4,7 +4,7 @@ import { EventEmitterModule } from '@nestjs/event-emitter';
 import { ScoringService } from './scoring.service';
 import { ScoringController } from './scoring.controller';
 import { Scoring } from './entities/scoring.entity';
-import { Player } from 'src/player/player.entity';
+import { Player } from '@app/player/player.entity';
 
 @Module({
   imports: [

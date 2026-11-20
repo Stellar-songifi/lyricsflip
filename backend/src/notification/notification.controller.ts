@@ -19,6 +19,14 @@ export class NotificationController {
     return this.notificationService.findForUser(userId, unread);
   }
 
+  @Get('unread-count')
+  @ApiOperation({ summary: "Get the current user's unread notification count" })
+  @ApiResponse({ status: 200, description: 'Unread count successfully retrieved' })
+  async getUnreadCount(@CurrentUser('sub') userId: string): Promise<{ count: number }> {
+    const count = await this.notificationService.countUnread(userId);
+    return { count };
+  }
+
   @Patch(':id/read')
   @ApiOperation({ summary: 'Mark one notification as read' })
   markRead(@CurrentUser('sub') userId: string, @Param('id', ParseUUIDPipe) id: string) {

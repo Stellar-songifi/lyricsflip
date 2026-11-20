@@ -1099,6 +1099,14 @@ version = "0.1.0"
 dependencies = [
  "lyricsflip-nft",
  "soroban-sdk",
+ "upgrade-fixture",
+]
+
+[[package]]
+name = "lyricsflip-escrow"
+version = "0.1.0"
+dependencies = [
+ "soroban-sdk",
 ]
 
 [[package]]

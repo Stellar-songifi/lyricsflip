@@ -1,10 +1,20 @@
-import { forwardRef, Inject, Injectable } from "@nestjs/common";
-import { JwtService } from "@nestjs/jwt";
-import { UserService } from "./../../user/providers/user.service";
-import jwtConfig from "../authConfig/jwt.config";
-import { ConfigType } from "@nestjs/config";
-import { User } from "./../../user/user.entity";
+import { forwardRef, Inject, Injectable } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
+import { UserService } from './../../user/providers/user.service';
+import jwtConfig from '../authConfig/jwt.config';
+import { ConfigType } from '@nestjs/config';
+import { User } from './../../user/user.entity';
+import { randomUUID } from 'crypto';
+import { RefreshTokenStore } from './refresh-tokens';
 // import { User } from "./../../user/user.entity";
+
+export interface GenerateTokensOptions {
+  /**
+   * Token family id. Reuse this when rotating an existing refresh token;
+   * omit it on login/sign-up to start a new family.
+   */
+  family?: string;
+}
 
 @Injectable()
 export class GenerateTokensProvider {
@@ -25,6 +35,11 @@ export class GenerateTokensProvider {
      */
     @Inject(jwtConfig.KEY)
     private readonly jwtConfiguration: ConfigType<typeof jwtConfig>,
+
+    /*
+     * injecting refresh token store (Redis-backed)
+     */
+    private readonly refreshTokenStore: RefreshTokenStore,
   ) {}
 
   public async signToken<T>(userId: string, expiresIn: number, payload?: T) {
@@ -42,15 +57,33 @@ export class GenerateTokensProvider {
     );
   }
 
-  public async generateTokens(user: User) {
-    const [accessToken, refreshToken] = await Promise.all([
-    // generate access token
-    this.signToken(user.id, this.jwtConfiguration.ttl, {email: user.email}),
+  public async generateTokens(user: User, options: GenerateTokensOptions = {}) {
+    // Reuse the family on rotation, otherwise start a new family.
+    const family = options.family ?? randomUUID();
+    const jti = randomUUID();
 
-    // generate refresh token
-    this.signToken(user.id, this.jwtConfiguration.refreshttl)
-    ])
-    
-    return {'accessToken': accessToken, 'refreshToken': refreshToken, user}
+    const [accessToken, refreshToken] = await Promise.all([
+      // generate access token
+      this.signToken(user.id, this.jwtConfiguration.ttl, {
+        email: user.email,
+      }),
+
+      // generate refresh token
+      this.signToken(user.id, this.jwtConfiguration.refreshttl, {
+        family,
+        jti,
+      }),
+    ]);
+
+    // Register the new jti so it can be validated and revoked later.
+    await this.refreshTokenStore.storeToken(family, jti);
+
+    return {
+      accessToken,
+      refreshToken,
+      user,
+      refreshTokenFamily: family,
+      refreshTokenJti: jti,
+    };
   }
 }

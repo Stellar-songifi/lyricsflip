@@ -65,6 +65,23 @@ jobs:
     defaults:
       run:
         working-directory: backend
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: lyricsflip
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready --health-interval 10s
+          --health-timeout 5s --health-retries 5
+      redis:
+        image: redis:7
+        ports: ["6379:6379"]
+        options: >-
+          --health-cmd "redis-cli ping" --health-interval 10s
+          --health-timeout 5s --health-retries 5
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -73,17 +90,40 @@ jobs:
           cache: npm
           cache-dependency-path: backend/package-lock.json
       - run: npm ci
-      - name: Export openapi.json
-        run: npm run openapi:export
+      - name: Install frontend dependencies (needed for generate:api)
+        run: npm ci
+        working-directory: frontend
+      - name: Export openapi.json and regenerate frontend API client
+        run: npm run openapi:export && npm run openapi:generate
       - name: Verify openapi.json is committed and up to date
         run: |
           if ! git diff --quiet -- openapi.json; then
-            echo "openapi.json is out of date. Run 'npm run openapi:export' in backend/ and commit the result."
+            echo "::error::openapi.json is out of date."
+            echo "Run the following, then commit both files:"
+            echo "  cd backend && npm run openapi:export && npm run openapi:generate"
             git diff -- openapi.json
             exit 1
           fi
           if [[ -n "$(git status --porcelain -- openapi.json)" ]]; then
-            echo "openapi.json is not committed. Run 'npm run openapi:export' in backend/ and commit the result."
+            echo "::error::openapi.json is not committed."
+            echo "Run: cd backend && npm run openapi:export && npm run openapi:generate"
+            echo "Then commit both files."
+            exit 1
+          fi
+      - name: Verify frontend/src/services/generated/api.ts is committed and up to date
+        working-directory: frontend
+        run: |
+          if ! git diff --quiet -- src/services/generated/api.ts; then
+            echo "::error::frontend/src/services/generated/api.ts is out of date."
+            echo "Run the following, then commit both files:"
+            echo "  cd backend && npm run openapi:export && npm run openapi:generate"
+            git diff -- src/services/generated/api.ts
+            exit 1
+          fi
+          if [[ -n "$(git status --porcelain -- src/services/generated/api.ts)" ]]; then
+            echo "::error::frontend/src/services/generated/api.ts is not committed."
+            echo "Run: cd backend && npm run openapi:export && npm run openapi:generate"
+            echo "Then commit both files."
             exit 1
           fi
 

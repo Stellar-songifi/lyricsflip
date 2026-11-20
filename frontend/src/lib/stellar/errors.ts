@@ -59,6 +59,10 @@ export const CONTRACT_ERROR_NAMES: Record<number, string> = {
   44: 'CardInActiveRound',
   45: 'TooManyOpenRounds',
   46: 'MaxPlayersTooHigh',
+  47: 'LobbyExpired',
+  48: 'InvalidInvite',
+  49: 'LobbyTimeoutNotReached',
+  50: 'AdminCannotLeave',
 };
 
 /**
@@ -88,6 +92,10 @@ export const LYRICSFLIP_ERROR_MESSAGES: Record<string, string> = {
   RoundFull: 'That round is full.',
   InvalidMaxPlayers: 'A round needs room for at least 2 players.',
   MaxPlayersTooHigh: 'A round can have at most 8 players.',
+  LobbyExpired: 'This lobby has expired and can only be cancelled.',
+  InvalidInvite: 'You are not on the invite list for this private round.',
+  LobbyTimeoutNotReached: 'Only the host can cancel this lobby until it times out.',
+  AdminCannotLeave: 'As the host, cancel the round instead of leaving it.',
   NftContractNotSet: 'NFT rewards are not configured yet.',
   MilestoneNotReached: 'You have not reached that milestone yet.',
   MilestoneAlreadyClaimed: 'You already claimed that reward.',

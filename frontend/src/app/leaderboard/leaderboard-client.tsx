@@ -4,9 +4,11 @@
  * /leaderboard client view (the server `page.tsx` wraps it to export metadata)
  *
  * Shows ranked player stats pulled from the backend via `useLeaderboard`.
- * Supports global / weekly / by-genre filters and paginated results.
+ * Supports daily / weekly / all-time (global) and by-genre filters with
+ * paginated results. The connected player's row is highlighted and their
+ * rank is shown even when it falls outside the top N.
  *
- * Part of Issue #471 / LF-054.
+ * Part of Issue #903 / LF-317.
  */
 
 import { useEffect, useState } from 'react';
@@ -18,13 +20,15 @@ import { GENRE_VALUES } from '@/lib/stellar/types';
 import { ArrowLeft, ArrowRight, Trophy } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useProfileStore } from '@/store/use-profile-store';
+import { useStellar } from '@/lib/stellar/hooks/use-stellar';
 
 const ITEMS_PER_PAGE = 20;
 
-// Filters shown in the tab bar
+// Filters shown in the tab bar — daily / weekly / all-time first, then genres
 const FILTER_TABS: { label: string; value: LeaderboardFilter }[] = [
-  { label: 'Global', value: 'global' },
+  { label: 'All Time', value: 'global' },
   { label: 'Weekly', value: 'weekly' },
+  { label: 'Daily', value: 'daily' },
   ...GENRE_VALUES.map((g) => ({ label: g, value: g })),
 ];
 
@@ -32,6 +36,10 @@ export default function LeaderboardClient() {
   const router = useRouter();
   const [filter, setFilter] = useState<LeaderboardFilter>('global');
   const [page, setPage] = useState(1);
+
+  // Connected player address for row highlighting
+  const { account } = useStellar();
+  const connectedAddress = account?.address ?? null;
 
   // Reset to page 1 when filter changes
   const handleFilterChange = (value: LeaderboardFilter) => {
@@ -45,7 +53,14 @@ export default function LeaderboardClient() {
     limit: ITEMS_PER_PAGE,
   });
 
-  // Profiles keyed by wallet address (LF-230). Usernames come from the backend
+  // Fetch a separate query for the connected player's own rank when they
+  // aren't visible in the current page, so it can be pinned at the bottom.
+  const connectedEntry =
+    connectedAddress && data?.entries
+      ? data.entries.find((e) => e.address === connectedAddress)
+      : null;
+
+  // Profiles keyed by wallet address. Usernames come from the backend
   // so they are shared across devices and visible to other players.
   const profiles = useProfileStore((s) => s.profiles);
   const fetchProfiles = useProfileStore((s) => s.fetchProfiles);
@@ -198,10 +213,17 @@ export default function LeaderboardClient() {
                     ? profiles[entry.address]
                     : undefined;
                   const username = entry.username ?? profile?.username;
+                  const isMe = connectedAddress && entry.address === connectedAddress;
                   return (
                     <tr
                       key={entry.address || entry.rank}
-                      className="hover:bg-purple-50 transition-colors"
+                      className={[
+                        'transition-colors',
+                        isMe
+                          ? 'bg-purple-100 font-semibold ring-1 ring-inset ring-purple-400'
+                          : 'hover:bg-purple-50',
+                      ].join(' ')}
+                      aria-current={isMe ? 'true' : undefined}
                     >
                       {/* Rank */}
                       <td className="px-4 py-3 font-bold text-gray-700">
@@ -263,6 +285,19 @@ export default function LeaderboardClient() {
               </tbody>
             </table>
           </div>
+
+          {/* Pinned "your rank" row when the connected player is not on this page */}
+          {connectedAddress && !connectedEntry && data.entries.length > 0 && (
+            <div
+              className="mt-3 rounded-xl border border-purple-300 bg-purple-50 px-4 py-3 text-sm text-purple-800 flex items-center justify-between"
+              aria-label="Your rank"
+            >
+              <span className="font-medium">Your rank is not in the top {ITEMS_PER_PAGE} for this filter.</span>
+              <span className="font-mono text-xs text-purple-600">
+                {connectedAddress.slice(0, 6)}…{connectedAddress.slice(-4)}
+              </span>
+            </div>
+          )}
 
           {/* Pagination */}
           {data.totalPages > 1 && (

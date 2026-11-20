@@ -13,6 +13,7 @@ type RoundResult = {
   score: number;
   genre: string;
   rank: number;
+  winner?: string;
 };
 
 async function getRoundResult(roundId: string): Promise<RoundResult> {
@@ -20,6 +21,7 @@ async function getRoundResult(roundId: string): Promise<RoundResult> {
     score: 0,
     genre: "Unknown",
     rank: 0,
+    winner: undefined,
   };
 
   try {
@@ -29,7 +31,7 @@ async function getRoundResult(roundId: string): Promise<RoundResult> {
       "http://localhost:3000";
 
     const res = await fetch(`${baseUrl}/api/rounds/${roundId}`, {
-      cache: "no-store",
+      next: { revalidate: 60 },
     });
 
     if (!res.ok) {
@@ -42,15 +44,23 @@ async function getRoundResult(roundId: string): Promise<RoundResult> {
       score: typeof data.score === "number" ? data.score : fallback.score,
       genre: typeof data.genre === "string" ? data.genre : fallback.genre,
       rank: typeof data.rank === "number" ? data.rank : fallback.rank,
+      winner: typeof data.winner === "string" ? data.winner : undefined,
     };
   } catch {
     return fallback;
   }
 }
 
+/** Shortens a Stellar address to 6…4 format for display inside the OG image. */
+function shortenAddress(address: string): string {
+  if (!address || address.length <= 12) return address;
+  return `${address.slice(0, 6)}…${address.slice(-4)}`;
+}
+
 export async function generateAlt({ params }: { params: { roundId: string } }) {
-  const { score, genre, rank } = await getRoundResult(params.roundId);
-  return `Round result: ${score} points in ${genre}, rank #${rank}`;
+  const { score, genre, rank, winner } = await getRoundResult(params.roundId);
+  const winnerPart = winner ? `, won by ${shortenAddress(winner)}` : "";
+  return `Round result: ${score} points in ${genre}, rank #${rank}${winnerPart}`;
 }
 
 export const alt = "LyricsFlip round result";
@@ -60,7 +70,7 @@ export default async function Image({
 }: {
   params: { roundId: string };
 }) {
-  const { score, genre, rank } = await getRoundResult(params.roundId);
+  const { score, genre, rank, winner } = await getRoundResult(params.roundId);
 
   return new ImageResponse(
     (
@@ -77,6 +87,7 @@ export default async function Image({
           fontFamily: "sans-serif",
         }}
       >
+        {/* Header */}
         <div
           style={{
             display: "flex",
@@ -87,7 +98,7 @@ export default async function Image({
             letterSpacing: "-0.02em",
           }}
         >
-          <span>LyricsFlip</span>
+          <span>🎵 LyricsFlip</span>
           <span
             style={{
               fontSize: 28,
@@ -101,6 +112,7 @@ export default async function Image({
           </span>
         </div>
 
+        {/* Score + genre */}
         <div
           style={{
             display: "flex",
@@ -119,7 +131,7 @@ export default async function Image({
           >
             <span
               style={{
-                fontSize: 200,
+                fontSize: 180,
                 fontWeight: 800,
                 lineHeight: 1,
                 letterSpacing: "-0.04em",
@@ -133,7 +145,7 @@ export default async function Image({
           </div>
           <div
             style={{
-              marginTop: 24,
+              marginTop: 16,
               fontSize: 44,
               fontWeight: 600,
               opacity: 0.9,
@@ -141,8 +153,24 @@ export default async function Image({
           >
             {genre}
           </div>
+          {winner && (
+            <div
+              style={{
+                marginTop: 12,
+                fontSize: 28,
+                fontWeight: 500,
+                opacity: 0.75,
+                padding: "6px 20px",
+                borderRadius: 9999,
+                background: "rgba(255,255,255,0.12)",
+              }}
+            >
+              🏆 {shortenAddress(winner)}
+            </div>
+          )}
         </div>
 
+        {/* Rank footer */}
         <div
           style={{
             display: "flex",
@@ -156,7 +184,7 @@ export default async function Image({
             alignSelf: "center",
           }}
         >
-          Rank #{rank}
+          {rank > 0 ? `Rank #${rank}` : "Play now on LyricsFlip"}
         </div>
       </div>
     ),

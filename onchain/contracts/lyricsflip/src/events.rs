@@ -112,6 +112,17 @@ pub struct CardDrawn {
     #[topic]
     pub round_id: u64,
     pub index: u32,
+}
+
+/// LF-278: emitted by `finalize_round`, once per card in the round. The
+/// card id is only published after the round can no longer be played, so
+/// `CardDrawn` never maps a live card to its answer.
+#[contractevent]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct CardRevealed {
+    #[topic]
+    pub round_id: u64,
+    pub index: u32,
     pub card_id: u64,
 }
 
@@ -224,6 +235,8 @@ pub struct MilestoneReset {
     #[topic]
     pub player: Address,
     pub milestone: Milestone,
+}
+
 #[contractevent]
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct MaxPlayersUpdated {
@@ -236,6 +249,10 @@ pub struct MaxPlayersUpdated {
 pub struct NftContractUpdated {
     pub old: Option<Address>,
     pub new: Address,
+}
+
+#[contractevent]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct EscrowContractUpdated {
     #[topic]
     pub owner: Address,

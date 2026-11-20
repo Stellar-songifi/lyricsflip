@@ -367,7 +367,8 @@ fields.
 | `RoundJoined` | `join_round` | `round_id: u64`, `player: Address` | `joined_time: u64` |
 | `PlayerReady` | `start_round` | `round_id: u64`, `player: Address` | `ready_time: u64` |
 | `RoundStarted` | `start_round` (last player ready) | `round_id: u64`, `admin: Address` | `start_time: u64` |
-| `CardDrawn` | `next_card` | `round_id: u64` | `index: u32` (position in the round), `card_id: u64` |
+| `CardDrawn` | `next_card` | `round_id: u64` | `index: u32` (position in the round); no card id while the round is live (LF-278) |
+| `CardRevealed` | `finalize_round` (one per round card) | `round_id: u64` | `index: u32`, `card_id: u64` (LF-278) |
 | `AnswerSubmitted` | `submit_answer` (first answer per card) | `round_id: u64`, `player: Address` | `correct: bool` |
 | `RoundCompleted` | `finalize_round` | `round_id: u64` | `winners: Vec<Address>`, `scores: Map<Address, u64>` |
 | `CardAdded` | `add_card`, `add_cards` (one per card) | `card_id: u64`, `genre: Genre` | – |
@@ -506,6 +507,10 @@ Every variant is currently referenced by the contract. The ones marked
 | 44 | `CardInActiveRound` | `update_card` tried to change a card's title/artist/year while a non-finalized round still references it (LF-176) |
 | 45 | `TooManyOpenRounds` | `create_round` rejected because the caller already has `MAX_OPEN_ROUNDS_PER_ADDRESS` open public lobbies (LF-175) |
 | 46 | `MaxPlayersTooHigh` | `set_max_players` got a value above `MAX_ROUND_PLAYERS` (8) (LF-154) |
+| 47 | `LobbyExpired` | The lobby is older than its `lobby_timeout`; it can only be cancelled (LF-265) |
+| 48 | `InvalidInvite` | `join_round` on a private round by a caller not on the invitee allowlist (LF-264, LF-277) |
+| 49 | `LobbyTimeoutNotReached` | Non-admin `cancel_round` before the lobby timeout elapsed (LF-277) |
+| 50 | `AdminCannotLeave` | The round admin called `leave_round`; cancel the round instead (LF-277) |
 
 ### `lyricsflip-nft`
 

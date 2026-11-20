@@ -10,6 +10,11 @@ import {
 
 @Module({
   imports: [TerminusModule, forwardRef(() => IndexerModule)],
+  imports: [
+    TerminusModule,
+    TypeOrmModule.forFeature([]),
+    forwardRef(() => IndexerModule),
+  ],
   controllers: [HealthController],
   providers: [
     RedisHealthIndicator,

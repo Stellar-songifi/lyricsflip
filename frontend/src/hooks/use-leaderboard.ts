@@ -16,7 +16,7 @@ import { get } from '@/services/api';
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
-export type LeaderboardFilter = 'global' | 'weekly' | string; // string covers genre slugs
+export type LeaderboardFilter = 'global' | 'weekly' | 'daily' | string; // string covers genre slugs
 
 export interface LeaderboardEntry {
   rank: number;

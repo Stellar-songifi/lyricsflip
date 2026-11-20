@@ -85,7 +85,7 @@
     "jest": "^29.7.0",
     "jest-environment-jsdom": "^29.7.0",
     "jest-mock-axios": "^4.8.0",
-    "knip": "^5.45.0",
+    "knip": "^6.45.1",
     "openapi-typescript": "^7.4.4",
     "postcss": "^8.4.31",
     "storybook": "^8.6.12",

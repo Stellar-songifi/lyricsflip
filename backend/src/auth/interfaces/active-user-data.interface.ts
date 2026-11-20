@@ -2,5 +2,7 @@
 export interface ActiveUserData {
   /** User id. */
   sub: string;
+  /** Email address. */
   email?: string;
+  address?: string;
 }

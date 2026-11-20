@@ -1,21 +1,19 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { RoomService } from './room.service';
-import { RoomMembershipService } from './room-membership.service';
+import { WsAuthenticator } from '../auth/providers/ws-authenticator.provider';
+import { Player } from '../player/player.entity';
 import { PlayerPresenceService } from './player-presence.service';
+import { PlayerRoom } from './entities/player-room.entity';
+import { Room } from './entities/room.entity';
+import { RoomMembershipService } from './room-membership.service';
 import { RoomController } from './room.controller';
 import { RoomGateway } from './room.gateway';
+import { RoomService } from './room.service';
 import { RoundGateway } from './round.gateway';
-import { Room } from './entities/room.entity';
-import { PlayerRoom } from './entities/player-room.entity';
-import { RoundPlayer } from './entities/round-player.entity';
-import { Player } from '../player/player.entity';
-import { WsAuthenticator } from '../auth/ws-authenticator';
+import { RoundPlayersRepository } from './round-players.repository';
 
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([Room, PlayerRoom, RoundPlayer, Player]),
-  ],
+  imports: [TypeOrmModule.forFeature([Room, PlayerRoom, Player])],
   controllers: [RoomController],
   providers: [
     RoomService,
@@ -23,6 +21,7 @@ import { WsAuthenticator } from '../auth/ws-authenticator';
     PlayerPresenceService,
     RoomGateway,
     RoundGateway,
+    RoundPlayersRepository,
     WsAuthenticator,
   ],
   exports: [

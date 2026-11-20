@@ -4,33 +4,37 @@ NestJS API and WebSocket server for **LyricsFlip**, a lyrics-guessing game with 
 
 ## Module map
 
-Each concern has exactly one module. Entities are owned by the module listed
-here; other modules import that module (or its entity) instead of redefining it.
+`AppModule` imports exactly seven public domain modules from `src/domains/`.
+Each domain is the sole owner of its tables, HTTP prefixes and WebSocket
+namespaces; folders inside a domain are implementation details. The full
+inventory, including deprecated aliases and removed modules, is in
+[`docs/architecture.md`](../docs/architecture.md#backend-module-map-lf-348).
 
-| Concern | Module | Owns | HTTP | WebSocket namespace |
+| Domain | Public module | Owns | HTTP | WebSocket namespace |
 | --- | --- | --- | --- | --- |
-| Auth | `auth/` | JWT issue/verify, `AccessTokenGuard` (global), `JwtAuthGuard`, `WsAuthenticator`, `@CurrentUser()` | `/auth` | — |
-| Users | `user/` | `User` (`users`, incl. `stellarAddress` for wallet login) | `/user` | — |
-| Players | `player/` | `Player` (`players`), `PlayerStatus` | — | — |
-| Songs | `songs/` | `Song` (`songs`, mirrors the contract `Card`), `Tag`, `UserGenrePreference`, `Genre` enum | `/songs`, `/songs/genres` | — |
-| Rooms | `room/` | `Room` (`rooms`), `PlayerRoom`; room CRUD, join/leave, player presence | `/rooms` | `/rooms` |
-| Game | `game/` | Built-in game modes, scoring strategies, matchmaking, stats, `CustomGameMode` | `/game-modes` | `/game` |
-| Game sessions | `game-session/` | `GameSession` (`game_sessions`) for every mode, tournaments and insights | `/game-session` | — |
-| Notifications | `notification/` | `Notification` (`notifications`); also pushes achievement and progression events | `/notifications` | `/notifications` |
-| Chain indexer | `indexer/` | Soroban event indexing | — | `/indexer` |
-| Lesson progress | `music-education/` | `LessonProgress` (`lesson_progress`) | `/lessons/progress` | — |
-| Practice progress | `practice/` | `PracticeProgress` (`practice_progress`) | `/practice/progress` | — |
-| Health | `health/` | Postgres, Redis and Stellar RPC checks | `/health` | — |
+| Identity | `IdentityModule` | Auth, `User`, `Player`, session tokens | `/auth`, `/user` | — |
+| Catalogue | `CatalogueModule` | `Song`, `Tag`, `UserGenrePreference`, `Question` | `/songs`, `/questions` | — |
+| Rounds (chain mirror) | `RoundsModule` | Game modes, sessions, results, scoring, wagers, rooms, all chain entities | `/rounds`, `/game-modes`, `/game-results`, `/wagers`, `/scoring`; legacy `/game-session`, `/quick-game/rounds`, `/rooms` | `/game`, `/rooms`, `/indexer`; `/rounds` relay |
+| Realtime | `RealtimeModule` | `Notification`, chat rooms | `/notifications` | `/notifications` |
+| Social | `SocialModule` | Profiles, friends, activity, challenges, referrals, leaderboards | `/players`, `/leaderboard`, `/profile`, `/friends`, `/activity`, `/challenge`, `/referrals` | — |
+| Rewards | `RewardsModule` | Achievements and progression | `/rewards`, `/achievements`, `/progression`; legacy `/reward` | — |
+| Admin | `AdminModule` | Analytics metrics and song curation | `/analytics`, `/admin/songs` | — |
 
 Rules of thumb:
 
-- One WebSocket namespace per concern. Server-to-user pushes go through
-  `/notifications`, which joins each authenticated socket to a `user:<id>` room.
-  Emit an `EventEmitter2` event and handle it in `NotificationGateway` rather than
-  adding a new gateway.
+- `src/domains/domain-map.ts` is the ownership manifest. Add a folder or route to
+  exactly one domain; `src/domains/domain-map.spec.ts` fails on duplicate or
+  unmapped prefixes/tables, and `src/entity-metadata.spec.ts` fails on duplicate
+  `@Entity` table names.
+- Legacy prefixes remain mounted for existing clients but are marked
+  `deprecated: true` in Swagger. New clients use the canonical routes above.
+- Server-to-user pushes go through `/notifications`, which joins each
+  authenticated socket to a `user:<id>` room. Emit an `EventEmitter2` event and
+  handle it in `NotificationGateway` rather than adding a new gateway.
+- Run `npm run knip:backend` from the repository root to find unused files and
+  unresolved imports before adding a new feature module.
 - The only genre enum is `songs/enums/genre.enum.ts`. It must match the contract's
   `Genre` and the frontend's `GENRE_VALUES`.
-- `src/entity-metadata.spec.ts` fails if two `@Entity` classes map to the same table.
 
 Cross-cutting HTTP behaviour is configured once in `src/config/app-setup.ts`:
 

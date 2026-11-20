@@ -13,7 +13,13 @@ import {
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiBody } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiParam,
+  ApiBody,
+} from '@nestjs/swagger';
 import { RoomService } from './room.service';
 import { RoomMembershipService } from './room-membership.service';
 import { PlayerPresenceService } from './player-presence.service';
@@ -32,7 +38,7 @@ export class RoomController {
   ) {}
 
   @Post()
-  @ApiOperation({ summary: 'Create a new room' })
+  @ApiOperation({ deprecated: true, summary: 'Create a new room' })
   @ApiBody({ type: CreateRoomDto })
   @ApiResponse({ status: 201, description: 'Room created successfully' })
   create(@Body() createRoomDto: CreateRoomDto) {
@@ -40,7 +46,7 @@ export class RoomController {
   }
 
   @Get()
-  @ApiOperation({ summary: 'List active rooms' })
+  @ApiOperation({ deprecated: true, summary: 'List active rooms' })
   findAll(
     @Query('limit', new DefaultValuePipe(20), ParseIntPipe) limit?: number,
     @Query('page', new DefaultValuePipe(1), ParseIntPipe) page?: number,
@@ -50,7 +56,7 @@ export class RoomController {
 
   // Player routes are declared before `:id` so they are not shadowed by it.
   @Get('players/:playerId/current')
-  @ApiOperation({ summary: "Get a player's current room" })
+  @ApiOperation({ deprecated: true, summary: "Get a player's current room" })
   async getCurrentRoom(@Param('playerId') playerId: string) {
     const playerRoom = await this.presenceService.getCurrentRoom(playerId);
     if (!playerRoom) return null;
@@ -62,7 +68,7 @@ export class RoomController {
   }
 
   @Get('players/:playerId/history')
-  @ApiOperation({ summary: "Get a player's room history" })
+  @ApiOperation({ deprecated: true, summary: "Get a player's room history" })
   async getPlayerRoomHistory(@Param('playerId') playerId: string) {
     return {
       playerId,
@@ -71,19 +77,25 @@ export class RoomController {
   }
 
   @Put('players/:playerId/status')
-  @ApiOperation({ summary: "Update a player's online status" })
-  updatePlayerStatus(@Param('playerId') playerId: string, @Body() dto: UpdatePlayerStatusDto) {
+  @ApiOperation({
+    deprecated: true,
+    summary: "Update a player's online status",
+  })
+  updatePlayerStatus(
+    @Param('playerId') playerId: string,
+    @Body() dto: UpdatePlayerStatusDto,
+  ) {
     return this.presenceService.updateStatus(playerId, dto.status);
   }
 
   @Get(':id')
-  @ApiOperation({ summary: 'Get a room by id' })
+  @ApiOperation({ deprecated: true, summary: 'Get a room by id' })
   findOne(@Param('id') id: string) {
     return this.roomService.findOne(id);
   }
 
   @Patch(':id')
-  @ApiOperation({ summary: 'Update a room' })
+  @ApiOperation({ deprecated: true, summary: 'Update a room' })
   @ApiParam({ name: 'id', type: 'string' })
   @ApiBody({ type: UpdateRoomDto })
   update(@Param('id') id: string, @Body() updateRoomDto: UpdateRoomDto) {
@@ -91,14 +103,17 @@ export class RoomController {
   }
 
   @Delete(':id')
-  @ApiOperation({ summary: 'Close a room' })
+  @ApiOperation({ deprecated: true, summary: 'Close a room' })
   @ApiParam({ name: 'id', type: 'string' })
   remove(@Param('id') id: string) {
     return this.roomService.remove(id);
   }
 
   @Get(':id/player-count')
-  @ApiOperation({ summary: 'Get the number of players in a room' })
+  @ApiOperation({
+    deprecated: true,
+    summary: 'Get the number of players in a room',
+  })
   async getPlayerCount(@Param('id') id: string) {
     const room = await this.roomService.findOne(id);
     const count = await this.roomService.getCurrentPlayerCount(id);
@@ -106,7 +121,10 @@ export class RoomController {
   }
 
   @Get(':id/players')
-  @ApiOperation({ summary: 'List players currently in a room' })
+  @ApiOperation({
+    deprecated: true,
+    summary: 'List players currently in a room',
+  })
   async getRoomPlayers(@Param('id') roomId: string) {
     return {
       roomId,
@@ -116,7 +134,7 @@ export class RoomController {
 
   @Post(':id/join')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Join a room' })
+  @ApiOperation({ deprecated: true, summary: 'Join a room' })
   async join(@Param('id') roomId: string, @Body() { playerId }: PlayerIdDto) {
     const result = await this.membershipService.joinRoom({ playerId, roomId });
     return {
@@ -128,7 +146,7 @@ export class RoomController {
 
   @Post(':id/leave')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Leave a room' })
+  @ApiOperation({ deprecated: true, summary: 'Leave a room' })
   async leave(@Param('id') roomId: string, @Body() { playerId }: PlayerIdDto) {
     const result = await this.membershipService.leaveRoom({ playerId, roomId });
     return {

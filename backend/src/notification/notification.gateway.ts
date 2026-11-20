@@ -10,7 +10,7 @@ import { Logger, UseGuards } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
 import { Server, Socket } from 'socket.io';
 import { WsAuthenticator } from '../auth/providers/ws-authenticator.provider';
-import { WsRateLimitGuard } from '../config/ws-rate-limit.guard';
+import { WsRateLimitGuard } from '../common/guards/ws-rate-limit.guard';
 import { NotificationService, NOTIFICATION_CREATED } from './providers/notification.service';
 import { Notification } from './entities/notification.entity';
 

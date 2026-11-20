@@ -12,7 +12,7 @@ import { Server, Socket } from 'socket.io';
 import { Logger, UseFilters, UseGuards } from '@nestjs/common';
 import { WsExceptionFilter } from '../filters/ws-exception.filter';
 import { WsAuthenticator } from '../auth/providers/ws-authenticator.provider';
-import { WsRateLimitGuard } from '../guards/ws-rate-limit.guard';
+import { WsRateLimitGuard } from '../common/guards/ws-rate-limit.guard';
 import type {
   AnswerSubmittedPayload,
   Player,

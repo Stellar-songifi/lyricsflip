@@ -111,8 +111,14 @@ export class PlayerStatsDto {
   @ApiProperty({ description: 'Highest single-round score' })
   bestRoundScore: number;
 
-  @ApiProperty({ description: 'Current consecutive-win streak' })
-  currentStreak: number;
+  @ApiPropertyOptional({ description: 'Current consecutive-win streak' })
+  currentStreak?: number;
+
+  @ApiProperty()
+  correctAnswers: number;
+
+  @ApiProperty()
+  totalAnswers: number;
 }
 
 export class PlayerRecentRoundDto {
@@ -123,7 +129,7 @@ export class PlayerRecentRoundDto {
   genre: string;
 
   @ApiProperty({ description: 'Points earned in the round' })
-  score: number;
+  points: number;
 
   @ApiProperty({ description: 'Correct answers in the round' })
   correctAnswers: number;
@@ -134,11 +140,8 @@ export class PlayerRecentRoundDto {
   @ApiProperty({ description: 'Whether the player won the round' })
   won: boolean;
 
-  @ApiProperty({ description: 'Rank within the round, if available' })
-  rank: number;
-
-  @ApiProperty({ description: 'When the round completed (ISO 8601)' })
-  completedAt: string;
+  @ApiProperty({ description: 'When the round was played (ISO 8601)' })
+  playedAt: string;
 }
 
 export class PlayerBadgeDto {
@@ -174,6 +177,9 @@ export class PlayerProfileDto {
   address: string;
 
   @ApiPropertyOptional()
+  rank?: number | null;
+
+  @ApiPropertyOptional()
   username?: string;
 
   @ApiProperty({ type: PlayerStatsDto })
@@ -185,6 +191,6 @@ export class PlayerProfileDto {
   @ApiProperty({ type: [PlayerBadgeDto] })
   badges: PlayerBadgeDto[];
 
-  @ApiProperty({ type: UnclaimedWinningsDto })
-  unclaimedWinnings: UnclaimedWinningsDto;
+  @ApiProperty({ description: 'Total unclaimed amount, in stroops' })
+  unclaimedWinnings: string;
 }

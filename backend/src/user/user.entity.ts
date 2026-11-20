@@ -9,7 +9,7 @@ import {
   Index,
 } from 'typeorm';
 import { UserRole } from '../common/enums/role.enum';
-import { Referral } from '../referral/entities/referral.entity';
+import { Referral } from '../social/entities/referral.entity';
 
 @Entity('users')
 @Index('IDX_users_username_lower', { synchronize: false })

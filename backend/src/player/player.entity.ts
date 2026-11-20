@@ -9,7 +9,7 @@ import {
   OneToMany,
   JoinTable,
 } from 'typeorm';
-import { ChatRoom } from '../chat-room/chat-room.entity';
+import { ChatRoom } from '../realtime/entities/chat-room.entity';
 import { GameSession } from '../game-session/game-session.entity';
 import { PlayerRoom } from '../room/entities/player-room.entity';
 import { PlayerStatus } from './enums/player-status.enum';

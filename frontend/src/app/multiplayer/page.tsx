@@ -152,7 +152,7 @@ export default function MultiplayerLobbyPage() {
     <div className="container mx-auto px-4 py-8 mt-16 md:mt-24">
       <button
         onClick={() => router.push('/')}
-        className="flex items-center text-gray-600 mb-4 min-h-[44px]"
+        className="mb-4 min-h-[44px]"
       >
         <ArrowLeft className="h-4 w-4 mr-2" />
         Back

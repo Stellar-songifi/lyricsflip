@@ -12,6 +12,7 @@ import { useStellar } from '@/lib/stellar/hooks/use-stellar';
 import { WalletButton } from './wallet-button';
 import { WalletStatusBanner } from './wallet-status-banner';
 import { useNotificationStore } from '@/store/use-notification-store';
+import { TxTrayTrigger } from './tx-tray';
 
 // Navigation items array — profile href is dynamic (resolved in the component)
 const staticNavItems = [
@@ -111,6 +112,7 @@ const Navbar = () => {
           </nav>
         </div>
         <div className="flex items-center gap-3">
+          <TxTrayTrigger />
           {/* Dark mode toggle */}
           <button
             onClick={toggleTheme}

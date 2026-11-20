@@ -1,11 +1,16 @@
-import { forwardRef, Inject, Injectable } from "@nestjs/common";
-import { JwtService } from "@nestjs/jwt";
-import { UserService } from "./../../user/providers/user.service";
-import jwtConfig from "../authConfig/jwt.config";
-import { ConfigType } from "@nestjs/config";
-import { User } from "./../../user/user.entity";
-import { randomUUID } from "crypto";
-import { RefreshTokenStore } from "./refresh-token-store.provider";
+import {
+  forwardRef,
+  Inject,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
+import { UserService } from './../../user/providers/user.service';
+import jwtConfig from '../authConfig/jwt.config';
+import { ConfigType } from '@nestjs/config';
+import { User } from './../../user/user.entity';
+import { randomUUID } from 'crypto';
+import { RefreshTokenStore } from './refresh-token-store.provider';
 // import { User } from "./../../user/user.entity";
 
 export interface GenerateTokensOptions {
@@ -14,6 +19,7 @@ export interface GenerateTokensOptions {
    * omit it on login/sign-up to start a new family.
    */
   family?: string;
+  previousJti?: string;
 }
 
 @Injectable()
@@ -76,12 +82,18 @@ export class GenerateTokensProvider {
     ]);
 
     // Register the new jti so it can be validated and revoked later.
-    await this.refreshTokenStore.registerToken({
-      userId: user.id,
-      family,
-      jti,
-      ttlSeconds: this.jwtConfiguration.refreshttl,
-    });
+    if (options.previousJti) {
+      const rotated = await this.refreshTokenStore.rotate(
+        family,
+        options.previousJti,
+        jti,
+      );
+      if (!rotated) {
+        throw new UnauthorizedException('Invalid refresh token');
+      }
+    } else {
+      await this.refreshTokenStore.storeToken(family, jti);
+    }
 
     return {
       accessToken,

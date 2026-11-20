@@ -1,4 +1,11 @@
-import { forwardRef, Inject, Injectable, Logger } from '@nestjs/common';
+import {
+  ConflictException,
+  forwardRef,
+  Inject,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
 import { AuthService } from './../../auth/providers/auth.service';
 import { FindOneUserByEmailProvider } from './find-one-user-by-email.provider';
 import { User } from '../user.entity';
@@ -6,6 +13,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { CreateUserProvider } from './create-user.services';
 import { UserDTO } from '../dtos/create-user.dto';
+import { UpdateProfileDto } from '../dtos/update-profile.dto';
 // Service responsible for handling user operations.
 @Injectable()
 export class UserService {
@@ -114,10 +122,33 @@ export class UserService {
     // Implement token refresh logic
     return 'userService: Refresh token logic placeholder';
   }
-  // Update user profile.
-  updateProfile() {
-    // Implement profile update logic
-    return 'userService: Update profile logic placeholder';
+  public async updateMyProfile(
+    userId: string,
+    profile: UpdateProfileDto,
+  ): Promise<User> {
+    const user = await this.userRepository.findOneBy({ id: userId });
+    if (!user) {
+      throw new NotFoundException(`User ${userId} was not found`);
+    }
+
+    if (profile.username !== undefined) {
+      const username = profile.username.trim();
+      const existingUser = await this.userRepository
+        .createQueryBuilder('user')
+        .where('LOWER(user.username) = LOWER(:username)', { username })
+        .andWhere('user.id != :userId', { userId })
+        .getOne();
+      if (existingUser) {
+        throw new ConflictException('Username already taken');
+      }
+      user.username = username;
+    }
+
+    if (profile.avatarUrl !== undefined) {
+      user.avatar = profile.avatarUrl;
+    }
+
+    return this.userRepository.save(user);
   }
 
   //Reward system integration

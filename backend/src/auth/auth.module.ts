@@ -20,6 +20,7 @@ import { MailModule } from '../mail/mail.module';
 import { WsAuthenticator } from './providers/ws-authenticator.provider';
 import { WalletAuthProvider } from './providers/wallet-auth.provider';
 import { RefreshTokenStore } from './providers/refresh-token-store.provider';
+import { RefreshTokensProvider } from './providers/refresh-tokens.provider';
 
 @Module({
   controllers: [AuthController],
@@ -36,6 +37,7 @@ import { RefreshTokenStore } from './providers/refresh-token-store.provider';
     WsRolesGuard,
     Reflector,
     GenerateTokensProvider,
+    RefreshTokensProvider,
     WsAuthenticator,
     WalletAuthProvider,
     RefreshTokenStore,

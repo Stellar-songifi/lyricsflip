@@ -12,6 +12,10 @@ export class RedisService {
     });
   }
 
+  getClient(): Redis {
+    return this.client;
+  }
+
   async get(key: string): Promise<string | null> {
     return this.client.get(key);
   }

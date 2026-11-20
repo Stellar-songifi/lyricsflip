@@ -1,4 +1,8 @@
-import { Injectable, type NestMiddleware } from '@nestjs/common';
+import {
+  Injectable,
+  UnauthorizedException,
+  type NestMiddleware,
+} from '@nestjs/common';
 import { Request, Response, NextFunction } from 'express';
 import { PowerUpService } from './power-up.service';
 
@@ -7,8 +11,14 @@ export class PowerUpValidationMiddleware implements NestMiddleware {
   constructor(private readonly powerUpService: PowerUpService) {}
 
   async use(req: Request, res: Response, next: NextFunction) {
-    const user = req['user'];
-    const activePowerUps = await this.powerUpService.getActivePowerUps(user);
+    const user = req.user;
+    if (!user || !('id' in user) || typeof user.id !== 'string') {
+      return next(new UnauthorizedException());
+    }
+
+    const activePowerUps = await this.powerUpService.getActivePowerUps({
+      id: user.id,
+    });
 
     // Add active power-ups to the request object for use in controllers
     req['activePowerUps'] = activePowerUps;

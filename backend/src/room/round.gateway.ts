@@ -12,7 +12,7 @@ import { Logger } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
 import { Server, Socket } from 'socket.io';
 
-import { WsAuthenticator } from '../auth/ws-authenticator.service';
+import { WsAuthenticator } from '../auth/providers/ws-authenticator.provider';
 import { RoundPlayersRepository } from './round-players.repository';
 import { IndexerEventNames } from '../indexer/events/indexer-events';
 
@@ -87,17 +87,20 @@ export class RoundGateway implements OnGatewayConnection, OnGatewayDisconnect {
   async handleConnection(socket: AuthenticatedSocket): Promise<void> {
     try {
       const identity = await this.authenticator.authenticate(socket);
-      socket.data.userId = identity.userId;
-      socket.data.address = identity.address;
+      socket.data.userId = (identity as any).userId ?? identity.sub;
+      socket.data.address = (identity as any).address;
       socket.data.rounds = new Set<number>();
       this.logger.debug(
-        `Socket ${socket.id} connected as ${identity.address ?? identity.userId}`,
+        `Socket ${socket.id} connected as ${(identity as any).address ?? identity.sub}`,
       );
     } catch (err) {
       this.logger.warn(
         `Rejecting unauthenticated socket ${socket.id}: ${(err as Error).message}`,
       );
-      socket.emit('error', { code: 'UNAUTHORIZED', message: 'Authentication failed' });
+      socket.emit('error', {
+        code: 'UNAUTHORIZED',
+        message: 'Authentication failed',
+      });
       socket.disconnect(true);
     }
   }
@@ -127,7 +130,7 @@ export class RoundGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
 
     const isPlayer = await this.roundPlayersRepository.isPlayerInRound(
-      roundId,
+      String(roundId),
       address,
       userId,
     );
@@ -173,7 +176,7 @@ export class RoundGateway implements OnGatewayConnection, OnGatewayDisconnect {
     return { ok: true, roundId };
   }
 
-  @OnEvent(IndexerEventNames.PlayerJoinedRound)
+  @OnEvent(IndexerEventNames.ROUND_JOINED)
   handlePlayerJoinedRound(event: {
     roundId: number | string;
     player: string;
@@ -188,7 +191,7 @@ export class RoundGateway implements OnGatewayConnection, OnGatewayDisconnect {
     this.server.to(this.roomName(roundId)).emit('player:joined', message);
   }
 
-  @OnEvent(IndexerEventNames.AnswerSubmitted)
+  @OnEvent(IndexerEventNames.ANSWER_SUBMITTED)
   handleAnswerSubmitted(event: {
     roundId: number | string;
     player: string;
@@ -207,7 +210,7 @@ export class RoundGateway implements OnGatewayConnection, OnGatewayDisconnect {
     this.server.to(this.roomName(roundId)).emit('answer:submitted', message);
   }
 
-  @OnEvent(IndexerEventNames.RoundCompleted)
+  @OnEvent(IndexerEventNames.ROUND_COMPLETED)
   handleRoundCompleted(event: {
     roundId: number | string;
     winner?: string;
@@ -224,7 +227,7 @@ export class RoundGateway implements OnGatewayConnection, OnGatewayDisconnect {
     this.server.to(this.roomName(roundId)).emit('round:completed', message);
   }
 
-  @OnEvent(IndexerEventNames.RoundStarted)
+  @OnEvent(IndexerEventNames.ROUND_STARTED)
   handleRoundStarted(event: {
     roundId: number | string;
     cardId?: number | string;

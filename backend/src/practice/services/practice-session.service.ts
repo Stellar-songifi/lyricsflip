@@ -3,6 +3,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { PracticeSession } from '../entities/practice-session.entity';
+import { PracticeItem } from '../entities/practice-item.entity';
 import { User } from '../../user/user.entity';
 import { PracticeItemService } from './practice-item.service';
 import { CreateSessionDto } from '../dto/create-session.dto';
@@ -17,7 +18,10 @@ export class PracticeSessionService {
     private practiceProgressService: PracticeProgressService,
   ) {}
 
-  async createSession(user: User, createSessionDto: CreateSessionDto): Promise<PracticeSession> {
+  async createSession(
+    user: User,
+    createSessionDto: CreateSessionDto,
+  ): Promise<PracticeSession> {
     const session = this.sessionRepository.create({
       user,
       difficulty: createSessionDto.difficulty,
@@ -49,24 +53,26 @@ export class PracticeSessionService {
 
   async completeSession(id: string): Promise<PracticeSession> {
     const session = await this.getSessionById(id);
-    
+
     if (session.isCompleted) {
       return session;
     }
-    
+
     const now = new Date();
     const startTime = new Date(session.startedAt);
-    const durationMinutes = Math.round((now.getTime() - startTime.getTime()) / 60000);
-    
+    const durationMinutes = Math.round(
+      (now.getTime() - startTime.getTime()) / 60000,
+    );
+
     session.isCompleted = true;
     session.completedAt = now;
     session.durationMinutes = durationMinutes;
-    
+
     const savedSession = await this.sessionRepository.save(session);
-    
+
     // Update user progress
     await this.practiceProgressService.updateProgressAfterSession(savedSession);
-    
+
     return savedSession;
   }
 

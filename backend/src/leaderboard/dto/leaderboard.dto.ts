@@ -68,6 +68,12 @@ export class LeaderboardEntryDto {
 
   @ApiProperty()
   maxStreak: number;
+
+  @ApiPropertyOptional()
+  correctAnswers?: number;
+
+  @ApiPropertyOptional()
+  totalAnswers?: number;
 }
 
 export class PaginatedLeaderboardDto {

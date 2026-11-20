@@ -21,13 +21,15 @@ describe('WsJwtAuthGuard', () => {
       email: 'test@example.com',
     };
 
-    const mockClient = {
+    const mockClient: any = {
       data: { user: mockUser },
     };
 
     mockContext = {
       switchToWs: () => ({
         getClient: () => mockClient,
+        getData: () => undefined,
+        getPattern: () => undefined,
       }),
     };
 
@@ -36,13 +38,15 @@ describe('WsJwtAuthGuard', () => {
   });
 
   it('should reject connection when user is not authenticated', () => {
-    const mockClient = {
+    const mockClient: any = {
       data: {},
     };
 
     mockContext = {
       switchToWs: () => ({
         getClient: () => mockClient,
+        getData: () => undefined,
+        getPattern: () => undefined,
       }),
     };
 
@@ -52,11 +56,13 @@ describe('WsJwtAuthGuard', () => {
   });
 
   it('should reject connection when client.data is undefined', () => {
-    const mockClient = {};
+    const mockClient: any = {};
 
     mockContext = {
       switchToWs: () => ({
         getClient: () => mockClient,
+        getData: () => undefined,
+        getPattern: () => undefined,
       }),
     };
 
@@ -66,20 +72,20 @@ describe('WsJwtAuthGuard', () => {
   });
 
   it('should throw WsException with descriptive message', () => {
-    const mockClient = {
+    const mockClient: any = {
       data: { user: null },
     };
 
     mockContext = {
       switchToWs: () => ({
         getClient: () => mockClient,
+        getData: () => undefined,
+        getPattern: () => undefined,
       }),
     };
 
     expect(() => {
       guard.canActivate(mockContext as ExecutionContext);
-    }).toThrow(
-      new WsException('Unauthorized: Missing or invalid JWT token'),
-    );
+    }).toThrow(new WsException('Unauthorized: Missing or invalid JWT token'));
   });
 });

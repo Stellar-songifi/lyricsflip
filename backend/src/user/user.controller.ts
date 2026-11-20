@@ -29,6 +29,7 @@ import { RolesGuard } from '@app/common/guards/roles.guard';
 import { Roles } from '@app/common/decorators/roles.decorator';
 import { UserRole } from '@app/common/enums/role.enum';
 import { LeaderboardService } from '@app/leaderboard/providers/leaderboard.service';
+import { CurrentUser } from '@app/auth/decorators/current-user.decorator';
 //import { SignInDTO } from './dtos/sign-in.dto';
 //import { UpdateProfileDTO } from './dtos/update-profile.dto';
 //import { RefreshTokenDTO } from './dtos/refresh-token.dto';
@@ -261,8 +262,11 @@ export class UserController {
     status: 400,
     description: 'Invalid profile data',
   })
-  updateProfile(@Body() profileDto: Record<string, unknown>) {
-    return this.userService.updateProfile(profileDto);
+  updateProfile(
+    @CurrentUser('sub') userId: string,
+    @Body() profileDto: UpdateProfileDto,
+  ) {
+    return this.userService.updateMyProfile(userId, profileDto);
   }
 
   // Update the authenticated user's profile (username, avatar)
@@ -286,25 +290,10 @@ export class UserController {
     status: 409,
     description: 'Username already taken',
   })
-  updateMyProfile(@Body() updateProfileDto: UpdateProfileDto) {
-    return this.userService.updateMyProfile(updateProfileDto);
-  }
-
-  // Public player profile lookup by wallet address
-  @Get('players/:address')
-  @ApiOperation({
-    summary: 'Get public player profile',
-    description: 'Returns the public profile for a wallet address',
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Player profile found',
-  })
-  @ApiResponse({
-    status: 404,
-    description: 'Player not found',
-  })
-  getPublicPlayer(@Param('address') address: string) {
-    return this.userService.getPublicPlayer(address);
+  updateMyProfile(
+    @CurrentUser('sub') userId: string,
+    @Body() updateProfileDto: UpdateProfileDto,
+  ) {
+    return this.userService.updateMyProfile(userId, updateProfileDto);
   }
 }

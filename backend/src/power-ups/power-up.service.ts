@@ -90,7 +90,7 @@ export class PowerUpService {
     }
   }
 
-  async getActivePowerUps(user: User): Promise<PowerUpPurchase[]> {
+  async getActivePowerUps(user: Pick<User, 'id'>): Promise<PowerUpPurchase[]> {
     try {
       return await this.powerUpPurchaseRepository.find({
         where: {

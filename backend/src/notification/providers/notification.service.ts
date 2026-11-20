@@ -3,7 +3,10 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { OnEvent } from '@nestjs/event-emitter';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Repository } from 'typeorm';
-import { Notification, NotificationType } from '../entities/notification.entity';
+import {
+  Notification,
+  NotificationType,
+} from '../entities/notification.entity';
 import { CreateNotificationDto } from '../dto/create-notification.dto';
 
 /** Emitted after a notification is stored; `NotificationGateway` pushes it to the user. */
@@ -53,7 +56,9 @@ export interface RoundCancelledEvent {
 }
 
 /** Per-user notification preferences, keyed by notification type. */
-export type NotificationPreferences = Partial<Record<NotificationType, boolean>>;
+export type NotificationPreferences = Partial<
+  Record<NotificationType, boolean>
+>;
 
 @Injectable()
 export class NotificationService {
@@ -73,7 +78,10 @@ export class NotificationService {
     return notification;
   }
 
-  sendToUser(userId: string, dto: Omit<CreateNotificationDto, 'userId'>): Promise<Notification> {
+  sendToUser(
+    userId: string,
+    dto: Omit<CreateNotificationDto, 'userId'>,
+  ): Promise<Notification> {
     return this.create({ ...dto, userId });
   }
 
@@ -81,7 +89,10 @@ export class NotificationService {
    * Notifies a user's followers. There is no follower graph yet, so this only
    * stores the notification for `dto.userId`.
    */
-  async sendToFollowers(userId: string, dto: CreateNotificationDto): Promise<void> {
+  async sendToFollowers(
+    userId: string,
+    dto: CreateNotificationDto,
+  ): Promise<void> {
     await this.create(dto);
   }
 
@@ -93,7 +104,9 @@ export class NotificationService {
   }
 
   async markRead(userId: string, id: string): Promise<Notification> {
-    const notification = await this.notificationRepository.findOne({ where: { id, userId } });
+    const notification = await this.notificationRepository.findOne({
+      where: { id, userId },
+    });
     if (!notification) {
       throw new NotFoundException(`Notification ${id} not found`);
     }
@@ -110,7 +123,9 @@ export class NotificationService {
   }
 
   getUnreadCount(userId: string): Promise<number> {
-    return this.notificationRepository.count({ where: { userId, isRead: false } });
+    return this.notificationRepository.count({
+      where: { userId, isRead: false },
+    });
   }
 
   /**
@@ -121,7 +136,10 @@ export class NotificationService {
     return {};
   }
 
-  private async isEnabled(userId: string, type: NotificationType): Promise<boolean> {
+  private async isEnabled(
+    userId: string,
+    type: NotificationType,
+  ): Promise<boolean> {
     const preferences = await this.getPreferences(userId);
     return preferences[type] !== false;
   }
@@ -155,20 +173,28 @@ export class NotificationService {
     if (!event.adminId) {
       return;
     }
-    await this.notifyUsers([event.adminId], NotificationType.ROUND_JOINED, () => ({
-      title: 'Player joined your round',
-      message: `A player joined round ${event.roundId}.`,
-      data: { roundId: event.roundId, playerId: event.playerId },
-    }));
+    await this.notifyUsers(
+      [event.adminId],
+      NotificationType.ROUND_JOINED,
+      () => ({
+        title: 'Player joined your round',
+        message: `A player joined round ${event.roundId}.`,
+        data: { roundId: event.roundId, playerId: event.playerId },
+      }),
+    );
   }
 
   @OnEvent(ROUND_STARTED)
   async handleRoundStarted(event: RoundStartedEvent): Promise<void> {
-    await this.notifyUsers(event.playerIds ?? [], NotificationType.ROUND_STARTED, () => ({
-      title: 'Round started',
-      message: `Round ${event.roundId} has started. Good luck!`,
-      data: { roundId: event.roundId },
-    }));
+    await this.notifyUsers(
+      event.playerIds ?? [],
+      NotificationType.ROUND_STARTED,
+      () => ({
+        title: 'Round started',
+        message: `Round ${event.roundId} has started. Good luck!`,
+        data: { roundId: event.roundId },
+      }),
+    );
   }
 
   @OnEvent(ROUND_COMPLETED)
@@ -178,7 +204,9 @@ export class NotificationService {
       rankings.map((entry) => entry.userId),
       NotificationType.ROUND_COMPLETED,
       (userId) => {
-        const position = rankings.find((entry) => entry.userId === userId)?.position;
+        const position = rankings.find(
+          (entry) => entry.userId === userId,
+        )?.position;
         const message =
           position === 1
             ? `You won round ${event.roundId}!`
@@ -194,13 +222,17 @@ export class NotificationService {
 
   @OnEvent(REWARD_CLAIMABLE)
   async handleRewardClaimable(event: RewardClaimableEvent): Promise<void> {
-    await this.notifyUsers(event.userIds ?? [], NotificationType.REWARD_CLAIMABLE, () => ({
-      title: 'Reward available',
-      message: event.amount
-        ? `You can claim ${event.amount} from round ${event.roundId}.`
-        : `You have a reward to claim from round ${event.roundId}.`,
-      data: { roundId: event.roundId, amount: event.amount },
-    }));
+    await this.notifyUsers(
+      event.userIds ?? [],
+      NotificationType.REWARD_CLAIMABLE,
+      () => ({
+        title: 'Reward available',
+        message: event.amount
+          ? `You can claim ${event.amount} from round ${event.roundId}.`
+          : `You have a reward to claim from round ${event.roundId}.`,
+        data: { roundId: event.roundId, amount: event.amount },
+      }),
+    );
   }
 
   @OnEvent(NFT_MINTED)
@@ -216,12 +248,22 @@ export class NotificationService {
 
   @OnEvent(ROUND_CANCELLED)
   async handleRoundCancelled(event: RoundCancelledEvent): Promise<void> {
-    await this.notifyUsers(event.playerIds ?? [], NotificationType.ROUND_CANCELLED, () => ({
-      title: 'Round cancelled',
-      message: event.refunded
-        ? `Round ${event.roundId} was cancelled and your entry has been refunded.`
-        : `Round ${event.roundId} was cancelled.`,
-      data: { roundId: event.roundId, refunded: event.refunded ?? false },
-    }));
+    await this.notifyUsers(
+      event.playerIds ?? [],
+      NotificationType.ROUND_CANCELLED,
+      () => ({
+        title: 'Round cancelled',
+        message: event.refunded
+          ? `Round ${event.roundId} was cancelled and your entry has been refunded.`
+          : `Round ${event.roundId} was cancelled.`,
+        data: { roundId: event.roundId, refunded: event.refunded ?? false },
+      }),
+    );
+  }
+
+  async countUnread(userId: string): Promise<number> {
+    return this.notificationRepository.count({
+      where: { userId, isRead: false },
+    });
   }
 }

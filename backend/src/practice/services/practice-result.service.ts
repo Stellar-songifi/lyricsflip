@@ -1,4 +1,3 @@
-
 // src/practice/services/practice-result.service.ts
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -9,6 +8,7 @@ import { PracticeItem } from '../entities/practice-item.entity';
 import { User } from '../../user/user.entity';
 import { SubmitResultDto } from '../dto/submit-result.dto';
 import { FeedbackService } from './feedback.service';
+import { ItemType } from '../enums/item-type.enum';
 
 @Injectable()
 export class PracticeResultService {
@@ -34,7 +34,9 @@ export class PracticeResultService {
     });
 
     if (!session) {
-      throw new NotFoundException(`Practice session with ID ${sessionId} not found`);
+      throw new NotFoundException(
+        `Practice session with ID ${sessionId} not found`,
+      );
     }
 
     const practiceItem = await this.itemRepository.findOne({
@@ -46,7 +48,10 @@ export class PracticeResultService {
     }
 
     // Calculate score based on user response and item solution
-    const score = this.calculateScore(practiceItem, submitResultDto.userResponse);
+    const score = this.calculateScore(
+      practiceItem,
+      submitResultDto.userResponse,
+    );
 
     // Generate feedback
     const feedback = await this.feedbackService.generateFeedback(
@@ -90,7 +95,10 @@ export class PracticeResultService {
     });
   }
 
-  async getUserResults(userId: string, limit: number = 20): Promise<PracticeResult[]> {
+  async getUserResults(
+    userId: string,
+    limit: number = 20,
+  ): Promise<PracticeResult[]> {
     return this.resultRepository.find({
       where: { user: { id: userId } },
       relations: ['practiceItem', 'session'],
@@ -99,10 +107,13 @@ export class PracticeResultService {
     });
   }
 
-  private calculateScore(item: PracticeItem, userResponse: Record<string, any>): number {
+  private calculateScore(
+    item: PracticeItem,
+    userResponse: Record<string, any>,
+  ): number {
     // This would be a more complex implementation based on item type
     // For simplicity, let's implement a basic scoring system
-    
+
     switch (item.type) {
       case ItemType.MULTIPLE_CHOICE: {
         // For multiple choice, check if the selected option matches the correct answer
@@ -110,44 +121,46 @@ export class PracticeResultService {
         const userOption = userResponse.selectedOption;
         return correctOption === userOption ? 100 : 0;
       }
-      
+
       case ItemType.FILL_IN_BLANK: {
         // For fill in the blank, compare user answers with correct answers
         const correctAnswers = item.solution.answers;
         const userAnswers = userResponse.answers;
-        
+
         let correctCount = 0;
         let totalCount = correctAnswers.length;
-        
+
         for (let i = 0; i < totalCount; i++) {
-          if (i < userAnswers.length && 
-              userAnswers[i].toLowerCase() === correctAnswers[i].toLowerCase()) {
+          if (
+            i < userAnswers.length &&
+            userAnswers[i].toLowerCase() === correctAnswers[i].toLowerCase()
+          ) {
             correctCount++;
           }
         }
-        
+
         return Math.round((correctCount / totalCount) * 100);
       }
-      
+
       case ItemType.MATCHING: {
         // For matching, check how many pairs were correctly matched
         const correctPairs = item.solution.pairs;
         const userPairs = userResponse.pairs;
-        
+
         let correctCount = 0;
         let totalCount = correctPairs.length;
-        
+
         for (const [key, value] of Object.entries(userPairs)) {
           if (correctPairs[key] === value) {
             correctCount++;
           }
         }
-        
+
         return Math.round((correctCount / totalCount) * 100);
       }
-      
+
       // Add more scoring logic for other item types
-      
+
       default:
         // Default scoring (could be improved in a real implementation)
         return 0;

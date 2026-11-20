@@ -5,7 +5,7 @@ import {
   Keypair,
   nativeToScVal,
   scValToNative,
-  SorobanRpc,
+  rpc as SorobanRpc,
   TransactionBuilder,
   Account,
   Networks,
@@ -45,7 +45,9 @@ export class StateRecoveryService {
     const rpcUrl =
       this.configService.get<string>('SOROBAN_RPC_URL') ??
       'https://soroban-testnet.stellar.org';
-    this.rpc = new SorobanRpc.Server(rpcUrl, { allowHttp: rpcUrl.startsWith('http://') });
+    this.rpc = new SorobanRpc.Server(rpcUrl, {
+      allowHttp: rpcUrl.startsWith('http://'),
+    });
 
     this.networkPassphrase =
       this.configService.get<string>('STELLAR_NETWORK_PASSPHRASE') ??
@@ -112,7 +114,9 @@ export class StateRecoveryService {
     const playerStats = this.normalizeCollection(playerStatsRaw);
 
     const latest = await this.rpc.getLatestLedger();
-    const earliestRetainedLedger = this.computeEarliestRetainedLedger(latest.sequence);
+    const earliestRetainedLedger = this.computeEarliestRetainedLedger(
+      latest.sequence,
+    );
 
     const result: BackfillResult = {
       contractId,
@@ -146,14 +150,17 @@ export class StateRecoveryService {
    */
   async resetCursorToEarliestRetainedLedger(): Promise<CursorResetResult> {
     const latest = await this.rpc.getLatestLedger();
-    const earliestRetainedLedger = this.computeEarliestRetainedLedger(latest.sequence);
+    const earliestRetainedLedger = this.computeEarliestRetainedLedger(
+      latest.sequence,
+    );
     const newCursor = String(earliestRetainedLedger);
 
     let previousCursor: string | null = null;
     try {
-      const rows: Array<{ cursor: string | null }> = await this.dataSource.query(
-        `SELECT cursor FROM indexer_cursor WHERE id = 1`,
-      );
+      const rows: Array<{ cursor: string | null }> =
+        await this.dataSource.query(
+          `SELECT cursor FROM indexer_cursor WHERE id = 1`,
+        );
       if (rows.length > 0) {
         previousCursor = rows[0].cursor ?? null;
       }
@@ -222,8 +229,9 @@ export class StateRecoveryService {
       );
     }
 
-    const results = (simulation as SorobanRpc.Api.SimulateTransactionSuccessResponse)
-      .result;
+    const results = (
+      simulation as SorobanRpc.Api.SimulateTransactionSuccessResponse
+    ).result;
     if (!results || !results.retval) {
       return null;
     }
@@ -266,10 +274,7 @@ export class StateRecoveryService {
     return { value };
   }
 
-  private pick(
-    record: Record<string, unknown>,
-    ...keys: string[]
-  ): unknown {
+  private pick(record: Record<string, unknown>, ...keys: string[]): unknown {
     for (const key of keys) {
       if (record[key] !== undefined && record[key] !== null) {
         return record[key];
@@ -307,7 +312,9 @@ export class StateRecoveryService {
     rounds: Record<string, unknown>[],
   ): Promise<void> {
     for (const round of rounds) {
-      const roundId = this.toNumber(this.pick(round, 'round_id', 'roundId', 'id'));
+      const roundId = this.toNumber(
+        this.pick(round, 'round_id', 'roundId', 'id'),
+      );
       if (roundId === null) {
         continue;
       }
@@ -328,7 +335,9 @@ export class StateRecoveryService {
           this.toNumber(this.pick(round, 'start_ledger', 'startLedger')),
           this.toNumber(this.pick(round, 'end_ledger', 'endLedger')),
           this.toNumber(this.pick(round, 'player_count', 'playerCount')),
-          this.toStringOrNull(this.pick(round, 'total_prize', 'totalPrize', 'prize')),
+          this.toStringOrNull(
+            this.pick(round, 'total_prize', 'totalPrize', 'prize'),
+          ),
         ],
       );
     }
@@ -360,7 +369,9 @@ export class StateRecoveryService {
           this.toStringOrNull(
             this.pick(result, 'winning_answer', 'winningAnswer', 'answer'),
           ),
-          this.toNumber(this.pick(result, 'resolved_ledger', 'resolvedLedger', 'ledger')),
+          this.toNumber(
+            this.pick(result, 'resolved_ledger', 'resolvedLedger', 'ledger'),
+          ),
         ],
       );
     }

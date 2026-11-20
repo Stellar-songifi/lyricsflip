@@ -13,8 +13,7 @@ import { ActivityModule } from '../activity/activity.module';
   imports: [
     TypeOrmModule.forFeature([Share, ShareAnalytics]),
     ThrottlerModule.forRoot({
-      ttl: 60,
-      limit: 10,
+      throttlers: [{ ttl: 60, limit: 10 }],
     }),
     NotificationModule,
     ActivityModule,

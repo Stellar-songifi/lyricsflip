@@ -10,8 +10,11 @@ import { Logger, UseGuards } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
 import { Server, Socket } from 'socket.io';
 import { WsAuthenticator } from '../auth/providers/ws-authenticator.provider';
-import { WsRateLimitGuard } from '../config/ws-rate-limit.guard';
-import { NotificationService, NOTIFICATION_CREATED } from './providers/notification.service';
+import { WsRateLimitGuard } from '../guards/ws-rate-limit.guard';
+import {
+  NotificationService,
+  NOTIFICATION_CREATED,
+} from './providers/notification.service';
 import { Notification } from './entities/notification.entity';
 
 const userRoom = (userId: string) => `user:${userId}`;
@@ -46,17 +49,29 @@ export class NotificationGateway implements OnGatewayConnection {
 
   @SubscribeMessage('markRead')
   @UseGuards(WsRateLimitGuard)
-  markRead(@ConnectedSocket() client: Socket, @MessageBody() notificationId: string) {
-    return this.notificationService.markRead(client.data.user.sub, notificationId);
+  markRead(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() notificationId: string,
+  ) {
+    return this.notificationService.markRead(
+      client.data.user.sub,
+      notificationId,
+    );
   }
 
   @OnEvent(NOTIFICATION_CREATED)
   handleNotificationCreated(notification: Notification) {
-    this.server.to(userRoom(notification.userId)).emit('notification', notification);
+    this.server
+      .to(userRoom(notification.userId))
+      .emit('notification', notification);
   }
 
   @OnEvent('achievement.unlocked')
-  handleAchievementUnlocked(payload: { userId: string; achievement: unknown; unlockedAt: Date }) {
+  handleAchievementUnlocked(payload: {
+    userId: string;
+    achievement: unknown;
+    unlockedAt: Date;
+  }) {
     this.server.to(userRoom(payload.userId)).emit('achievementUnlocked', {
       achievement: payload.achievement,
       unlockedAt: payload.unlockedAt,

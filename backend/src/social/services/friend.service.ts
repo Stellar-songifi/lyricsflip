@@ -1,10 +1,14 @@
 // services/friend.service.ts
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Friend } from '../entities/friend.entity';
+import { Friend, FriendStatus } from '../entities/friend.entity';
 import { NotificationService } from '../../notification/providers/notification.service';
-import { NotificationType } from '../../notification/enums/notification-type.enum';
+import { NotificationType } from '../../notification/entities/notification.entity';
 
 @Injectable()
 export class FriendService {
@@ -16,8 +20,8 @@ export class FriendService {
 
   async sendFriendRequest(senderId: string, receiverId: string) {
     const request = this.friendRepository.create({
-      senderId,
-      receiverId,
+      userId: senderId,
+      friendId: receiverId,
       status: FriendStatus.PENDING,
     });
 
@@ -33,12 +37,14 @@ export class FriendService {
   }
 
   async acceptFriendRequest(userId: string, requestId: string) {
-    const request = await this.friendRepository.findOne(requestId);
+    const request = await this.friendRepository.findOne({
+      where: { id: requestId },
+    });
     if (!request) {
       throw new NotFoundException('Friend request not found');
     }
 
-    if (request.receiverId !== userId) {
+    if (request.friendId !== userId) {
       throw new ForbiddenException('Cannot accept this friend request');
     }
 
@@ -49,8 +55,8 @@ export class FriendService {
   async getFriends(userId: string) {
     return this.friendRepository.find({
       where: [
-        { senderId: userId, status: FriendStatus.ACCEPTED },
-        { receiverId: userId, status: FriendStatus.ACCEPTED },
+        { userId, status: FriendStatus.ACCEPTED },
+        { friendId: userId, status: FriendStatus.ACCEPTED },
       ],
       relations: ['profile'],
     });

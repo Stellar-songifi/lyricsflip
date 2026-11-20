@@ -1,4 +1,23 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, Index } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  Index,
+} from 'typeorm';
+
+export enum NotificationType {
+  ROUND_JOINED = 'ROUND_JOINED',
+  ROUND_STARTED = 'ROUND_STARTED',
+  ROUND_COMPLETED = 'ROUND_COMPLETED',
+  ROUND_CANCELLED = 'ROUND_CANCELLED',
+  ACHIEVEMENT_UNLOCKED = 'ACHIEVEMENT_UNLOCKED',
+  FRIEND_REQUEST = 'FRIEND_REQUEST',
+  SYSTEM = 'SYSTEM',
+  NFT_MINTED = 'NFT_MINTED',
+  REWARD_CLAIMED = 'REWARD_CLAIMED',
+  REWARD_CLAIMABLE = 'REWARD_CLAIMABLE',
+}
 
 @Entity('notifications')
 @Index(['userId', 'isRead'])

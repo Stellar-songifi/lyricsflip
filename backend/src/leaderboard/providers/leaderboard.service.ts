@@ -98,7 +98,7 @@ export class LeaderboardService {
     const offset = (page - 1) * limit;
     const data: LeaderboardEntryDto[] = rows
       .slice(offset, offset + limit)
-      .map((row, index) => {
+      .map((row, index): LeaderboardEntryDto => {
         const roundsPlayed = Number(row.roundsPlayed);
         const roundsWon = Number(row.roundsWon);
         const correctAnswers = Number(row.correctAnswers);
@@ -108,6 +108,7 @@ export class LeaderboardService {
           address: row.address,
           username: row.username,
           roundsWon,
+          roundsPlayed,
           winRate: roundsPlayed > 0 ? roundsWon / roundsPlayed : 0,
           maxStreak: Number(row.maxStreak),
           totalPoints: Number(row.totalPoints),
@@ -215,7 +216,7 @@ export class LeaderboardService {
         WHERE w.player_address = $1 AND w.claimed = false`,
       [address],
     );
-    const unclaimedWinnings = String(winningsRow?.[0]?.unclaimed ?? '0');
+    const unclaimedWinnings = Number(winningsRow?.[0]?.unclaimed ?? 0);
 
     const rank = await this.getPlayerRank(address);
 
@@ -293,12 +294,12 @@ export class LeaderboardService {
 
   private periodStart(period: LeaderboardPeriod): Date | null {
     const now = new Date();
-    if (period === 'day' || period === 'daily') {
+    if (period === 'daily') {
       return new Date(
         Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()),
       );
     }
-    if (period === 'week' || period === 'weekly') {
+    if (period === 'weekly') {
       const start = new Date(now);
       start.setUTCDate(start.getUTCDate() - 7);
       return start;

@@ -14,8 +14,8 @@ import { ChainAnswer } from '../entities/chain-answer.entity';
 import { ChainRoundResult } from '../entities/chain-round-result.entity';
 import { ChainNft } from '../entities/chain-nft.entity';
 import { ProcessedEvent } from '../entities/processed-event.entity';
-import { LeaderboardService } from '../../leaderboard/leaderboard.service';
-import { UserService } from '../../user/user.service';
+import { LeaderboardService } from '../../leaderboard/providers/leaderboard.service';
+import { UserService } from '../../user/providers/user.service';
 
 /**
  * Recorded Soroban event fixtures.
@@ -87,7 +87,7 @@ function buildFixtures(): RecordedEvent[] {
       ledger: 101,
       txHash: 'bb22',
       contractId: CONTRACT_ID,
-      topic: [topic('player_joined'), nativeToScVal(PLAYER_A)],
+      topic: [topic('player_joined'), scv(PLAYER_A)],
       value: mapValue({ round_id: 1, player: PLAYER_A }),
     },
     {
@@ -95,7 +95,7 @@ function buildFixtures(): RecordedEvent[] {
       ledger: 101,
       txHash: 'bb22',
       contractId: CONTRACT_ID,
-      topic: [topic('player_joined'), nativeToScVal(PLAYER_B)],
+      topic: [topic('player_joined'), scv(PLAYER_B)],
       value: mapValue({ round_id: 1, player: PLAYER_B }),
     },
     {
@@ -103,7 +103,7 @@ function buildFixtures(): RecordedEvent[] {
       ledger: 150,
       txHash: 'cc33',
       contractId: CONTRACT_ID,
-      topic: [topic('answer_submitted'), nativeToScVal(PLAYER_A)],
+      topic: [topic('answer_submitted'), scv(PLAYER_A)],
       value: mapValue({
         round_id: 1,
         player: PLAYER_A,
@@ -117,7 +117,7 @@ function buildFixtures(): RecordedEvent[] {
       ledger: 151,
       txHash: 'dd44',
       contractId: CONTRACT_ID,
-      topic: [topic('answer_submitted'), nativeToScVal(PLAYER_B)],
+      topic: [topic('answer_submitted'), scv(PLAYER_B)],
       value: mapValue({
         round_id: 1,
         player: PLAYER_B,
@@ -143,7 +143,7 @@ function buildFixtures(): RecordedEvent[] {
       ledger: 201,
       txHash: 'ff66',
       contractId: CONTRACT_ID,
-      topic: [topic('nft_minted'), nativeToScVal(OWNER)],
+      topic: [topic('nft_minted'), scv(OWNER)],
       value: mapValue({ token_id: 42, owner: OWNER, kind: 'winner' }),
     },
     {
@@ -151,7 +151,7 @@ function buildFixtures(): RecordedEvent[] {
       ledger: 202,
       txHash: 'gg77',
       contractId: CONTRACT_ID,
-      topic: [topic('reward_claimed'), nativeToScVal(PLAYER_A)],
+      topic: [topic('reward_claimed'), scv(PLAYER_A)],
       value: mapValue({ round_id: 1, player: PLAYER_A, amount: 100 }),
     },
   ];
@@ -405,7 +405,7 @@ describe('IndexerService (integration)', () => {
                 end_ledger: 200,
               },
             ],
-            { type: 'vec' },
+            undefined as any,
           ),
         },
       })
@@ -414,7 +414,7 @@ describe('IndexerService (integration)', () => {
         result: {
           retval: nativeToScVal(
             [{ round_id: 1, winner: PLAYER_A, total_points: 10 }],
-            { type: 'vec' },
+            undefined as any,
           ),
         },
       })
@@ -426,7 +426,7 @@ describe('IndexerService (integration)', () => {
               { player: PLAYER_A, wins: 1, points: 10 },
               { player: PLAYER_B, wins: 0, points: 0 },
             ],
-            { type: 'vec' },
+            undefined as any,
           ),
         },
       });

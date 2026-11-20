@@ -7,6 +7,7 @@ import { RedisService } from '../../redis/redis.service';
 
 const makeQueryBuilder = (rawRows: any[]) => {
   const qb: any = {
+    innerJoin: jest.fn().mockReturnThis(),
     select: jest.fn().mockReturnThis(),
     addSelect: jest.fn().mockReturnThis(),
     groupBy: jest.fn().mockReturnThis(),
@@ -35,6 +36,10 @@ describe('LeaderboardService', () => {
     roundsPlayed: String(roundsPlayed),
     roundsWon: String(roundsWon),
     maxStreak: String(maxStreak),
+    totalPoints: String(roundsWon * 10),
+    correctAnswers: '0',
+    totalAnswers: '0',
+    bestRoundScore: String(roundsWon * 10),
   });
 
   beforeEach(async () => {
@@ -84,17 +89,29 @@ describe('LeaderboardService', () => {
           rank: 1,
           address: 'p1',
           username: 'user-p1',
+          totalPoints: 80,
           roundsWon: 8,
+          roundsPlayed: 10,
           winRate: 0.8,
           maxStreak: 5,
+          correctAnswers: 0,
+          totalAnswers: 0,
+          accuracy: 0,
+          bestRoundScore: 80,
         },
         {
           rank: 2,
           address: 'p2',
           username: 'user-p2',
+          totalPoints: 20,
           roundsWon: 2,
+          roundsPlayed: 4,
           winRate: 0.5,
           maxStreak: 3,
+          correctAnswers: 0,
+          totalAnswers: 0,
+          accuracy: 0,
+          bestRoundScore: 20,
         },
       ]);
       expect(result.total).toBe(2);
@@ -148,7 +165,7 @@ describe('LeaderboardService', () => {
         limit: 20,
       });
 
-      expect(qb.andWhere).toHaveBeenCalledWith('r.genre = :genre', {
+      expect(qb.andWhere).toHaveBeenCalledWith('round.genre = :genre', {
         genre: 'Pop',
       });
     });

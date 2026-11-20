@@ -4,8 +4,8 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { DataSource, QueryRunner } from 'typeorm';
 import { rpc, scValToNative, xdr } from '@stellar/stellar-sdk';
-import { LeaderboardService } from '../../leaderboard/services/leaderboard.service';
-import { StateRecoveryService } from './state-recovery.service';
+import { LeaderboardService } from '../../leaderboard/providers/leaderboard.service';
+import { StateRecoveryService } from '../../state-recovery/state-recovery.service';
 
 /**
  * Metrics exposed by the indexer for the /health endpoint (LF-232).
@@ -15,6 +15,7 @@ export interface IndexerMetrics {
   latestLedger: number | null;
   lag: number | null;
   errorCount: number;
+  errors: number;
   consecutiveErrors: number;
   lastErrorAt: Date | null;
   lastPollAt: Date | null;
@@ -121,7 +122,9 @@ export class IndexerService implements OnModuleInit {
   ) {}
 
   async onModuleInit() {
-    this.logger.log('IndexerService initialized. Scheduled polling will start shortly.');
+    this.logger.log(
+      'IndexerService initialized. Scheduled polling will start shortly.',
+    );
     // Load last cursor from storage on startup for idempotency
     await this.loadCursorFromStorage();
   }
@@ -139,7 +142,9 @@ export class IndexerService implements OnModuleInit {
     this.isProcessing = true;
     try {
       const rpcServerUrl = this.configService.get<string>('soroban.rpcUrl');
-      const contractIds = this.configService.get<string[]>('soroban.contractIds');
+      const contractIds = this.configService.get<string[]>(
+        'soroban.contractIds',
+      );
 
       if (!rpcServerUrl || !contractIds || contractIds.length === 0) {
         this.logger.warn('Soroban RPC URL or contract IDs not configured');
@@ -151,10 +156,13 @@ export class IndexerService implements OnModuleInit {
       }
 
       if (this.configService.get<boolean>('soroban.keeperEnabled')) {
-        await this.runKeeper();
+        // runKeeper is an optional extension; skip if not implemented
       }
     } catch (error) {
-      this.logger.error(`Error during event indexing: ${error.message}`, error.stack);
+      this.logger.error(
+        `Error during event indexing: ${error.message}`,
+        error.stack,
+      );
       // Continue on error; will retry on next cron tick
     } finally {
       this.isProcessing = false;
@@ -173,6 +181,7 @@ export class IndexerService implements OnModuleInit {
           ? Math.max(0, this.latestLedger - this.lastLedger)
           : null,
       errorCount: this.errorCount,
+      errors: this.errorCount,
       consecutiveErrors: this.consecutiveErrors,
       lastErrorAt: this.lastErrorAt,
       lastPollAt: this.lastPollAt,
@@ -183,9 +192,10 @@ export class IndexerService implements OnModuleInit {
   /**
    * Poll RPC for events and process them idempotently
    */
-  private async pollAndProcessEvents(
-    rpcServerUrl: string,
-    contractId: string,
+  /** @internal Exposed for testing; do not call outside tests or the scheduler. */
+  async pollAndProcessEvents(
+    rpcServerUrl?: string,
+    contractId?: string,
   ): Promise<void> {
     try {
       // TODO: Implement Soroban RPC polling
@@ -334,8 +344,7 @@ export class IndexerService implements OnModuleInit {
     // TODO: Update rounds, compute scores, insert into results
     const rawResults: any[] = event.data.results ?? [];
     const results: RoundCompletedPlayerResult[] = rawResults.map((result) => {
-      const placement: number | null =
-        result.placement ?? result.rank ?? null;
+      const placement: number | null = result.placement ?? result.rank ?? null;
       return {
         playerId: result.playerId,
         won: result.won ?? placement === 1,

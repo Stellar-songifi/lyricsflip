@@ -288,7 +288,10 @@ export class GameGateway
   // -------------------------------------------------------------
 
   @SubscribeMessage('createGame')
-  async handleCreateGame(@ConnectedSocket() client: Socket) {
+  async handleCreateGame(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() _data?: Record<string, unknown>,
+  ) {
     try {
       const gameId = this.generateGameId();
       const clientRecord = this.connectedClients.get(client.id);

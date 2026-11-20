@@ -15,7 +15,7 @@ import {
 import type { Request, Response } from 'express';
 import { Throttle } from '@nestjs/throttler';
 import { Public } from './decorators/public.decorator';
-import { AccessTokenGuard } from './guards/access-token.guard';
+import { AccessTokenGuard } from './guard/access-token/access-token.guard';
 import { ApiTags, ApiOperation, ApiResponse, ApiBody } from '@nestjs/swagger';
 import { AuthService } from './providers/auth.service';
 import { SignInDto } from './dtos/signIn.dto';
@@ -33,7 +33,6 @@ import { WalletAuthProvider } from './providers/wallet-auth.provider';
 import { WalletChallengeRequestDto } from './dtos/wallet-challenge-request.dto';
 import { WalletVerifyDto } from './dtos/wallet-verify.dto';
 
-
 @ApiTags('auth') // Groups all endpoints under the 'auth' tag in Swagger
 @Controller('auth')
 @AuthThrottle() // Stricter limit for every /auth/* route
@@ -47,7 +46,8 @@ export class AuthController {
   @Post('sign-in')
   @ApiOperation({
     summary: 'Sign in a user',
-    description: 'Authenticates a user and returns an access token if the credentials are valid.',
+    description:
+      'Authenticates a user and returns an access token if the credentials are valid.',
   })
   @ApiResponse({ status: 200, description: 'User signed in successfully.' })
   @ApiResponse({ status: 401, description: 'Invalid credentials.' })
@@ -72,7 +72,8 @@ export class AuthController {
   @UseInterceptors(ClassSerializerInterceptor)
   @ApiOperation({
     summary: 'Sign up a new user',
-    description: 'Registers a new user and returns the user details upon successful registration.',
+    description:
+      'Registers a new user and returns the user details upon successful registration.',
   })
   @ApiResponse({ status: 201, description: 'User registered successfully.' })
   @ApiResponse({ status: 400, description: 'Invalid user input data.' })
@@ -130,7 +131,10 @@ export class AuthController {
     description:
       'Revokes the refresh-token family in the `refreshToken` cookie and clears the cookie. Requires `X-Requested-With: XMLHttpRequest` (CSRF).',
   })
-  @ApiResponse({ status: 204, description: 'Logged out; token family revoked.' })
+  @ApiResponse({
+    status: 204,
+    description: 'Logged out; token family revoked.',
+  })
   @ApiResponse({ status: 401, description: 'Missing or invalid access token.' })
   @ApiResponse({ status: 403, description: 'Missing CSRF header.' })
   public async logout(
@@ -146,27 +150,27 @@ export class AuthController {
   }
 
   @Post('forgot-password')
-@Public()
-@Throttle({ default: { limit: 3, ttl: 60_000 } })
-@ApiOperation({ summary: 'Request password reset' })
-@ApiResponse({ status: 200, description: 'Reset email sent.' })
-@ApiBody({ type: ForgotPasswordDto })
-async forgotPassword(@Body() forgotPasswordDto: ForgotPasswordDto) {
-  return this.authService.forgotPassword(forgotPasswordDto.email);
-}
+  @Public()
+  @Throttle({ default: { limit: 3, ttl: 60_000 } })
+  @ApiOperation({ summary: 'Request password reset' })
+  @ApiResponse({ status: 200, description: 'Reset email sent.' })
+  @ApiBody({ type: ForgotPasswordDto })
+  async forgotPassword(@Body() forgotPasswordDto: ForgotPasswordDto) {
+    return this.authService.forgotPassword(forgotPasswordDto.email);
+  }
 
-@Post('reset-password')
-@Public()
-@Throttle({ default: { limit: 5, ttl: 60_000 } })
-@ApiOperation({ summary: 'Reset password' })
-@ApiResponse({ status: 200, description: 'Password reset successful.' })
-@ApiBody({ type: ResetPasswordDto })
-async resetPassword(@Body() resetPasswordDto: ResetPasswordDto) {
-  return this.authService.resetPassword(
-    resetPasswordDto.token,
-    resetPasswordDto.newPassword,
-  );
-}
+  @Post('reset-password')
+  @Public()
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  @ApiOperation({ summary: 'Reset password' })
+  @ApiResponse({ status: 200, description: 'Password reset successful.' })
+  @ApiBody({ type: ResetPasswordDto })
+  async resetPassword(@Body() resetPasswordDto: ResetPasswordDto) {
+    return this.authService.resetPassword(
+      resetPasswordDto.token,
+      resetPasswordDto.newPassword,
+    );
+  }
 
   @Public() // Reachable before the caller has a token - that's the whole point.
   @Post('challenge')
@@ -188,8 +192,14 @@ async resetPassword(@Body() resetPasswordDto: ResetPasswordDto) {
     description:
       'Verifies the signature over a previously issued challenge for the (upserted) wallet account. Returns the access token; the refresh token is set as the HttpOnly `refreshToken` cookie.',
   })
-  @ApiResponse({ status: 201, description: 'Signature verified; tokens issued.' })
-  @ApiResponse({ status: 401, description: 'Invalid signature, or challenge expired/not found.' })
+  @ApiResponse({
+    status: 201,
+    description: 'Signature verified; tokens issued.',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Invalid signature, or challenge expired/not found.',
+  })
   @ApiBody({ type: WalletVerifyDto })
   public async verify(
     @Body() dto: WalletVerifyDto,

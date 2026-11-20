@@ -47,6 +47,15 @@ export class LeaderboardRoundResult {
   @Column({ type: 'int', default: 0 })
   streakAfter: number;
 
+  @Column({ type: 'int', default: 0 })
+  points: number;
+
+  @Column({ type: 'int', default: 0 })
+  correctAnswers: number;
+
+  @Column({ type: 'int', default: 0 })
+  totalAnswers: number;
+
   @CreateDateColumn()
   playedAt: Date;
 }

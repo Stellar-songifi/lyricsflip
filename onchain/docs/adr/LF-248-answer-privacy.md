@@ -30,6 +30,29 @@ We implement a **redaction-first** variant of option (a), as described in `answe
 * The answer is still present in contract storage, so a ledger inspection can still read it. This is a deliberate trade-off to avoid a two-phase reveal flow and to keep `submit_answer` synchronous.
 * A future issue can layer the `sha256(answer || salt)` commitment from option (a) on top of this redaction boundary if we want the answer to be absent from storage entirely.
 
+## Update: LF-278 (remaining public leaks closed)
+
+LF-251 redacted the question path, but two public routes still mapped a live card to its answer:
+
+1. `CardDrawn { round_id, index, card_id }` published the card id, and `get_card(card_id)` returned its title, artist and year.
+2. `get_cards_of_genre`, `get_cards_of_artist` and `get_cards_of_a_year` returned full `Card`s to anyone.
+
+Changes:
+
+- `CardDrawn` is now `{ round_id, index }`. `finalize_round` emits one `CardRevealed { round_id, index, card_id }` per round card once the round can no longer be played.
+- `get_card` and `get_cards_of_*` return a **redacted** card (empty `title` and `artist`, `year = 0`) for any card that a live round still references (the LF-176 `CardLiveRounds` index). Signatures are unchanged; the full card comes back once every round using it is finalized, cancelled or past its deadline.
+- `attacker_cannot_recover_live_answer_from_views_or_events` checks that no public view or event returns a live card's answer.
+
+### What is still exposed
+
+- **Ledger state.** Every `Card(id)` entry, answer included, is plaintext in contract storage. Anyone can read it off-chain with `getLedgerEntries` (including `RoundCards`, which lists a live round's card ids). An attacker who reads storage directly can still find the answer.
+- **Transaction results.** The drawing player's own `next_card` result is recorded in transaction metadata.
+
+### Mitigation
+
+- Keep the catalogue large and varied, so matching a lyric against the full catalogue in the answer window is impractical for casual cheating. The per-card answer window (`CARD_ANSWER_WINDOW_SECONDS`) limits how long an attacker has.
+- The full fix is the salted commitment from option (a), or commit-reveal: store only `sha256(answer || salt)` and reveal the salt at finalization, so the answer is never in ledger state while a round is live. This is tracked as follow-up work.
+
 ## Alternatives considered
 
 ### Option (b): Admin commit-reveal

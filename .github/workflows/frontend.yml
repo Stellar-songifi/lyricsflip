@@ -42,7 +42,14 @@ jobs:
         run: npm ci && npm run openapi:export
       - name: Check generated API client is fresh
         working-directory: frontend
-        run: npm run check:api
+        run: |
+          if ! npm run check:api; then
+            echo ""
+            echo "::error::frontend/src/services/generated/api.ts is out of date with the backend OpenAPI spec."
+            echo "Fix: cd backend && npm run openapi:export && npm run openapi:generate"
+            echo "Then commit backend/openapi.json and frontend/src/services/generated/api.ts."
+            exit 1
+          fi
       - name: npm audit (production dependencies)
         run: npm audit --omit=dev
       - run: npm run lint

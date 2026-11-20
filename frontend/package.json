@@ -78,7 +78,7 @@
     "@typescript-eslint/parser": "^6.21.0",
     "@vercel/nft": "^0.29.2",
     "autoprefixer": "^10.4.21",
-    "eslint": "^8.56.0",
+    "eslint": "^10.15.0",
     "eslint-config-next": "^14.2.35",
     "eslint-plugin-check-file": "2.8.0",
     "file-loader": "^6.2.0",

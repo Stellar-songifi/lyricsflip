@@ -43,7 +43,7 @@
     "immer": "^10.1.1",
     "lightningcss": "^1.29.3",
     "lucide-react": "^0.483.0",
-    "next": "^14.1.0",
+    "next": "^15.5.29",
     "next-intl": "^3.26.5",
     "prettier": "^3.5.3",
     "react": "^18.2.0",

@@ -155,18 +155,7 @@ jobs:
       - name: Run migrations against a fresh database
         run: npm run migration:run
       - name: Check for entity/migration drift
-        run: |
-          set -o pipefail
-          output=$(npm run migration:generate -- src/migrations/DriftCheck --dryrun 2>&1) || status=$?
-          echo "$output"
-          if echo "$output" | grep -Eq '\b(CREATE|ALTER|DROP)\b'; then
-            echo "::error::Entities and migrations have drifted. Generate a migration and commit it."
-            exit 1
-          fi
-          if [[ "${status:-0}" -ne 0 ]]; then
-            echo "::error::migration:generate --dryrun failed (exit ${status})."
-            exit 1
-          fi
+        run: npm run migration:check
       - name: Seed from seed/songs.json
         run: npm run seed
 

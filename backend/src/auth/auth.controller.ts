@@ -15,7 +15,7 @@ import {
 import type { Request, Response } from 'express';
 import { Throttle } from '@nestjs/throttler';
 import { Public } from './decorators/public.decorator';
-import { AccessTokenGuard } from './guards/access-token.guard';
+import { AccessTokenGuard } from './guard/access-token/access-token.guard';
 import { ApiTags, ApiOperation, ApiResponse, ApiBody } from '@nestjs/swagger';
 import { AuthService } from './providers/auth.service';
 import { SignInDto } from './dtos/signIn.dto';

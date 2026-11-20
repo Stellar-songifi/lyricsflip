@@ -1,12 +1,18 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { Injectable, forwardRef, Inject, UnauthorizedException } from '@nestjs/common';
+import {
+  Injectable,
+  forwardRef,
+  Inject,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { UserService } from './../../user/providers/user.service';
 import { SignInDto } from '../dtos/signIn.dto';
 import { UserDTO } from './../../user/dtos/create-user.dto';
 import { JwtService } from '@nestjs/jwt';
 import { RefreshTokenDto } from '../dtos/refresh-token.dto';
 import { PasswordResetProvider } from './password-reset.provider';
-import { RefreshTokensProvider } from './refresh-tokens.provider';
+import { RefreshTokenStore } from './refresh-tokens';
+import { GenerateTokensProvider } from './generate-tokens-provider';
 
 @Injectable()
 export class AuthService {
@@ -15,12 +21,13 @@ export class AuthService {
     private readonly userService: UserService,
     private readonly jwtService: JwtService, // Inject JWT service
     private readonly passwordResetProvider: PasswordResetProvider,
-    private readonly refreshTokensProvider: RefreshTokensProvider,
+    private readonly refreshTokenStore: RefreshTokenStore,
+    private readonly generateTokensProvider: GenerateTokensProvider,
   ) {}
 
   /**
    * Authenticates a user by verifying their email and password.
-   * 
+   *
    * @param signInDto - The data transfer object containing user email and password.
    * @throws {UnauthorizedException} If the user is not found or the password does not match.
    * @returns Confirmation message upon successful authentication.
@@ -36,21 +43,24 @@ export class AuthService {
   public async forgotPassword(email: string): Promise<{ message: string }> {
     await this.passwordResetProvider.requestReset(email);
     // Same answer whether or not the account exists.
-    return { message: 'If that email is registered, a reset link is on its way.' };
+    return {
+      message: 'If that email is registered, a reset link is on its way.',
+    };
   }
 
   // Reset Password
-  public async resetPassword(token: string, newPassword: string): Promise<{ message: string }> {
+  public async resetPassword(
+    token: string,
+    newPassword: string,
+  ): Promise<{ message: string }> {
     await this.passwordResetProvider.resetPassword(token, newPassword);
     return { message: 'Password updated.' };
   }
 
-  
   public async signUp(userDto: UserDTO) {
     return await this.userService.signUp(userDto);
   }
 
-  
   public async refreshToken(refreshTokenDto: RefreshTokenDto) {
     const { refreshToken } = refreshTokenDto;
 
@@ -69,42 +79,38 @@ export class AuthService {
       throw new UnauthorizedException('Invalid refresh token');
     }
 
-    // Detect reuse: the jti must be known and not already rotated.
-    const isUsable = await this.refreshTokensProvider.isTokenUsable(family, jti);
-    if (!isUsable) {
-      // Reuse of an already-rotated (or unknown) token: revoke the whole family.
-      await this.refreshTokensProvider.revokeFamily(family);
+    const [isRotated, isCurrent] = await Promise.all([
+      this.refreshTokenStore.isRotated(jti),
+      this.refreshTokenStore.isCurrent(family, jti),
+    ]);
+    if (isRotated || !isCurrent) {
+      await this.refreshTokenStore.revokeFamily(family);
       throw new UnauthorizedException('Invalid refresh token');
     }
 
-    // Fetch user details based on decoded token payload
     const user = await this.userService.FindOneById(userId);
     if (!user) {
-      await this.refreshTokensProvider.revokeFamily(family);
+      await this.refreshTokenStore.revokeFamily(family);
       throw new UnauthorizedException('Invalid refresh token');
     }
 
-    // Mark the presented token as rotated so it cannot be used again.
-    await this.refreshTokensProvider.markRotated(family, jti);
-
-    // Issue a new access token and a new refresh token in the same family.
-    const newAccessToken = this.jwtService.sign(
-      { userId: user.id, email: user.email },
-      { secret: process.env.JWT_SECRET, expiresIn: '15m' }
-    );
-
-    const newRefreshToken = await this.refreshTokensProvider.issueRefreshToken(
-      user.id,
+    const tokens = await this.generateTokensProvider.generateTokens(user, {
       family,
-    );
+    });
+    await this.refreshTokenStore.rotate(family, jti, tokens.refreshTokenJti);
 
-    return { accessToken: newAccessToken, refreshToken: newRefreshToken };
+    return {
+      accessToken: tokens.accessToken,
+      refreshToken: tokens.refreshToken,
+    };
   }
 
   /**
    * Revokes the refresh-token family associated with the presented token.
    */
-  public async logout(refreshTokenDto: RefreshTokenDto): Promise<{ message: string }> {
+  public async logout(
+    refreshTokenDto: RefreshTokenDto,
+  ): Promise<{ message: string }> {
     const { refreshToken } = refreshTokenDto;
 
     let decoded: { family?: string };
@@ -120,7 +126,7 @@ export class AuthService {
       throw new UnauthorizedException('Invalid refresh token');
     }
 
-    await this.refreshTokensProvider.revokeFamily(decoded.family);
+    await this.refreshTokenStore.revokeFamily(decoded.family);
     return { message: 'Logged out.' };
   }
 }

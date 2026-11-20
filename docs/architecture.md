@@ -135,6 +135,80 @@ The old `/notifications/notifications` path redirects to `/notifications`.
   Cross-site forms can't set it, and cross-origin scripts fail the CORS
   preflight.
 
+## Backend module map (LF-348)
+
+`AppModule` imports exactly seven public domain modules. A domain is the sole owner of its tables, HTTP prefixes and WebSocket namespaces; folders inside a domain are implementation details. The machine-readable source of truth is `backend/src/domains/domain-map.ts`, enforced by `backend/src/domains/domain-map.spec.ts` and `backend/src/entity-metadata.spec.ts`.
+
+| Domain | Public module | Internal folders | HTTP prefixes | WebSocket namespaces | Owned tables |
+|---|---|---|---|---|---|
+| Identity | `IdentityModule` | `auth`, `user`, `player` | `/auth`, `/user` | — | `users`, `players`, `password_reset_tokens`, `user_activity` |
+| Catalogue | `CatalogueModule` | `songs`, `questions` | `/songs`, `/questions` | — | `songs`, `tags`, `user_genre_preferences`, `questions` |
+| Rounds (chain mirror) | `RoundsModule` | `game`, `game-session`, `game-results`, `quick-game`, `room`, `scoring`, `wager`, `indexer`, `rounds`, `tournament` | `/rounds`, `/game-modes`, `/game-results`, `/wagers`, `/scoring`; legacy `/game-session`, `/quick-game/rounds`, `/rooms` | `/game`, `/rooms`, `/indexer`; `/rounds` relay | `game_sessions`, `rooms`, `player_rooms`, `game_results`, `wagers`, `scoring`, `custom_game_modes`, `tournament`, `indexer_state`, `chain_round`, `chain_round_player`, `chain_answer`, `chain_round_result`, `chain_nft`, `processed_event` |
+| Realtime | `RealtimeModule` | `notification`, `realtime` | `/notifications` | `/notifications` | `notifications`, `chat_rooms` |
+| Social | `SocialModule` | `social`, `leaderboard`, `referral` | `/players`, `/leaderboard`, `/profile`, `/friends`, `/activity`, `/challenge`, `/referrals` | — | `profile`, `friends`, `activities`, `challenges`, `leaderboards`, `leaderboard_round_results`, `referrals` |
+| Rewards | `RewardsModule` | `achievement`, `progression`, `reward`, `rewards` | `/rewards`, `/achievements`, `/progression`; legacy `/reward` | — | `achievement`, `user_achievement`, `player_stats`, `player_level`, `player_skill` |
+| Admin | `AdminModule` | `admin`, `analytics`, `player-engagement` | `/analytics`, `/admin/songs` | — | `player_engagement_metrics`, `song_category_metrics`, `token_metrics`, `user_progression_metrics` |
+
+### Legacy route deprecation path
+
+Legacy prefixes remain mounted because existing clients still call them. They are marked `deprecated: true` in Swagger and are owned by the same domain as the canonical route, so there is never a second owner.
+
+| Legacy route or namespace | Canonical owner | Status |
+|---|---|---|
+| `GET/POST/PATCH/DELETE /api/v1/game-session/*` | `/api/v1/rounds/*` (Rounds) | Deprecated alias |
+| `/api/v1/quick-game/rounds/*` | `/api/v1/rounds/*` (Rounds) | Deprecated alias |
+| `/api/v1/rooms/*` | `/api/v1/rounds/*` (Rounds) | Deprecated alias; room realtime stays on `/rooms` |
+| `/api/v1/reward/*` | `/api/v1/rewards/*` (Rewards) | Deprecated alias |
+| `/api/v1/user/players/:address` | `/api/v1/players/:address` (Social) | Deprecated alias |
+| Socket.IO `/rounds` | `/game` (Rounds) | Off-chain relay; `/game` follows `docs/realtime-protocol.md` |
+| Socket.IO `/notifications` | Realtime | Unchanged |
+| Socket.IO `/indexer` | Rounds | Unchanged; single chain-event owner |
+
+`/auth/*`, `/notifications`, `/leaderboard` and `/songs` keep their existing paths; only the duplicated round, reward and profile aliases are deprecated.
+
+### Consolidation inventory
+
+Every pre-consolidation feature folder was assigned an owner or removed. "Infrastructure" folders are cross-cutting and remain outside the domain map.
+
+| Original folder(s) | Entities / tables | Routes / namespaces | Consumers | Final owner |
+|---|---|---|---|---|
+| `auth/` | `password_reset_tokens` | `/auth` | `UserModule`, `GameModule`, `NotificationModule`, frontend | Identity |
+| `user/` | `users`, `user_activity` | `/user`; deprecated `/user/players/:address` | `AuthModule`, frontend | Identity |
+| `player/` | `players` | — | scoring, room, social profile | Identity |
+| `songs/` | `songs`, `tags`, `user_genre_preferences` | `/songs`, `/admin/songs` | `QuestionsModule`, `AdminModule`, frontend | Catalogue (`/admin/songs` -> Admin) |
+| `questions/` | `questions` | `/questions` | `QuickGameModule` | Catalogue |
+| `game/` | `custom_game_modes` | `/game-modes`, Socket.IO `/game` (contract protocol) | `AppModule` | Rounds |
+| `game-session/` | `game_sessions` | deprecated `/game-session` | `GameModule`, frontend | Rounds (`/rounds`) |
+| `game-results/` | `game_results` | `/game-results` | `AppModule` | Rounds |
+| `quick-game/` | — | deprecated `/quick-game/rounds` | none | Rounds |
+| `room/` | `rooms`, `player_rooms` | deprecated `/rooms`, Socket.IO `/rooms` and `/rounds` | `AppModule`, frontend | Rounds |
+| `scoring/` | `scoring` | `/scoring` | `AppModule` | Rounds |
+| `wager/` | `wagers` | `/wagers`, deprecated `/rounds` duplicate | `AppModule`, frontend | Rounds |
+| `indexer/` | all `chain_*`, `indexer_state`, `processed_event` | Socket.IO `/indexer` | `HealthModule`, `LeaderboardModule`, `AppModule` | Rounds (single chain owner) |
+| `tournament/` | `tournament` | — | `game-session.entity.ts` | Rounds (entity moved) |
+| `notification/` | `notifications` | `/notifications`, Socket.IO `/notifications` | `SocialModule`, frontend | Realtime |
+| `chat-room/` | `chat_rooms` | `/chat-room` (unused) | `Player` relation only | Realtime (entity moved; controller/service removed) |
+| `social/` | `profile`, `friends`, `activities`, `challenges` | `/profile`, `/friends`, `/activity`, `/challenge` | `AppModule`, frontend | Social |
+| `leaderboard/` | `leaderboards`, `leaderboard_round_results` | `/leaderboard`, `/players` | `UserModule`, `IndexerModule`, frontend | Social |
+| `referral/` | `referrals` | `/referrals` | `user.entity.ts` | Social (entity moved) |
+| `achievement/` | `achievement`, `user_achievement` | `/achievements` | `AppModule` | Rewards |
+| `progression/` | `player_stats`, `player_level`, `player_skill` | `/progression` | none | Rewards |
+| `reward/` | — | deprecated `/reward` | frontend | Rewards (`/rewards`) |
+| `analytics/` | four `*_metrics` tables | `/analytics` | `AppModule` | Admin |
+| `player-engagement/` | metric service only | `/player-engagement` (unused) | `AnalyticsModule` | Admin (service kept, controller/DTO removed) |
+| `challenges/` | empty entity stubs | unused stubs | none | removed (knip) |
+| `difficulty/` | `difficulties` | — | none | removed (knip) |
+| `game-insights/` | DTO/service stubs | `/game-insights` | none | removed (knip) |
+| `modules/share/`, `modules/activity/` | `shares`, `share_analytics`, `activity_items` | `/shares` | none | removed (knip) |
+| `music-education/` | lesson/quiz/artist tables | `/lessons/*` | none | removed (knip) |
+| `power-ups/` | power-up tables | `/power-ups` | none | removed (knip) |
+| `practice/` | practice tables | `/practice/*` | none | removed (knip) |
+| `state-recovery/` | `game_state`, `state_audit` | duplicate `/state-recovery` registrations | broken `IndexerModule` import | removed (duplicate owner) |
+| `common/`, `config/`, `database/`, `exceptions/`, `filters/`, `health/`, `http-yac/`, `interceptors/`, `logger/`, `mail/`, `migrations/`, `redis/`, `utility/` | — | `/health` and cross-cutting hooks | all modules | Infrastructure (unchanged) |
+| `_experimental/` | quarantined | quarantined | none | excluded from build and knip |
+
+Knip reported **219 unused files and 24 unresolved imports** before consolidation, and **15 unused files and 0 unresolved imports** after. The remaining 15 are DTOs/interfaces/interceptors inside live modules and are tracked as a follow-up, not dead modules.
+
 ## Architecture Decision Records
 
 Significant decisions are recorded as ADRs in [`docs/adr/`](./adr/). Each ADR follows the [template](./adr/template.md) (context, decision, consequences, status) and stays *Proposed* until a maintainer accepts it. Every issue that depends on a decision links to its ADR.

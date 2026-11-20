@@ -1,14 +1,15 @@
-import { Module, forwardRef } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { TerminusModule } from '@nestjs/terminus';
-import { TypeOrmModule } from '@nestjs/typeorm';
+import { IndexerModule } from '../indexer/indexer.module';
 import { HealthController } from './health.controller';
 import { RedisHealthIndicator } from './redis.health';
-import { StellarRpcHealthIndicator } from './stellar-rpc.health';
-import { IndexerHealthIndicator } from './indexer.health';
-import { IndexerLagHealthIndicator } from './indexer-lag.health';
-import { IndexerModule } from '../indexer/indexer.module';
+import {
+  IndexerLagHealthIndicator,
+  StellarRpcHealthIndicator,
+} from './stellar-rpc.health';
 
 @Module({
+  imports: [TerminusModule, forwardRef(() => IndexerModule)],
   imports: [
     TerminusModule,
     TypeOrmModule.forFeature([]),
@@ -18,7 +19,6 @@ import { IndexerModule } from '../indexer/indexer.module';
   providers: [
     RedisHealthIndicator,
     StellarRpcHealthIndicator,
-    IndexerHealthIndicator,
     IndexerLagHealthIndicator,
   ],
 })

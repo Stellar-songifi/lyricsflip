@@ -8,7 +8,7 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 import { Player } from '../player/player.entity';
-import { Tournament } from '../tournament/tournament.entity';
+import { Tournament } from '../rounds/entities/tournament.entity';
 import { GameStatus } from './enums/game-status.enum';
 
 @Entity('game_sessions')

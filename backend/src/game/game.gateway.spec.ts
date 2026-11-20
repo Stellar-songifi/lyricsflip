@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { WsException } from '@nestjs/websockets';
 import { GameGateway } from './game.gateway';
 import { WsAuthenticator } from '../auth/providers/ws-authenticator.provider';
+import { WsRateLimitGuard } from '../common/guards/ws-rate-limit.guard';
 
 const mockSocket = (id: string) =>
   ({
@@ -27,6 +28,7 @@ describe('GameGateway', () => {
       providers: [
         GameGateway,
         { provide: WsAuthenticator, useValue: wsAuthenticator },
+        { provide: WsRateLimitGuard, useValue: { canActivate: () => true } },
       ],
     }).compile();
 

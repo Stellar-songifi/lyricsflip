@@ -19,7 +19,7 @@ import { PasswordResetToken } from './entities/password-reset-token.entity';
 import { MailModule } from '../mail/mail.module';
 import { WsAuthenticator } from './providers/ws-authenticator.provider';
 import { WalletAuthProvider } from './providers/wallet-auth.provider';
-import { RefreshTokenStore } from './providers/refresh-token-store.provider';
+import { RefreshTokenStore } from './providers/refresh-tokens';
 
 @Module({
   controllers: [AuthController],

@@ -10,7 +10,7 @@ import {
   import { Server, Socket } from 'socket.io';
   import { OnEvent } from '@nestjs/event-emitter';
   import { Logger, UseGuards } from '@nestjs/common';
-  import { WsRateLimitGuard } from '../config/ws-rate-limit.guard';
+  import { WsRateLimitGuard } from '../common/guards/ws-rate-limit.guard';
   
   @WebSocketGateway({
     namespace: 'rooms',

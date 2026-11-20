@@ -3,16 +3,18 @@
  * Sync ISSUES.md backlog into GitHub issues.
  *
  * Usage:
- *   npm --prefix backend run issues:sync -- [--dry-run] [--file ISSUES.md] [--repo owner/name]
+ *   npm --prefix backend run issues:sync -- [--dry-run] [FILE] [--file FILE] [--repo owner/name]
  *
+ * - FILE defaults to the repository's ISSUES.md. Pass a path such as `../BACKLOG.md`
+ *   to sync a different backlog, either as the first argument or with `--file`.
  * - Parses every `### LF-xxx · Title` block (labels, description, tasks, acceptance criteria).
  * - Creates labels once (area:*, priority:*, type:*, effort:*).
  * - Skips issues whose `LF-xxx` already exists on GitHub (idempotent, re-runnable).
- * - Writes the issue-number mapping back as `<!-- gh:NNN -->` comments in ISSUES.md.
+ * - Writes the issue-number mapping back as `<!-- gh:NNN -->` comments in the synced file.
  */
 import { execFileSync } from 'node:child_process';
-import { readFileSync, writeFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { isAbsolute, resolve } from 'node:path';
 
 interface ParsedIssue {
   id: string;
@@ -25,16 +27,35 @@ interface ParsedIssue {
 
 const HEADER_RE = /^###\s+(LF-\d+)\s*·\s*(.+?)\s*$/;
 const MAPPING_RE = /<!--\s*gh:(\d+)\s*-->/;
+const REPO_ROOT = resolve(__dirname, '../..');
+const DEFAULT_FILE = resolve(REPO_ROOT, 'ISSUES.md');
 
-function parseArgs(argv: string[]) {
-  const opts = { dryRun: false, file: 'ISSUES.md', repo: '' };
+export function parseArgs(argv: string[]) {
+  const opts = { dryRun: false, file: DEFAULT_FILE, repo: '' };
+  let fileSet = false;
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i];
     if (arg === '--dry-run') opts.dryRun = true;
-    else if (arg === '--file') opts.file = argv[++i];
-    else if (arg === '--repo') opts.repo = argv[++i];
+    else if (arg === '--file' || arg === '--repo') {
+      const value = argv[++i];
+      if (!value || value.startsWith('--'))
+        throw new Error(`${arg} requires a value`);
+      if (arg === '--file') {
+        opts.file = value;
+        fileSet = true;
+      } else opts.repo = value;
+    } else if (!arg.startsWith('-') && !fileSet) {
+      opts.file = arg;
+      fileSet = true;
+    }
   }
   return opts;
+}
+
+function resolveFilePath(file: string) {
+  if (isAbsolute(file)) return file;
+  const fromCwd = resolve(process.cwd(), file);
+  return existsSync(fromCwd) ? fromCwd : resolve(REPO_ROOT, file);
 }
 
 function gh(args: string[], repo: string): string {
@@ -89,14 +110,15 @@ function parseIssues(markdown: string): ParsedIssue[] {
   return issues;
 }
 
-function normalizeLabels(raw: string[]): string[] {
+export function normalizeLabels(raw: string[]): string[] {
   const out = new Set<string>();
   for (const label of raw) {
     const lower = label.toLowerCase();
     if (/^p[0-3]$/.test(lower)) out.add(`priority:${lower.toUpperCase()}`);
     else if (['bug', 'feature', 'devex', 'docs', 'chore'].includes(lower))
       out.add(`type:${lower}`);
-    else if (/^s|m|l|xl$/.test(lower)) out.add(`effort:${lower.toUpperCase()}`);
+    else if (/^(s|m|l|xl)$/.test(lower))
+      out.add(`effort:${lower.toUpperCase()}`);
     else out.add(label);
   }
   return [...out];
@@ -158,7 +180,7 @@ function existingIssueNumbers(repo: string): Set<string> {
 
 function main() {
   const opts = parseArgs(process.argv.slice(2));
-  const filePath = resolve(process.cwd(), opts.file);
+  const filePath = resolveFilePath(opts.file);
   const markdown = readFileSync(filePath, 'utf8');
   const issues = parseIssues(markdown);
 
@@ -219,4 +241,4 @@ function main() {
   }
 }
 
-main();
+if (require.main === module) main();

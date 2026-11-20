@@ -150,10 +150,33 @@ of truth.
 
 Real-time multiplayer uses Socket.IO on the same port. Events, payloads and error codes are documented in [`docs/realtime-protocol.md`](../docs/realtime-protocol.md); the namespace map above is the only event summary kept here.
 
+## Syncing the issue backlog
+
+`scripts/sync-issues.ts` turns `### LF-xxx · Title` blocks into GitHub issues. By default it reads the
+repository's `ISSUES.md`; pass another Markdown backlog as the first argument (or with `--file`):
+
+```bash
+# Preview the labels without creating anything
+npm run issues:sync -- --dry-run
+
+# Preview or create issues from a backlog named BACKLOG.md at the repository root
+npm run issues:sync -- --dry-run ../BACKLOG.md
+npm run issues:sync -- ../BACKLOG.md
+
+# The --file form works too
+npm run issues:sync -- --dry-run --file ../BACKLOG.md
+```
+
+Paths are relative to the current working directory (normally `backend/`), so a root-level
+`BACKLOG.md` is `../BACKLOG.md`. Requires an authenticated `gh` CLI with issue-creation permissions;
+`--repo owner/name` targets a different repository. Only exact shorthands (`s`/`m`/`l`/`xl`, `p0`–`p3`
+and the supported type names) are rewritten; every other label — including `security`,
+`help wanted` and `area:onchain` — is preserved exactly as written.
+
 ## Tests
 
 ```bash
-npm test          # unit tests (src/**/*.spec.ts)
+npm test          # unit tests (src/** and scripts/**/*.spec.ts)
 npm run test:cov  # unit tests with coverage (enforces the Jest coverage threshold)
 npm run test:e2e  # e2e tests (test/*.e2e-spec.ts) — no live database required
 ```
@@ -165,6 +188,7 @@ npm run test:e2e  # e2e tests (test/*.e2e-spec.ts) — no live database required
 | `npm run build` | Compile to `dist/` |
 | `npm run start:prod` | Run the compiled build |
 | `npm run lint` / `npm run format` | ESLint / Prettier |
+| `npm run issues:sync -- --dry-run [FILE]` | Preview the GitHub issues generated from a backlog Markdown file |
 
 ## Logging
 

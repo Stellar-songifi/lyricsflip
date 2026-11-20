@@ -35,6 +35,14 @@ const customJestConfig = {
       functions: 60,
       branches: 50,
     },
+    // LF-322: the Stellar layer must stay above 80% lines and branches.
+    // A bug there corrupts gameplay silently, so coverage is enforced here.
+    './src/lib/stellar/**': {
+      lines: 80,
+      statements: 80,
+      functions: 80,
+      branches: 80,
+    },
   },
 }
 

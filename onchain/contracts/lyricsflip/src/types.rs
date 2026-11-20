@@ -1,4 +1,4 @@
-﻿use soroban_sdk::{contracttype, Address, BytesN, Map, String, Vec};
+use soroban_sdk::{contracttype, Address, BytesN, Map, String, Vec};
 
 /// Ported from `onchain/src/utils/types.cairo`. `felt252`/`ByteArray` fields
 /// become `String`; Starknet's `u8` fields become `u32` since Soroban has no
@@ -226,6 +226,7 @@ impl From<RoundV4> for Round {
             admin: r.admin,
             genre: r.genre,
             wager_amount: r.wager_amount,
+            wager_token: None,
             start_time: r.start_time,
             is_started: r.is_started,
             is_completed: r.is_completed,
@@ -339,6 +340,9 @@ pub struct CardPos {
     pub genre: u32,
     pub artist: u32,
     pub year: u32,
+    pub decade: u32,
+    pub difficulty: u32,
+    pub genre_decade: u32,
 }
 
 /// Mirrors Cairo's single `ADMIN_ROLE` selector. Kept as an enum (instead of
@@ -435,6 +439,22 @@ pub enum DataKey {
     /// LF-293: `(correct, points)` recorded for each answer, keyed by
     /// `(round_id, player, card_id)`, so result screens need no events.
     RoundAnswer((u64, Address, u64)),
+    /// LF-286: number of rounds in a player's round-history index.
+    PlayerRoundCount(Address),
+    /// LF-286: the player's `n`th round id, in join order (oldest first).
+    PlayerRoundAt((Address, u32)),
+    /// Address of the `lyricsflip-escrow` contract that holds round wagers.
+    EscrowContract,
+    /// LF-264: invitee allowlist of a private round.
+    RoundInvitees(u64),
+    /// Round-filter indexes: card count per decade / difficulty /
+    /// genre+decade, and the card id at each position.
+    DecadeCardCount(u64),
+    DecadeCardAt((u64, u32)),
+    DifficultyCardCount(u32),
+    DifficultyCardAt((u32, u32)),
+    GenreDecadeCardCount((Genre, u64)),
+    GenreDecadeCardAt((Genre, u64, u32)),
 }
 
 /// LF-293: per-card breakdown returned by `get_round_summary`.
@@ -445,11 +465,6 @@ pub struct CardResult {
     pub kind: QuestionKind,
     /// `(correct, points)` per player who answered this card.
     pub per_player: Map<Address, (bool, u64)>,
-    /// LF-286: number of rounds in a player's round-history index.
-    PlayerRoundCount(Address),
-    /// LF-286: the player's `n`th round id, in join order (oldest first).
-    PlayerRoundAt((Address, u32)),
-    EscrowContract,
 }
 
 #[contracttype]
@@ -458,5 +473,6 @@ pub struct AnswerResult {
     pub correct: bool,
     pub points: u64,
     pub correct_option: u32,
-    pub next: Option<QuestionCard>,
+    /// The next question, or empty when the deck is exhausted.
+    pub next: Vec<QuestionCard>,
 }

@@ -9,7 +9,11 @@ import { IndexerLagHealthIndicator } from './indexer-lag.health';
 import { IndexerModule } from '../indexer/indexer.module';
 
 @Module({
-  imports: [TerminusModule, TypeOrmModule.forFeature([]), forwardRef(() => IndexerModule)],
+  imports: [
+    TerminusModule,
+    TypeOrmModule.forFeature([]),
+    forwardRef(() => IndexerModule),
+  ],
   controllers: [HealthController],
   providers: [
     RedisHealthIndicator,

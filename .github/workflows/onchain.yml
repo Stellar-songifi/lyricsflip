@@ -34,6 +34,17 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
       - run: cargo build --target wasm32v1-none --release
         working-directory: onchain
+      - name: Persistent writes must bump TTL (LF-274)
+        working-directory: onchain
+        run: |
+          # Every persistent write must go through the set_persistent helper so
+          # the entry's TTL is extended. Allow only the helper's own body.
+          if grep -n 'persistent()\.set(' contracts/lyricsflip/src/lib.rs \
+              | grep -v 'fn set_persistent' \
+              | grep -v 'set_persistent'; then
+            echo "::error::persistent().set( found outside the set_persistent helper"
+            exit 1
+          fi
       - uses: actions/upload-artifact@v4
         with:
           name: contracts-wasm
@@ -91,11 +102,41 @@ jobs:
       - name: Test with coverage
         working-directory: onchain
         run: |
-          cargo llvm-cov --workspace --summary-only | tee coverage.txt
+          set -o pipefail
+          cargo llvm-cov --workspace --text | tee coverage.txt
           {
             echo "### Coverage"
             echo '```'
             cat coverage.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          lib_coverage=$(cargo llvm-cov --package lyricsflip --include contracts/lyricsflip/src/lib.rs --fail-under-lines 90 --summary-only)
+          {
+            echo "### lyricsflip lib.rs coverage (minimum 90%)"
+            echo '```'
+            echo "$lib_coverage"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  audit:
+    name: Dependency audit (LF-243)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: onchain
+      - uses: taiki-e/install-action@cargo-audit
+      - name: cargo audit
+        working-directory: onchain
+        run: |
+          set -o pipefail
+          cargo audit 2>&1 | tee audit.log
+          {
+            echo "### cargo audit"
+            echo '```'
+            cat audit.log
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
 
@@ -120,3 +161,24 @@ jobs:
         shell: bash
       - name: Check TypeScript bindings are fresh
         run: bash onchain/scripts/check-bindings-fresh.sh
+
+  api-docs-check:
+    name: Contract API docs are up to date (LF-182)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check docs/api.md covers every public function, error, and event
+        run: bash onchain/scripts/check-api-docs.sh
+
+  ci-summary:
+    name: LyricsFlip Contracts
+    if: always()
+    needs: [build, test, bindings-check, api-docs-check]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require contract checks
+        run: |
+          if [[ "${{ needs.build.result }}" != "success" || "${{ needs.test.result }}" != "success" || "${{ needs.bindings-check.result }}" != "success" || "${{ needs.api-docs-check.result }}" != "success" ]]; then
+            echo "Contract checks did not all pass."
+            exit 1
+          fi

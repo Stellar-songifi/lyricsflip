@@ -4,6 +4,15 @@
   "testEnvironment": "node",
   "testRegex": ".e2e-spec.ts$",
   "transform": {
-    "^.+\\.(t|j)s$": "ts-jest"
+    "^.+\\.(t|j)s$": [
+      "ts-jest",
+      { "isolatedModules": true, "tsconfig": { "allowJs": true } }
+    ]
+  },
+  "transformIgnorePatterns": [
+    "/node_modules/(?!(@stellar|@noble|@exodus|uint8array-extras|smol-toml|feaxios)/)"
+  ],
+  "moduleNameMapper": {
+    "^src/(.*)$": "<rootDir>/../src/$1"
   }
 }

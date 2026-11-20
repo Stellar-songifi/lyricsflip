@@ -1,0 +1,22 @@
+{
+  "entry": [
+    "src/main.ts",
+    "src/database/data-source.ts",
+    "src/utility/export-openapi.ts",
+    "test/**/*.e2e-spec.ts"
+  ],
+  "project": ["src/**/*.ts"],
+  "ignore": ["src/_experimental/**", "src/migrations/**", "src/**/*.spec.ts"],
+  "ignoreDependencies": [
+    "@nestjs/mapped-types",
+    "@nestjs/passport",
+    "nanoid",
+    "passport",
+    "passport-jwt",
+    "swagger-ui-express",
+    "@types/passport-jwt",
+    "openapi-typescript",
+    "source-map-support",
+    "ts-loader"
+  ]
+}

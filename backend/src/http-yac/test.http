@@ -1,6 +1,6 @@
 # TEST API
 
-@baseUrl = http://localhost:3000
+@baseUrl = http://localhost:3000/api/v1
 
 # Test Endpoints
 
@@ -36,4 +36,3 @@ Content-Type: application/json
 
 ### remove (Template)
 DELETE {{baseUrl}}/config-test/:id
-

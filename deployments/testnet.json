@@ -6,5 +6,10 @@
   "lyricsflipNft": "",
   "tag": "",
   "commit": "",
-  "deployedAt": ""
+  "deployedAt": "",
+  "wasm": {
+    "lyricsflip": "",
+    "lyricsflipNft": ""
+  },
+  "lyricsflipEscrow": ""
 }

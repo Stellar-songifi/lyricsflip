@@ -2,7 +2,7 @@ import { Injectable, Logger } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import type { Repository } from "typeorm";
 import { PlayerEngagementMetric } from "../analytics/entities/player-engagement.entity";
-import { UserActivity } from "src/user/user-activity.entity";
+import { UserActivity } from "@app/user/user-activity.entity";
 import type { DateRangeDto } from "../analytics/dto/date-range.dto";
 import type { PlayerEngagementDto } from "../analytics/dto/player-engagement.dto";
 

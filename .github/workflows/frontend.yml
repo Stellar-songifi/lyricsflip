@@ -3,9 +3,9 @@ name: Frontend CI
 on:
   push:
     branches: [main]
-    paths: ['frontend/**', '.github/workflows/frontend.yml']
+    paths: ["frontend/**", ".github/workflows/frontend.yml"]
   pull_request:
-    paths: ['frontend/**', '.github/workflows/frontend.yml']
+    paths: ["frontend/**", "onchain/**", ".github/workflows/frontend.yml"]
 
 concurrency:
   group: frontend-${{ github.ref }}
@@ -13,7 +13,7 @@ concurrency:
 
 jobs:
   frontend:
-    name: Frontend CI
+    name: Frontend tests
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -37,7 +37,178 @@ jobs:
             ${{ runner.os }}-frontend-
 
       - run: npm ci
+      - name: Export OpenAPI spec from backend
+        working-directory: backend
+        run: npm ci && npm run openapi:export
+      - name: Check generated API client is fresh
+        working-directory: frontend
+        run: |
+          if ! npm run check:api; then
+            echo ""
+            echo "::error::frontend/src/services/generated/api.ts is out of date with the backend OpenAPI spec."
+            echo "Fix: cd backend && npm run openapi:export && npm run openapi:generate"
+            echo "Then commit backend/openapi.json and frontend/src/services/generated/api.ts."
+            exit 1
+          fi
+      - name: npm audit (production dependencies)
+        run: npm audit --omit=dev
       - run: npm run lint
       - run: npx tsc --noEmit
-      - run: npm test -- --ci
+      - name: Unit tests with coverage
+        run: npm test -- --ci --coverage
+      - name: Publish coverage summary
+        if: always()
+        run: |
+          if [ -f coverage/coverage-summary.json ]; then
+            node -e '
+              const s = require("./coverage/coverage-summary.json").total;
+              const rows = ["lines", "statements", "functions", "branches"]
+                .map((k) => `| ${k} | ${s[k].pct}% | ${s[k].covered}/${s[k].total} |`)
+                .join("\n");
+              process.stdout.write(`### Coverage\n\n| Metric | % | Covered |\n| --- | --- | --- |\n${rows}\n`);
+            ' >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "No coverage summary found." >> "$GITHUB_STEP_SUMMARY"
+          fi
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-coverage
+          path: frontend/coverage/lcov.info
+          if-no-files-found: warn
+      - name: Knip report (non-blocking)
+        run: npx knip || true
+        continue-on-error: true
       - run: npm run build
+        env:
+          NEXT_PUBLIC_LYRICSFLIP_CONTRACT_ID: CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+          NEXT_PUBLIC_LYRICSFLIP_NFT_CONTRACT_ID: CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+      - name: Bundle size budget
+        run: npm run check:bundle-size
+      - name: Build Storybook
+        run: npm run build-storybook
+      - name: Upload Storybook
+        uses: actions/upload-artifact@v4
+        with:
+          name: storybook-static
+          path: frontend/storybook-static
+          if-no-files-found: warn
+
+  bindings:
+    name: Contract bindings are fresh
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32v1-none
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: onchain
+      - name: Install Stellar CLI
+        run: cargo install stellar-cli --locked
+      # Fails when a contract signature changes without regenerating
+      # src/lib/stellar/generated (LF-296).
+      - run: npm run check:bindings
+
+  e2e:
+    name: Frontend e2e
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      # Skip the suite until frontend/e2e/ exists (LF-321 adds the specs).
+      - name: Check for e2e specs
+        id: specs
+        run: |
+          if [ -d e2e ]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "frontend/e2e/ not found; e2e skipped." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - uses: actions/setup-node@v4
+        if: steps.specs.outputs.present == 'true'
+        with:
+          node-version: 20
+
+      - run: npm ci
+        if: steps.specs.outputs.present == 'true'
+
+      - name: Install Playwright browsers
+        if: steps.specs.outputs.present == 'true'
+        run: npx playwright install --with-deps
+
+      - name: Start Stellar quickstart
+        if: steps.specs.outputs.present == 'true'
+        run: |
+          docker run -d --name stellar -p 8000:8000 \
+            stellar/quickstart:latest --local --enable-soroban-rpc
+          for i in $(seq 1 60); do
+            if curl -sf http://localhost:8000/soroban/rpc -X POST \
+              -H 'Content-Type: application/json' \
+              -d '{"jsonrpc":"2.0","id":1,"method":"getHealth"}' > /dev/null; then
+              echo "Stellar quickstart is ready."
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Stellar quickstart did not become ready in time."
+          docker logs stellar
+          exit 1
+
+      - name: Deploy and seed contracts
+        if: steps.specs.outputs.present == 'true'
+        run: npm run contracts:deploy:local && npm run contracts:seed:local
+
+      - name: Run Playwright tests
+        if: steps.specs.outputs.present == 'true'
+        run: npm run test:e2e
+        env:
+          NEXT_PUBLIC_LYRICSFLIP_CONTRACT_ID: CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+          NEXT_PUBLIC_LYRICSFLIP_NFT_CONTRACT_ID: CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: frontend/playwright-report
+          if-no-files-found: warn
+
+      - name: Upload Playwright traces
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-test-results
+          path: frontend/test-results
+          if-no-files-found: warn
+
+  ci-summary:
+    name: Frontend CI
+    if: always()
+    needs: [frontend, bindings, e2e]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require frontend checks
+        run: |
+          if [[ "${{ needs.frontend.result }}" != "success" ]]; then
+            echo "Frontend checks did not pass."
+            exit 1
+          fi
+          if [[ "${{ needs.bindings.result }}" != "success" ]]; then
+            echo "Contract bindings are out of date."
+            exit 1
+          fi
+          if [[ "${{ needs.e2e.result }}" != "success" && "${{ needs.e2e.result }}" != "skipped" ]]; then
+            echo "Frontend e2e checks did not pass."
+            exit 1
+          fi

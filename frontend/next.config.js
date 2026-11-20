@@ -1,56 +1,62 @@
-const path = require('path');
+const webpack = require('webpack');
+const createNextIntlPlugin = require('next-intl/plugin');
+const withBundleAnalyzer = require('@next/bundle-analyzer')({
+  enabled: process.env.ANALYZE === 'true',
+});
+const testnetDeployment = require('../deployments/testnet.json');
+
+// Build-time check: fail next build in production mode when contract IDs are empty
+if (
+  process.env.NODE_ENV === 'production' &&
+  process.env.NEXT_PHASE !== 'phase-development-server'
+) {
+  const gameContractId =
+    process.env.NEXT_PUBLIC_LYRICSFLIP_CONTRACT_ID || testnetDeployment.lyricsflip;
+  const nftContractId =
+    process.env.NEXT_PUBLIC_LYRICSFLIP_NFT_CONTRACT_ID || testnetDeployment.lyricsflipNft;
+
+  if (!gameContractId || !nftContractId) {
+    throw new Error(
+      'Production build failed: NEXT_PUBLIC_LYRICSFLIP_CONTRACT_ID and NEXT_PUBLIC_LYRICSFLIP_NFT_CONTRACT_ID must be set in production mode.',
+    );
+  }
+}
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  env: {
-    NEXT_PUBLIC_RPC_URL: process.env.NEXT_PUBLIC_RPC_URL,
-    NEXT_PUBLIC_TORII_URL: process.env.NEXT_PUBLIC_TORII_URL,
-    NEXT_PUBLIC_RELAY_URL: process.env.NEXT_PUBLIC_RELAY_URL,
-    NEXT_PUBLIC_PLAYER_ADDRESS: process.env.NEXT_PUBLIC_PLAYER_ADDRESS,
-    NEXT_PUBLIC_PLAYER_PRIVATE_KEY: process.env.NEXT_PUBLIC_PLAYER_PRIVATE_KEY,
-    NEXT_PUBLIC_MASTER_ADDRESS: process.env.NEXT_PUBLIC_MASTER_ADDRESS,
-    NEXT_PUBLIC_MASTER_PRIVATE_KEY: process.env.NEXT_PUBLIC_MASTER_PRIVATE_KEY,
-    NEXT_PUBLIC_ACCOUNT_CLASS_HASH: process.env.NEXT_PUBLIC_ACCOUNT_CLASS_HASH,
-    NEXT_PUBLIC_FEE_TOKEN_ADDRESS: process.env.NEXT_PUBLIC_FEE_TOKEN_ADDRESS,
+  // LF-204: the page moved from the doubled path to /notifications.
+  async redirects() {
+    return [
+      {
+        source: '/notifications/notifications',
+        destination: '/notifications',
+        permanent: true,
+      },
+    ];
   },
   webpack: (config, { isServer }) => {
-    // Configure WASM handling
-    config.experiments = {
-      asyncWebAssembly: true,
-      layers: true,
-    };
-
-    // Add rule for WASM files
-    config.module.rules.push({
-      test: /\.wasm$/,
-      use: [
-        {
-          loader: 'wasm-loader',
-          options: {
-            sync: true,
-          },
-        },
-      ],
-    });
-
-    // Add polyfills for Node.js modules in client environment
     if (!isServer) {
+      config.resolve = config.resolve ?? {};
       config.resolve.fallback = {
-        ...config.resolve.fallback,
-        fs: false,
-        net: false,
-        tls: false,
-        crypto: false,
-        stream: false,
-        buffer: false,
+        ...(config.resolve.fallback ?? {}),
+        buffer: require.resolve('buffer/'),
+        crypto: require.resolve('crypto-browserify'),
+        stream: require.resolve('stream-browserify'),
       };
+
+      config.plugins = config.plugins ?? [];
+      config.plugins.push(
+        new webpack.ProvidePlugin({
+          Buffer: ['buffer', 'Buffer'],
+        }),
+      );
     }
 
     return config;
   },
-  // Enable source maps in development
-  productionBrowserSourceMaps: process.env.NODE_ENV === 'development',
 };
 
-module.exports = nextConfig; 
+const withNextIntl = createNextIntlPlugin('./src/i18n/request.ts');
+
+module.exports = withBundleAnalyzer(withNextIntl(nextConfig));

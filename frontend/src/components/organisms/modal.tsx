@@ -44,15 +44,7 @@ export function Modal({
     <Sheet open={isOpen} onOpenChange={onClose}>
       <SheetContent
         side="right"
-        className="
-          w-full sm:max-w-[580px]
-          top-0 bottom-0 right-0
-          sm:top-8 sm:bottom-8 sm:right-8
-          sm:w-[calc(100%-64px)] sm:h-[calc(100%-64px)]
-          sm:rounded-lg
-          overflow-y-auto
-          max-h-screen
-        "
+        className="sm:max-w-[580px] top-0 sm:top-8 bottom-0 sm:bottom-8 right-0 sm:right-8 w-full sm:w-[calc(100%-64px)] h-full sm:h-[calc(100%-64px)] rounded-none sm:rounded-lg overflow-y-auto"
       >
         <SheetHeader>
           <SheetTitle>{title}</SheetTitle>

@@ -1,8 +1,11 @@
 {
-  "name": "LyricsFlip Reward #{token_id}",
-  "description": "A LyricsFlip milestone reward.",
-  "image": "https://<host>/images/{token_id}.png",
+  "name": "LyricsFlip Achievement – {kind_name}",
+  "description": "Awarded to a player who reached the '{kind_name}' milestone in LyricsFlip.",
+  "image": "https://<host>/images/{kind}.png",
+  "external_url": "https://lyricsflip.io",
   "attributes": [
-    { "trait_type": "Milestone", "value": "FirstWin | Streak5 | TenWins" }
+    { "trait_type": "Kind",      "value": "{kind}" },
+    { "trait_type": "Milestone", "value": "{kind_name}" },
+    { "trait_type": "Token ID",  "value": "{token_id}" }
   ]
 }

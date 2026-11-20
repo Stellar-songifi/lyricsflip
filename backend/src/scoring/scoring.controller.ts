@@ -1,8 +1,10 @@
 import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { ApiTags } from '@nestjs/swagger';
 import { ScoringService } from './scoring.service';
 import { CreateScoringDto } from './dto/create-scoring.dto';
 import { UpdateScoringDto } from './dto/update-scoring.dto';
 
+@ApiTags('scoring')
 @Controller('scoring')
 export class ScoringController {
   constructor(private readonly scoringService: ScoringService) {}

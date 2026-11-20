@@ -1,36 +1,63 @@
-import { Controller, Post, Get } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import {
+  Controller,
+  Get,
+  Param,
+  Query,
+  DefaultValuePipe,
+  ParseIntPipe,
+} from '@nestjs/common';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiParam,
+  ApiQuery,
+} from '@nestjs/swagger';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { WagerService } from './provider/wager.service';
 
+// Wager history, as read from indexed on-chain state. Placing a wager and
+// claiming winnings both happen in the user's wallet by calling the
+// contract directly, so there is no write path here.
 @ApiTags('wager')
-@Controller('wager')
+@Controller('wagers')
 export class WagerController {
   constructor(private readonly wagerService: WagerService) {}
 
-  // controller for managing wager operations.
-  @Post()
-  @ApiOperation({ summary: 'Place a wager' })
-  @ApiResponse({ status: 201, description: 'Wager successfully placed' })
-  @ApiResponse({ status: 400, description: 'Invalid wager data' })
-  placeWager() {
-    return this.wagerService.placeWager();
+  @Get('me')
+  @ApiOperation({
+    summary: 'Get my wager history',
+    description: "Paginated history of the current user's wagers",
+  })
+  @ApiQuery({ name: 'page', required: false, type: Number })
+  @ApiQuery({ name: 'limit', required: false, type: Number })
+  @ApiResponse({
+    status: 200,
+    description: 'Wager history successfully retrieved',
+  })
+  getMyWagers(
+    @CurrentUser('sub') userId: string,
+    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
+    @Query('limit', new DefaultValuePipe(20), ParseIntPipe) limit: number,
+  ) {
+    return this.wagerService.findByPlayer(userId, { page, limit });
   }
+}
 
-  // Retrieve wager history.
-  @Get('history')
-  @ApiOperation({ summary: 'Get wager history' })
-  @ApiResponse({ status: 200, description: 'Wager history retrieved' })
-  @ApiResponse({ status: 404, description: 'No wager history found' })
-  getWagerHistory() {
-    return this.wagerService.getWagerHistory();
-  }
+// Wagers placed on a specific round.
+@ApiTags('wager')
+@Controller('rounds')
+export class RoundWagerController {
+  constructor(private readonly wagerService: WagerService) {}
 
-  // Claim winning.
-  @Post('claim')
-  @ApiOperation({ summary: 'Claim winnings' })
-  @ApiResponse({ status: 200, description: 'Winnings successfully claimed' })
-  @ApiResponse({ status: 400, description: 'No winnings to claim' })
-  claimWinnings() {
-    return this.wagerService.claimWinnings();
+  @Get(':id/wagers')
+  @ApiOperation({ summary: 'Get wagers for a round' })
+  @ApiParam({ name: 'id', description: 'Round id', type: 'string' })
+  @ApiResponse({
+    status: 200,
+    description: 'Round wagers successfully retrieved',
+  })
+  getRoundWagers(@Param('id') id: string) {
+    return this.wagerService.findByRound(id);
   }
 }

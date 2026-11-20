@@ -17,7 +17,7 @@ const gameOptions: GameOption[] = [
   {
     id: 'quick-game',
     title: 'Quick Game',
-    description: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.',
+    description: 'Jump straight in — no setup required. Guess lyrics across all genres and beat the clock.',
     icon: '/quick.svg',
     color: 'bg-[#9747FF]',
     bgPattern: '/cardline.svg',
@@ -27,7 +27,7 @@ const gameOptions: GameOption[] = [
   {
     id: 'single-player',
     title: 'Wager (Single Player)',
-    description: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.',
+    description: 'Choose your genre, set a wager, and race solo to identify as many lyrics as possible.',
     icon: '/wagersingle.svg',
     color: 'bg-[#3F8AB6]',
     bgPattern: '/card2line.svg',
@@ -37,7 +37,7 @@ const gameOptions: GameOption[] = [
   {
     id: 'multi-player',
     title: 'Wager (Multi Player)',
-    description: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.',
+    description: 'Create a round, invite friends, and compete head-to-head. Winner takes the pot.',
     icon: '/wagermulti.svg',
     color: 'bg-[#DF7A16]',
     bgPattern: '/card3line.svg',
@@ -47,7 +47,7 @@ const gameOptions: GameOption[] = [
   {
     id: 'challenge',
     title: 'Join a Challenge',
-    description: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.',
+    description: 'Accept a challenge from a friend and go head-to-head to prove who knows more lyrics.',
     icon: '/join.svg',
     color: 'bg-[#7D1D3F]',
     bgPattern: '/card4line.svg',

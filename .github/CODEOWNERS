@@ -1,0 +1,41 @@
+# Paths that supply-chain malware (e.g. the PolinRider campaign) uses to run
+# code on a contributor's or maintainer's machine. Changes here need a
+# maintainer's review before merge.
+#
+# Takes effect once the main ruleset enables "Require review from Code Owners".
+
+# Editor / devcontainer auto-run hooks (tasks.json `runOn: folderOpen`,
+# `task.allowAutomaticTasks`)
+.vscode/                @simeontech
+.devcontainer/          @simeontech
+**/.vscode/             @simeontech
+
+# Install-time and git-hook scripts
+package.json            @simeontech
+**/package.json         @simeontech
+.husky/                 @simeontech
+.npmrc                  @simeontech
+**/.npmrc               @simeontech
+
+# Build tool configs (payloads get appended after long whitespace runs)
+**/postcss.config.*     @simeontech
+**/tailwind.config.*    @simeontech
+**/eslint.config.*      @simeontech
+**/.eslintrc.*          @simeontech
+**/next.config.*        @simeontech
+**/vite.config.*        @simeontech
+**/jest.config.*        @simeontech
+**/webpack.config.*     @simeontech
+**/babel.config.*       @simeontech
+
+# Binary and font files (payloads disguised as e.g. fa-solid-*.woff2)
+*.woff                  @simeontech
+*.woff2                 @simeontech
+*.ttf                   @simeontech
+*.otf                   @simeontech
+*.eot                   @simeontech
+*.bat                   @simeontech
+*.exe                   @simeontech
+
+# CI and repository automation
+.github/                @simeontech

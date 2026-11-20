@@ -8,7 +8,7 @@ import {
   ScoreCalculatedEvent,
   StreakUpdatedEvent,
 } from './events/scoring.events';
-import { Player } from 'src/player/player.entity';
+import { Player } from '@app/player/player.entity';
 import { Scoring } from './entities/scoring.entity';
 import { UpdateScoringDto } from './dto/update-scoring.dto';
 

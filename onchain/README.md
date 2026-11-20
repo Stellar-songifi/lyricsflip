@@ -19,7 +19,16 @@ contracts:
 
 ## Round scoring and finalization
 
-Each player's round score is the number of correct answers they submitted in that round. The contract also tracks the total time spent answering in that round so tie-breaks can be resolved fairly. `get_round_scores(round_id)` returns the final per-player score map for the round.
+Each correct answer earns the time-adjusted base points multiplied by the card
+difficulty (1 = easy, 2 = medium, 3 = hard). Existing stored cards are lazily
+migrated with difficulty 2. The contract also tracks total answer time for
+tie-breaks. `get_round_scores(round_id)` returns each player's accumulated
+points.
+
+`create_round_with_filter` accepts optional genre and decade filters plus an
+optional difficulty. Decades are supplied as their first year (for example,
+1990); filtered selection checks at most 500 cards and fails if too few cards
+match. The existing `create_round` entry point retains its genre-only behavior.
 
 A round can be finalized when either:
 
@@ -30,7 +39,7 @@ A round can be finalized when either:
 
 Winner selection follows the LF-005 rule:
 
-- highest correct-answer count wins
+- highest point score wins
 - when several players are tied on score, the lowest total answer time wins
 - if the score and total answer time are both tied, the tied players are co-winners
 - if every player has a score of `0`, there are no winners
@@ -45,9 +54,14 @@ to the finalization time, or kept at the deadline if the round timed out.
 - **Player cap:** `join_round` fails with `RoundFull` once a round has
   `get_max_players()` players (default `8`; the owner can change it with
   `set_max_players(caller, value)`, minimum 2).
-- **Round deadline:** a round's `end_time` is `start_time + 300s`. After it,
-  `submit_answer` fails with `RoundCompleted`, and the round can be finalized.
-- **Card answer window:** players have `CARD_ANSWER_WINDOW_SECONDS` (15s) after
+- **Round deadline:** a round's `end_time` is `start_time + round_duration`.
+  The duration is snapshotted onto the round at creation. By default, it scales dynamically
+  as `cards_per_round × (answer_window + round_buffer)` (default buffer `15s`; e.g., 20 cards
+  yield `600s`), or can be overridden globally by the owner via `set_round_duration(caller, value)`
+  (`set_round_buffer(caller, value)` tunes the latency buffer). After it, `submit_answer` fails
+  with `RoundCompleted`, and the round can be finalized.
+- **Card answer window:** players have `round.answer_window` (default `15s`, snapshotted at
+  creation, owner-configurable via `set_answer_window(caller, value)` within `[5, 180]s`) after
   `next_card` to answer. **Late answers are accepted but scored as wrong**
   (they break the streak), so the player still counts as having answered and
   the round can finalize early.
@@ -56,8 +70,9 @@ to the finalization time, or kept at the deadline if the round timed out.
   emits `RoundLeft { round_id, player, refunded }`.
 - **Cancelling:** `cancel_round(caller, round_id)` works before start. The
   round admin can call it at any time; anyone else can call it once the lobby
-  has been open for `LOBBY_TIMEOUT_SECONDS` (600s). It sets `is_cancelled`,
-  drops the round from `get_open_rounds`, refunds every player and emits
+  has been open for `round.lobby_timeout` (default `600s`, snapshotted at creation,
+  owner-configurable via `set_lobby_timeout(caller, value)` within `[30, 86400]s`). It sets
+  `is_cancelled`, drops the round from `get_open_rounds`, refunds every player and emits
   `RoundCancelled { round_id, cancelled_by, refunded_players, refund_per_player }`.
   A cancelled round can't be joined, started, or finalized (`RoundCancelled`).
 
@@ -88,30 +103,86 @@ non-fungible interface, with method names and events matching OpenZeppelin's
 library, to avoid tying the workspace's `soroban-sdk` version to the
 library's.
 
-| Function | Description |
-| --- | --- |
-| `mint(caller, recipient) -> u128` | Minter-only; mints the next token id |
-| `owner_of(token_id) -> Address` | Owner of a token |
-| `balance(owner) -> u32` | Number of tokens held by `owner` |
-| `transfer(from, to, token_id)` | Owner transfers a token (auth: `from`) |
-| `transfer_from(spender, from, to, token_id)` | Approved spender or operator transfers (auth: `spender`) |
-| `approve(approver, approved, token_id, live_until_ledger)` | Owner or operator approves one spender for a token; `0` revokes |
-| `approve_for_all(owner, operator, live_until_ledger)` | Approves an operator for all of `owner`'s tokens; `0` revokes |
-| `get_approved(token_id) -> Option<Address>` | Current, unexpired token approval |
-| `is_approved_for_all(owner, operator) -> bool` | Whether `operator` is an unexpired operator |
-| `token_name()`, `token_symbol()`, `base_uri()`, `token_count()` | Metadata |
-| `token_uri(token_id) -> String` | `base_uri` followed by the token id; `TokenDoesNotExist` for unminted tokens |
-| `set_base_uri(caller, base_uri)` | Owner-only; at most 200 bytes |
-| `set_minter(caller, new_minter)` | Owner-only; the old minter can no longer mint |
-| `owner()`, `minter()`, `pending_owner()` | Administration views |
+The full function list, signatures, events and error codes are generated from
+the contract source into [`docs/api.md`](docs/api.md). Regenerate it with
+`./scripts/gen-api-docs.sh` after changing any public interface.
+
+Highlights: `mint` is minter-only and records an achievement `kind`;
+`token_kind` exposes it; `tokens_of_owner` paginates an owner's tokens (≤ 50
+per page); all transfer and approval entry points panic with
+`NonTransferable` (LF-169); `set_base_uri` and `set_minter` are owner-only.
+
+#### LF-168 – Token kind
+
+Every minted badge records which achievement / milestone it represents via a
+`kind: u32` parameter on `mint`.  The kind is stored under
+`DataKey::TokenKind(token_id)` and exposed through the `token_kind` view.
+
+`token_uri` now returns `<base_uri><kind>.json` (e.g.
+`https://assets.lyricsflip.io/nft/0.json`).  This means every token of the
+same kind shares one metadata URL with its own artwork and description, without
+requiring an off-chain id→kind mapping.
+
+Metadata files live in `metadata/`:
+
+| File | Kind | Milestone |
+| --- | --- | --- |
+| `metadata/0.json` | 0 | `FirstWin` — first round won |
+| `metadata/1.json` | 1 | `Streak5` — correct-answer streak of 5 |
+| `metadata/2.json` | 2 | `TenWins` — ten rounds won |
+
+`metadata/template.json` is the generic template for future kinds.
+
+The `NftInterface` trait in the game contract and the cross-contract call in
+`claim_reward` have been updated to pass `milestone as u32` as the `kind`
+argument.
+
+#### LF-169 – Soulbound badges (ADR)
+
+**Decision: all tokens in this contract are soulbound.**
+
+Achievement badges cannot be transferred, approved, or delegated.  Calling
+`transfer`, `transfer_from`, `approve`, or `approve_for_all` always panics with
+`Error::NonTransferable` (code 11).  `get_approved` always returns `None` and
+`is_approved_for_all` always returns `false`.
+
+Rationale:
+
+1. Every token in this contract is an on-chain achievement badge — a record that
+   a specific wallet reached a specific milestone.  Allowing trading would make a
+   "top players" badge gallery meaningless.
+2. Making soulbound the invariant for the whole contract is simpler to reason
+   about and test than a per-kind flag.
+3. A future contract (or a new contract) can introduce transferable collectibles
+   if that use case arises; having them in the same contract would complicate the
+   storage layout and the access rules.
+
+#### LF-170 – Per-owner token index
+
+The previous approach — iterating `owner_of(1..token_count)` — required O(N)
+RPC simulations and was unusable beyond a few hundred mints.
+
+The contract now maintains a dense index per owner:
+
+| Storage key | Value | Purpose |
+| --- | --- | --- |
+| `OwnerTokenCount(owner)` | `u32` | Number of tokens currently held |
+| `OwnerTokenAt((owner, i))` | `u128` | Token id at index position `i` (0-based) |
+| `OwnerTokenPosition((owner, token_id))` | `u32` | Position of `token_id` in the owner's index |
+
+Insertions append to the end (O(1)).  Removals use **swap-remove**: the last
+entry is moved into the vacated slot, the last slot is deleted, and the count is
+decremented — all O(1).
+
+`tokens_of_owner(owner, start, limit)` returns a paginated slice of the index
+in a single contract call.  `limit` is clamped to `MAX_TOKENS_PER_PAGE` (50).
 
 Per-token metadata follows the JSON template in `metadata/template.json`, served
-at `<base_uri><token_id>`.
+at `<base_uri><kind>.json`.
 
-Events: `NftMinted`, `Transfer { from, to, token_id }`,
-`Approve { approver, token_id, approved, live_until_ledger }` and
-`ApproveForAll { owner, operator, live_until_ledger }`, `MinterUpdated`. A
-transfer clears the token's approval.
+Events: `NftMinted { token_id, kind, recipient }`, `MinterUpdated`.
+Transfer and approval events are not emitted because those operations are
+disabled.
 
 ## Ownership, roles and upgrades
 
@@ -121,27 +192,47 @@ Both contracts support a two-step ownership transfer: the owner calls
 events; `owner()` and `pending_owner()` views). On `lyricsflip`, the new owner
 is also granted the admin role, and `set_role` is owner-only regardless of the
 owner's own admin flag, so the owner cannot lock themselves out. `set_role`
-emits `RoleUpdated { address, role, enabled }`.
+emits `RoleUpdated { address, role, enabled }`. Admin flags and the enumerable
+admin index (`get_admins() -> Vec<Address>`) reside in persistent storage (LF-156)
+so instance storage holds only global configuration, and revoked admins have their
+keys deleted rather than storing false tombstones.
 
-Both contracts expose `version() -> u32` and an owner-only
-`upgrade(caller, new_wasm_hash)` that replaces the code in place and keeps all
-storage (cards, stats, NFTs). Bump `VERSION` in the contract on each release,
-then:
+Soroban does not provide an API to enumerate old instance-storage keys. The v3-to-v4
+`migrate(caller)` step moves the owner admin entry; to eagerly clear other legacy
+entries, the owner must call `migrate_legacy_admins(caller, candidates)` in batches,
+using addresses collected from historical `RoleUpdated` events (include revoked
+addresses too). Each batch removes matching legacy keys and moves active grants into
+persistent storage. `is_admin` also migrates an omitted legacy entry lazily when that
+address is checked.
+
+Both contracts expose `version() -> u32` (contract code version), `schema_version() -> u32` (storage schema version, defaulting to 1 for unmigrated legacy state), an owner-only `upgrade(caller, new_wasm_hash)`, and an owner-only `migrate(caller)` hook.
+
+### Upgrade then migrate sequence
+
+When deploying a new contract release that introduces changes to storage structures or layouts (LF-157), execute the two-step upgrade sequence:
+
+1. **Upgrade WASM code:** Replace the running contract WASM with the new bytecode. The `upgrade` invocation verifies owner authorization, invokes `env.deployer().update_current_contract_wasm(new_wasm_hash)`, and emits `ContractUpgraded { owner, new_wasm_hash, old_version, new_version }`.
+2. **Migrate storage layout:** Invoke `migrate` to step stored records through sequential schema versions until reaching `SCHEMA_VERSION`. Code version and schema version are tracked independently. The hook updates `DataKey::SchemaVersion`, emits `SchemaMigrated { caller, old_schema_version, new_schema_version }`, and is strictly **idempotent** (calling `migrate` multiple times after migration is a safe no-op).
 
 ```bash
+# 1. Build and upload new WASM bytecode
 cargo build --target wasm32v1-none --release
 HASH=$(stellar contract upload \
   --wasm target/wasm32v1-none/release/lyricsflip.wasm \
   --source <OWNER_IDENTITY> --network testnet)
+
+# 2. Step 1: Upgrade contract code in place (keeps all existing storage)
 stellar contract invoke --id <LYRICSFLIP_CONTRACT_ID> \
   --source <OWNER_IDENTITY> --network testnet \
   -- upgrade --caller <OWNER_ADDRESS> --new_wasm_hash $HASH
+
+# 3. Step 2: Migrate storage layout to current SCHEMA_VERSION (idempotent)
+stellar contract invoke --id <LYRICSFLIP_CONTRACT_ID> \
+  --source <OWNER_IDENTITY> --network testnet \
+  -- migrate --caller <OWNER_ADDRESS>
 ```
 
-A release that changes the layout of stored data must migrate it; there is no
-storage schema version key yet, so add one alongside the first such change.
-`fixtures/upgrade_v2.wasm` (built from `contracts/upgrade-fixture`) is the
-stand-in new code used by the upgrade tests.
+`fixtures/upgrade_v2.wasm` (built from `contracts/upgrade-fixture`) is the stand-in v2 code used by automated upgrade fixture integration tests to verify state preservation, schema migration, and idempotency.
 
 ## Build & test
 
@@ -221,16 +312,12 @@ environment variables (see `frontend/src/lib/stellar/stellarConfig.ts`).
 
 ## Views for lobbies and catalogue size
 
-| Function | Returns |
-| --- | --- |
-| `get_cards_count()` | Number of live cards, i.e. added and not removed (`u64`) |
-| `get_round_count()` | Total number of rounds created (`u64`) |
-| `get_genre_card_count(genre)` | Number of cards in `genre` (`u32`) |
-| `get_rounds(start, limit)` | Up to `limit` rounds from round id `start` (ids begin at 1), ascending |
-| `get_open_rounds(start, limit)` | Ids of created-but-not-started rounds, oldest first; `start` is an offset |
-
-Both paginated views clamp `limit` to `MAX_PAGE_LIMIT` (50) and return an
-empty list once `start` is past the end.
+`get_cards_count`, `get_round_count` and `get_genre_card_count` return catalogue
+and round totals. `get_rounds(start, limit)` and `get_open_rounds(start, limit)`
+paginate rounds (ids begin at 1; `start` is an offset for open rounds). Both
+paginated views clamp `limit` to `MAX_PAGE_LIMIT` (50) and return an empty list
+once `start` is past the end. See [`docs/api.md`](docs/api.md) for exact
+signatures and return types.
 
 ## Card catalogue
 
@@ -264,8 +351,14 @@ runs a full batch with Mainnet limits enforced.
 
 ## Events
 
+See [`docs/api.md`](docs/api.md) for which function emits which event
+alongside its full signature, errors, and a CLI example. The table below is a
+quick numeric/topic reference across both contracts.
+
 Topics are listed in order after the event name, which soroban-sdk adds as the
 first topic (snake_case, e.g. `card_added`). Data is a map of the remaining
+fields. The complete event list — with topics and data fields — is generated in
+[`docs/api.md`](docs/api.md).
 fields.
 
 | Event | Emitted by | Topics | Data |
@@ -274,7 +367,8 @@ fields.
 | `RoundJoined` | `join_round` | `round_id: u64`, `player: Address` | `joined_time: u64` |
 | `PlayerReady` | `start_round` | `round_id: u64`, `player: Address` | `ready_time: u64` |
 | `RoundStarted` | `start_round` (last player ready) | `round_id: u64`, `admin: Address` | `start_time: u64` |
-| `CardDrawn` | `next_card` | `round_id: u64` | `index: u32` (position in the round), `card_id: u64` |
+| `CardDrawn` | `next_card` | `round_id: u64` | `index: u32` (position in the round); no card id while the round is live (LF-278) |
+| `CardRevealed` | `finalize_round` (one per round card) | `round_id: u64` | `index: u32`, `card_id: u64` (LF-278) |
 | `AnswerSubmitted` | `submit_answer` (first answer per card) | `round_id: u64`, `player: Address` | `correct: bool` |
 | `RoundCompleted` | `finalize_round` | `round_id: u64` | `winners: Vec<Address>`, `scores: Map<Address, u64>` |
 | `CardAdded` | `add_card`, `add_cards` (one per card) | `card_id: u64`, `genre: Genre` | – |
@@ -282,6 +376,10 @@ fields.
 | `CardRemoved` | `remove_card` | `card_id: u64` | – |
 | `RoleUpdated` | `set_role` | `account: Address` | `role: Role`, `enabled: bool` |
 | `CardsPerRoundUpdated` | `set_cards_per_round` | – | `value: u32` |
+| `AnswerWindowUpdated` | `set_answer_window` | – | `value: u64` |
+| `LobbyTimeoutUpdated` | `set_lobby_timeout` | – | `value: u64` |
+| `RoundDurationUpdated` | `set_round_duration` | – | `value: u64` |
+| `RoundBufferUpdated` | `set_round_buffer` | – | `value: u64` |
 ## TTL policy (LF-012)
 
 Soroban persistent and instance storage entries are **archived** when their
@@ -300,16 +398,18 @@ write.
 
 ### What gets bumped
 
-**Instance storage** (owner, admin flags, counters, config) is bumped in every
+**Instance storage** (owner, global counters, timing configuration) is bumped in every
 public entry point that reads or writes it — constructors, admin mutations
-(`add_card`, `set_cards_per_round`, `set_role`), and read-only views
-(`get_cards_count`, `get_round_count`, `get_cards_per_round`, `is_admin`).
+(`add_card`, `set_cards_per_round`), and read-only views
+(`get_cards_count`, `get_round_count`, `get_cards_per_round`).
 
 **Persistent storage** is bumped per-key on write, and on read for the
 following hot keys:
 
 | Key | Bumped on |
 | --- | --- |
+| `Admin(address)` | `set_role`, `accept_ownership` (write), `is_admin` (read) |
+| `Admins` | `set_role`, `accept_ownership` (write), `get_admins` (read) |
 | `Card(id)` | `add_card` (write), `get_card` (read) |
 | `GenreCards / ArtistCards / YearCards` | `add_card` (write), `get_cards_of_*` (read) |
 | `Round(id)` | every write (`create_round`, `start_round`, `next_card`, …) and every read (`read_round`) |
@@ -322,22 +422,38 @@ following hot keys:
 | `OpenRounds` | `create_round` / `start_round` write |
 | `PlayerStats` | `start_round` / `submit_answer` / `finalize_round` write, `get_player_stat` read |
 | `TokenOwner(id)` *(NFT)* | `mint` write, `owner_of` read |
+| `TokenKind(id)` *(NFT)* | `mint` write, `token_kind` read (LF-168) |
+| `OwnerTokenCount(owner)` *(NFT)* | `mint` write via `index_add` (LF-170) |
+| `OwnerTokenAt((owner, i))` *(NFT)* | `mint` write via `index_add` (LF-170) |
+| `OwnerTokenPosition((owner, token_id))` *(NFT)* | `mint` write via `index_add` (LF-170) |
+| `TokenOwner(id)` *(NFT)* | `mint` write, `owner_of` read, `do_transfer` write |
+| `Balance(owner)` *(NFT)* | `add_balance` write, `balance` read |
+| `Approval(id)` *(NFT)* | `approve` write, `get_approved` read |
+| `ApprovalForAll(owner, operator)` *(NFT)* | `approve_for_all` write, `is_approved_for_all` read |
 
 ### Survival tests
 
 `test::ttl_survival_game_entries_survive_ledger_advance` advances the ledger
 sequence past the default TTL and verifies that entries touched during gameplay
-(cards, rounds, player stats) are still readable. The equivalent NFT test
-`test::ttl_survival_token_owner_survives_ledger_advance` covers `TokenOwner`.
+(cards, rounds, player stats) are still readable. The equivalent NFT tests
+`test::ttl_survival_token_owner_survives_ledger_advance` and
+`test::ttl_survival_transfer_survives_ledger_advance` cover `TokenOwner`,
+`Balance`, and approvals surviving ledger advances for transfers.
 
 ## Error codes
+
+See [`docs/api.md`](docs/api.md) for which function can raise which error. The
+table below is a quick numeric-code reference across both contracts, kept in
+sync by `onchain/scripts/check-api-docs.sh` (LF-182, runs in CI).
 
 Contract errors reach clients as `Error(Contract, #<code>)`, and the frontend
 maps on the numeric code (`frontend/src/lib/stellar/errors.ts`). **Codes are
 stable: never renumber or reuse one.** New variants take the next free number
-and must be added here, in `errors.ts`, and in the `error_codes_are_stable`
-test of the contract, which fails CI on any renumbering.
+and must be added in `errors.ts` and in the `error_codes_are_stable` test of
+the contract, which fails CI on any renumbering.
 
+The complete, generated list of error codes for both contracts lives in
+[`docs/api.md`](docs/api.md).
 Every variant is currently referenced by the contract. The ones marked
 *defensive* guard states that can't happen in practice.
 
@@ -350,7 +466,7 @@ Every variant is currently referenced by the contract. The ones marked
 | 3 | `RoundAlreadyStarted` | Tried to join a round that has already started |
 | 4 | `NonExistingGenre` | `create_round` was called without a genre |
 | 5 | `RoundAlreadyJoined` | Caller is already a player in the round |
-| 6 | `InvalidCardsPerRound` | `set_cards_per_round` was called with 0 |
+| 6 | `InvalidCardsPerRound` | `set_cards_per_round` was called with 0 or more than `MAX_CARDS_PER_ROUND` (20) |
 | 7 | `ArtistCardsIsZero` | No cards exist for the requested artist |
 | 8 | `EmptyYearCards` | No cards exist for the requested year |
 | 9 | `EmptyGenreCards` | No cards exist for the requested genre |
@@ -364,7 +480,7 @@ Every variant is currently referenced by the contract. The ones marked
 | 17 | `NonExistingCard` | No card with the given id |
 | 18 | `RoundNotReady` | `finalize_round` before all answers are in or the deadline has passed |
 | 19 | `RoundAlreadyFinalized` | Round was already finalized |
-| 20 | `RoundCancelled` | Round was cancelled |
+| 20 | `NotEnoughDistinctCards` | `build_question_card` can't find 3 distinct distractors (fewer than 4 distinct values in the catalogue) |
 | 21 | `RoundFull` | Round already has `max_players` players |
 | 22 | `InvalidMaxPlayers` | `set_max_players` was called with a value below 2 |
 | 23 | `NftContractNotSet` | `claim_reward` before the owner set the NFT contract |
@@ -378,10 +494,23 @@ Every variant is currently referenced by the contract. The ones marked
 | 31 | `DuplicateCard` | Another card already has this `title` + `artist` |
 | 32 | `BatchTooLarge` | `add_cards` got more than `MAX_CARDS_PER_BATCH` cards |
 | 33 | `NotPendingOwner` | Caller of `accept_ownership` is not the pending owner |
-| 26 | `NotPendingOwner` | Caller of `accept_ownership` is not the pending owner |
-| 18 | `RoundNotReady` | `finalize_round` called before all answers submitted and before the deadline |
-| 19 | `RoundAlreadyFinalized` | `finalize_round` called a second time on an already-finalized round |
-| 20 | `NotEnoughDistinctCards` | `build_question_card` can't find 3 distinct distractors (fewer than 4 distinct values in the catalogue) |
+| 34 | `NoMoreCards` | All cards have been drawn; call `finalize_round` |
+| 35 | `RoundCancelled` | Round was cancelled |
+| 36 | `InvalidCardDifficulty` | Card difficulty or round difficulty is not between 1 and 3 |
+| 37 | `InvalidDecade` | Round decade is not a valid decade start year |
+| 38 | `NoActiveCard` | `submit_answer` called before any card is drawn (`next_card` not called) |
+| 39 | `AlreadyAnswered` | Player submitted more than one answer for the same card |
+| 40 | `Paused` | Contract is currently paused |
+| 41 | `InvalidAnswerWindow` | `set_answer_window` called with value outside [5, 180]s |
+| 42 | `InvalidLobbyTimeout` | `set_lobby_timeout` called with value outside [30, 86400]s |
+| 43 | `InvalidRoundDuration` | `set_round_duration` or `set_round_buffer` called with out-of-bounds value |
+| 44 | `CardInActiveRound` | `update_card` tried to change a card's title/artist/year while a non-finalized round still references it (LF-176) |
+| 45 | `TooManyOpenRounds` | `create_round` rejected because the caller already has `MAX_OPEN_ROUNDS_PER_ADDRESS` open public lobbies (LF-175) |
+| 46 | `MaxPlayersTooHigh` | `set_max_players` got a value above `MAX_ROUND_PLAYERS` (8) (LF-154) |
+| 47 | `LobbyExpired` | The lobby is older than its `lobby_timeout`; it can only be cancelled (LF-265) |
+| 48 | `InvalidInvite` | `join_round` on a private round by a caller not on the invitee allowlist (LF-264, LF-277) |
+| 49 | `LobbyTimeoutNotReached` | Non-admin `cancel_round` before the lobby timeout elapsed (LF-277) |
+| 50 | `AdminCannotLeave` | The round admin called `leave_round`; cancel the round instead (LF-277) |
 
 ### `lyricsflip-nft`
 
@@ -397,3 +526,5 @@ Every variant is currently referenced by the contract. The ones marked
 | 8 | `NotOwner` | Caller of an owner-only function is not the owner |
 | 9 | `NotPendingOwner` | Caller of `accept_ownership` is not the pending owner |
 | 10 | `BaseUriTooLong` | `base_uri` is longer than 200 bytes |
+| 11 | `NonTransferable` | Achievement badges are soulbound; `transfer`, `transfer_from`, `approve`, and `approve_for_all` always panic with this code (LF-169) |
+| 11 | `InsufficientBalance` | Balance is insufficient or missing for transfer |

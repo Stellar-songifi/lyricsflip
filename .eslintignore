@@ -1,0 +1,7 @@
+# ESLint is only configured inside workspace folders (frontend/, backend/).
+# Ignore everything at the root so a stray `eslint .` doesn't pick up
+# root-level TypeScript files that should not exist here.
+*
+!frontend/**
+!backend/**
+node_modules/

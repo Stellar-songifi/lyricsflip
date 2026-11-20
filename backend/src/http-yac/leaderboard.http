@@ -1,6 +1,6 @@
 # LEADERBOARD API
 
-@baseUrl = http://localhost:3000
+@baseUrl = http://localhost:3000/api/v1
 
 # Leaderboard Endpoints
 
@@ -39,4 +39,3 @@ Content-Type: application/json
 
 ### remove (Template)
 DELETE {{baseUrl}}/leaderboard/:id
-

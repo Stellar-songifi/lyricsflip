@@ -10,7 +10,7 @@ import {
   MinLength,
 } from 'class-validator';
 import { Exclude, Expose } from 'class-transformer';
-import { UserRole } from 'src/common/enums/role.enum';
+import { UserRole } from '@app/common/enums/role.enum';
 
 export class UserDTO {
   @IsUUID()

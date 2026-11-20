@@ -32,4 +32,32 @@ export class ConfigService {
   getStellarNetwork(): string {
     return this.get<string>('stellar.network');
   }
+
+  getSorobanRpcUrl(): string {
+    return this.get<string>('soroban.rpcUrl');
+  }
+
+  getSorobanContractIds(): string[] {
+    return this.get<string[]>('soroban.contractIds');
+  }
+
+  getCorsOrigin(): string | string[] {
+    return this.get<string | string[]>('cors.origin');
+  }
+
+  getRedisHost(): string {
+    return this.get<string>('redis.host');
+  }
+
+  getRedisPort(): number {
+    return this.get<number>('redis.port');
+  }
+
+  getRateLimitTtl(): number {
+    return this.get<number>('rateLimit.ttl');
+  }
+
+  getRateLimitLimit(): number {
+    return this.get<number>('rateLimit.limit');
+  }
 }

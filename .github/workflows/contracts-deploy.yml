@@ -1,22 +1,28 @@
-# LF-110: deploy (first run) or upgrade (later runs) the contracts on testnet
-# when a `contracts-v*` tag is pushed, then commit the IDs to
-# deployments/testnet.json so the frontend picks them up as defaults.
+# LF-110 / LF-242: deploy (first run) or upgrade (later runs) the contracts
+# when a `contracts-v*` tag is pushed (either by hand or by release-please,
+# LF-244), then commit the IDs and WASM hashes to deployments/<network>.json
+# so the frontend picks them up as defaults.
 #
 # Required secrets:
 #   STELLAR_TESTNET_SECRET_KEY  secret key (S...) of the funded owner identity
-name: Contracts Deploy (testnet)
+#   STELLAR_MAINNET_SECRET_KEY  secret key (S...) of the funded owner identity
+#
+# The `mainnet` job is gated by the `mainnet` GitHub environment, which must
+# be configured with required reviewers so every mainnet deploy is approved.
+name: Contracts Deploy
 
 on:
   push:
     tags:
       - 'contracts-v*'
+      - 'onchain-v*'
   workflow_dispatch:
 
 permissions:
   contents: write
 
 concurrency:
-  group: contracts-deploy-testnet
+  group: contracts-deploy-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
@@ -25,6 +31,9 @@ jobs:
     env:
       NETWORK: testnet
       DEPLOYMENT_FILE: deployments/testnet.json
+      # Expected contract version after migrate (LF-157). Bump alongside the
+      # contract's `version()` constant.
+      EXPECTED_VERSION: '1'
     steps:
       - uses: actions/checkout@v4
         with:
@@ -50,6 +59,161 @@ jobs:
       - name: Build contracts
         working-directory: onchain
         run: cargo build --target wasm32v1-none --release
+      - name: Record WASM SHA-256 hashes
+        shell: bash
+        run: |
+          set -euo pipefail
+          WASM_DIR=onchain/target/wasm32v1-none/release
+          mkdir -p wasm-artifacts
+          cp "$WASM_DIR/lyricsflip.wasm" wasm-artifacts/lyricsflip.wasm
+          cp "$WASM_DIR/lyricsflip_nft.wasm" wasm-artifacts/lyricsflip_nft.wasm
+          ( cd wasm-artifacts && sha256sum lyricsflip.wasm lyricsflip_nft.wasm > SHA256SUMS )
+          cat wasm-artifacts/SHA256SUMS
+          GAME_SHA=$(awk '$2 == "lyricsflip.wasm" {print $1}' wasm-artifacts/SHA256SUMS)
+          NFT_SHA=$(awk '$2 == "lyricsflip_nft.wasm" {print $1}' wasm-artifacts/SHA256SUMS)
+          echo "GAME_SHA=$GAME_SHA" >> "$GITHUB_ENV"
+          echo "NFT_SHA=$NFT_SHA" >> "$GITHUB_ENV"
+      - name: Deploy or upgrade
+        shell: bash
+        run: |
+          set -euo pipefail
+          WASM_DIR=onchain/target/wasm32v1-none/release
+          GAME_ID=$(jq -r '.lyricsflip // ""' "$DEPLOYMENT_FILE")
+          NFT_ID=$(jq -r '.lyricsflipNft // ""' "$DEPLOYMENT_FILE")
+
+          if [[ -z "$GAME_ID" || -z "$NFT_ID" ]]; then
+            echo "No existing deployment; deploying fresh contracts"
+            GAME_ID=$(stellar contract deploy --wasm "$WASM_DIR/lyricsflip.wasm" \
+              --source deployer --network "$NETWORK" -- --owner "$OWNER")
+            NFT_ID=$(stellar contract deploy --wasm "$WASM_DIR/lyricsflip_nft.wasm" \
+              --source deployer --network "$NETWORK" -- \
+              --owner "$OWNER" --minter "$GAME_ID" \
+              --token_name "LyricsFlip" --token_symbol "LFLIP" \
+              --base_uri "https://lyricsflip.xyz/nft/")
+            ESCROW_ID=$(stellar contract deploy --wasm "$WASM_DIR/lyricsflip_escrow.wasm" \
+              --source deployer --network "$NETWORK" -- \
+              --owner "$GAME_ID" --treasury "$OWNER" --fee_bps 0)
+            stellar contract invoke --id "$GAME_ID" --source deployer --network "$NETWORK" -- \
+              set_escrow_contract --caller "$OWNER" --escrow "$ESCROW_ID"
+            stellar contract invoke --id "$GAME_ID" --source deployer --network "$NETWORK" \
+              -- set_cards_per_round --caller "$OWNER" --value 5
+          else
+            echo "Upgrading existing contracts in place (LF-021)"
+            for pair in "lyricsflip:$GAME_ID" "lyricsflip_nft:$NFT_ID"; do
+              name=${pair%%:*}; id=${pair#*:}
+              hash=$(stellar contract upload --wasm "$WASM_DIR/$name.wasm" \
+                --source deployer --network "$NETWORK")
+              stellar contract invoke --id "$id" --source deployer --network "$NETWORK" \
+                -- upgrade --caller "$OWNER" --new_wasm_hash "$hash"
+              # LF-157: run the migration hook, then assert the new version.
+              stellar contract invoke --id "$id" --source deployer --network "$NETWORK" \
+                -- migrate --caller "$OWNER"
+              version=$(stellar contract invoke --id "$id" --source deployer --network "$NETWORK" \
+                -- version | tr -d '"[:space:]')
+              if [[ "$version" != "$EXPECTED_VERSION" ]]; then
+                echo "::error::$name version() returned '$version', expected '$EXPECTED_VERSION'"
+                exit 1
+              fi
+              echo "$name migrated to version $version"
+            done
+          fi
+
+          jq --arg game "$GAME_ID" --arg nft "$NFT_ID" \
+             --arg tag "${GITHUB_REF_NAME}" --arg commit "${GITHUB_SHA}" \
+             --arg at "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+             --arg gameSha "$GAME_SHA" --arg nftSha "$NFT_SHA" \
+             '.lyricsflip = $game | .lyricsflipNft = $nft | .tag = $tag | .commit = $commit | .deployedAt = $at
+              | .wasm = {lyricsflip: $gameSha, lyricsflipNft: $nftSha}' \
+             "$DEPLOYMENT_FILE" > tmp.json && mv tmp.json "$DEPLOYMENT_FILE"
+
+          {
+            echo "### Testnet deployment"
+            echo "- lyricsflip: \`$GAME_ID\` (sha256 \`$GAME_SHA\`)"
+            echo "- lyricsflip-nft: \`$NFT_ID\` (sha256 \`$NFT_SHA\`)"
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Smoke test
+        shell: bash
+        run: |
+          set -euo pipefail
+          GAME_ID=$(jq -r '.lyricsflip' "$DEPLOYMENT_FILE")
+          NFT_ID=$(jq -r '.lyricsflipNft' "$DEPLOYMENT_FILE")
+          version=$(stellar contract invoke --id "$GAME_ID" --source deployer --network "$NETWORK" \
+            -- version | tr -d '"[:space:]')
+          [[ "$version" == "$EXPECTED_VERSION" ]] || {
+            echo "::error::smoke test: lyricsflip version() = '$version'"; exit 1; }
+          cards=$(stellar contract invoke --id "$GAME_ID" --source deployer --network "$NETWORK" \
+            -- get_cards_count)
+          echo "Smoke test OK: version=$version cards=$cards"
+      - name: Attach WASM files to the release
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1 \
+            || gh release create "$GITHUB_REF_NAME" --title "$GITHUB_REF_NAME" --notes "Contracts ${GITHUB_REF_NAME}"
+          gh release upload "$GITHUB_REF_NAME" \
+            wasm-artifacts/lyricsflip.wasm \
+            wasm-artifacts/lyricsflip_nft.wasm \
+            wasm-artifacts/SHA256SUMS --clobber
+      - name: Commit deployment record
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898299+github-actions[bot]@users.noreply.github.com"
+          git add "$DEPLOYMENT_FILE"
+          git diff --cached --quiet && exit 0
+          git commit -m "chore(deployments): record testnet contracts for ${GITHUB_REF_NAME}"
+          git push origin HEAD:main
+
+  mainnet:
+    # LF-242: mainnet deploys require manual approval via the `mainnet`
+    # GitHub environment (Settings > Environments > mainnet > Required reviewers).
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: deploy
+    runs-on: ubuntu-latest
+    environment: mainnet
+    env:
+      NETWORK: mainnet
+      DEPLOYMENT_FILE: deployments/mainnet.json
+      EXPECTED_VERSION: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - name: Check out the tagged commit
+        run: git checkout "${{ github.sha }}" -- onchain
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32v1-none
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: onchain
+      - name: Install Stellar CLI
+        run: cargo install stellar-cli --locked
+      - name: Import deployer identity
+        env:
+          STELLAR_SECRET_KEY: ${{ secrets.STELLAR_MAINNET_SECRET_KEY }}
+        run: |
+          echo "$STELLAR_SECRET_KEY" | stellar keys add deployer --secret-key
+          echo "OWNER=$(stellar keys address deployer)" >> "$GITHUB_ENV"
+      - name: Build contracts
+        working-directory: onchain
+        run: cargo build --target wasm32v1-none --release
+      - name: Record WASM SHA-256 hashes
+        shell: bash
+        run: |
+          set -euo pipefail
+          WASM_DIR=onchain/target/wasm32v1-none/release
+          mkdir -p wasm-artifacts
+          cp "$WASM_DIR/lyricsflip.wasm" wasm-artifacts/lyricsflip.wasm
+          cp "$WASM_DIR/lyricsflip_nft.wasm" wasm-artifacts/lyricsflip_nft.wasm
+          ( cd wasm-artifacts && sha256sum lyricsflip.wasm lyricsflip_nft.wasm > SHA256SUMS )
+          cat wasm-artifacts/SHA256SUMS
+          GAME_SHA=$(awk '$2 == "lyricsflip.wasm" {print $1}' wasm-artifacts/SHA256SUMS)
+          NFT_SHA=$(awk '$2 == "lyricsflip_nft.wasm" {print $1}' wasm-artifacts/SHA256SUMS)
+          echo "GAME_SHA=$GAME_SHA" >> "$GITHUB_ENV"
+          echo "NFT_SHA=$NFT_SHA" >> "$GITHUB_ENV"
       - name: Deploy or upgrade
         shell: bash
         run: |
@@ -77,25 +241,59 @@ jobs:
                 --source deployer --network "$NETWORK")
               stellar contract invoke --id "$id" --source deployer --network "$NETWORK" \
                 -- upgrade --caller "$OWNER" --new_wasm_hash "$hash"
+              stellar contract invoke --id "$id" --source deployer --network "$NETWORK" \
+                -- migrate --caller "$OWNER"
+              version=$(stellar contract invoke --id "$id" --source deployer --network "$NETWORK" \
+                -- version | tr -d '"[:space:]')
+              if [[ "$version" != "$EXPECTED_VERSION" ]]; then
+                echo "::error::$name version() returned '$version', expected '$EXPECTED_VERSION'"
+                exit 1
+              fi
+              echo "$name migrated to version $version"
             done
           fi
 
           jq --arg game "$GAME_ID" --arg nft "$NFT_ID" \
              --arg tag "${GITHUB_REF_NAME}" --arg commit "${GITHUB_SHA}" \
              --arg at "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
-             '.lyricsflip = $game | .lyricsflipNft = $nft | .tag = $tag | .commit = $commit | .deployedAt = $at' \
+             --arg gameSha "$GAME_SHA" --arg nftSha "$NFT_SHA" \
+             '.lyricsflip = $game | .lyricsflipNft = $nft | .tag = $tag | .commit = $commit | .deployedAt = $at
+              | .wasm = {lyricsflip: $gameSha, lyricsflipNft: $nftSha}' \
              "$DEPLOYMENT_FILE" > tmp.json && mv tmp.json "$DEPLOYMENT_FILE"
 
           {
-            echo "### Testnet deployment"
-            echo "- lyricsflip: \`$GAME_ID\`"
-            echo "- lyricsflip-nft: \`$NFT_ID\`"
+            echo "### Mainnet deployment"
+            echo "- lyricsflip: \`$GAME_ID\` (sha256 \`$GAME_SHA\`)"
+            echo "- lyricsflip-nft: \`$NFT_ID\` (sha256 \`$NFT_SHA\`)"
           } >> "$GITHUB_STEP_SUMMARY"
+      - name: Smoke test
+        shell: bash
+        run: |
+          set -euo pipefail
+          GAME_ID=$(jq -r '.lyricsflip' "$DEPLOYMENT_FILE")
+          version=$(stellar contract invoke --id "$GAME_ID" --source deployer --network "$NETWORK" \
+            -- version | tr -d '"[:space:]')
+          [[ "$version" == "$EXPECTED_VERSION" ]] || {
+            echo "::error::smoke test: lyricsflip version() = '$version'"; exit 1; }
+          cards=$(stellar contract invoke --id "$GAME_ID" --source deployer --network "$NETWORK" \
+            -- get_cards_count)
+          echo "Smoke test OK: version=$version cards=$cards"
+      - name: Attach WASM files to the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1 \
+            || gh release create "$GITHUB_REF_NAME" --title "$GITHUB_REF_NAME" --notes "Contracts ${GITHUB_REF_NAME}"
+          gh release upload "$GITHUB_REF_NAME" \
+            wasm-artifacts/lyricsflip.wasm \
+            wasm-artifacts/lyricsflip_nft.wasm \
+            wasm-artifacts/SHA256SUMS --clobber
       - name: Commit deployment record
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898299+github-actions[bot]@users.noreply.github.com"
           git add "$DEPLOYMENT_FILE"
           git diff --cached --quiet && exit 0
-          git commit -m "chore(deployments): record testnet contracts for ${GITHUB_REF_NAME}"
+          git commit -m "chore(deployments): record mainnet contracts for ${GITHUB_REF_NAME}"
           git push origin HEAD:main

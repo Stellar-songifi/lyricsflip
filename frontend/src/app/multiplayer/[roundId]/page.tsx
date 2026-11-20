@@ -7,6 +7,7 @@ import { Button } from '@/components/atoms/button';
 import ChallengeInvite from '@/components/organisms/challenge-invite';
 import { LyricCard } from '@/components/organisms/lyric-card';
 import RoundScoreboard from '@/components/organisms/round-scoreboard';
+import { SpectatorView } from '@/components/organisms/SpectatorView';
 import { SongOptions } from '@/components/molecules/song-options';
 import {
   CARD_TIMEOUT_SECONDS,
@@ -572,6 +573,19 @@ function MultiplayerRoundClient() {
           Back to lobby
         </Button>
       </div>,
+    );
+  }
+
+  // ── Spectator mode ────────────────────────────────────────────────────────
+  // Non-participants who open a live/started round link see the spectator view.
+  if (isStarted && !isParticipant) {
+    return shell(
+      <>
+        <h1 className="text-2xl font-bold mb-6">
+          Round {rawRoundId} · {getGenreDisplayName(round.genre)}
+        </h1>
+        <SpectatorView roundId={rawRoundId} />
+      </>,
     );
   }
 

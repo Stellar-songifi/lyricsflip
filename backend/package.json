@@ -21,6 +21,7 @@
     "migration:run": "typeorm-ts-node-commonjs migration:run -d src/database/data-source.ts",
     "migration:revert": "typeorm-ts-node-commonjs migration:revert -d src/database/data-source.ts",
     "migration:generate": "typeorm-ts-node-commonjs migration:generate -d src/database/data-source.ts",
+    "migration:check": "typeorm-ts-node-commonjs migration:generate -d src/database/data-source.ts src/migrations/DriftCheck --check",
     "migration:show": "typeorm-ts-node-commonjs migration:show -d src/database/data-source.ts",
     "openapi:export": "ts-node src/utility/export-openapi.ts",
     "issues:sync": "ts-node scripts/sync-issues.ts --file ../ISSUES.md",

@@ -117,20 +117,26 @@ npm run migration:run              # apply pending migrations
 npm run migration:revert           # roll back the last migration
 npm run migration:show             # list applied/pending migrations
 npm run migration:generate -- src/migrations/DescriptiveName   # generate one from entity changes
+npm run migration:check            # fail if entities still differ from the migrated database
 ```
 
 Workflow for a schema change:
 
 1. Edit or add the entity.
-2. Generate the migration from the diff:
+2. Apply the current migrations to a fresh local database with `npm run migration:run`.
+3. Generate the migration from the diff:
    `npm run migration:generate -- src/migrations/DescriptiveName`.
-3. Review the generated SQL (it is committed alongside the entity change).
-4. Apply it locally with `npm run migration:run`; `npm run migration:show` lists applied/pending
-   migrations and `npm run migration:revert` rolls back the last one.
+4. Review the generated SQL (it is committed alongside the entity change).
+5. Re-run `npm run migration:run` and `npm run migration:check`; both must pass with no diff.
+   `npm run migration:show` lists applied/pending migrations and `npm run migration:revert`
+   rolls back the last one.
 
-CI enforces this: the `migrations` job runs `migration:run` and then a drift check
-(`migration:generate --dryrun`, or a `schema:log` diff). If the check produces any SQL, the job
-fails — so a PR that adds an entity column without a migration cannot merge.
+CI enforces this: the `migrations` job runs the migrations against the service Postgres, then
+`npm run migration:check`. That command uses TypeORM's `migration:generate --check`, which exits
+0 only when no SQL would be generated and 1 when entities and migrations have drifted. A PR that
+adds an entity column without a migration therefore fails CI. The check uses the same entity set
+as the app (except the quarantined files listed in `src/database/data-source.ts` that still have
+missing imports); enabling one of those requires adding its migration at the same time.
 
 ## API docs and health
 

@@ -1,6 +1,7 @@
 'use client';
 
 import { GameCard } from '../molecules/game-mode-card';
+import { Button } from '@/components/atoms/button';
 
 export type GameOption = {
   id: string;
@@ -62,14 +63,31 @@ interface GameOptionsProps {
 
 export function GameOptions({ onSelectGame }: GameOptionsProps) {
   return (
-    <div className="grid gap-5 sm:grid-cols-2 w-full">
-      {gameOptions.map((game) => (
-        <GameCard
-          key={game.id}
-          game={game}
-          onSelect={onSelectGame ? () => onSelectGame(game.id) : undefined}
-        />
-      ))}
+    <div className="flex flex-col gap-5">
+      <div className="grid gap-5 sm:grid-cols-2 w-full">
+        {gameOptions.map((game) => (
+          <GameCard
+            key={game.id}
+            game={game}
+            onSelect={onSelectGame ? () => onSelectGame(game.id) : undefined}
+          />
+        ))}
+      </div>
+
+      {/* Practice mode CTA — no wallet required */}
+      <div className="flex flex-col items-center gap-2 pt-2">
+        <Button
+          variant="outlinePurple"
+          size="lg"
+          onClick={() => onSelectGame?.('practice')}
+          className="rounded-full px-8"
+        >
+          Try it — No Wallet Needed
+        </Button>
+        <p className="text-xs text-gray-400">
+          Play 5 practice cards for free. Results are not recorded.
+        </p>
+      </div>
     </div>
   );
 }

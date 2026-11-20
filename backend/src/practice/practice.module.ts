@@ -5,15 +5,18 @@ import { PracticeSession } from './entities/practice-session.entity';
 import { PracticeResult } from './entities/practice-result.entity';
 import { PracticeItem } from './entities/practice-item.entity';
 import { PracticeProgress } from './entities/practice-progress.entity';
+import { Song } from '../songs/entities/song.entity';
 import { PracticeSessionService } from './services/practice-session.service';
 import { PracticeItemService } from './services/practice-item.service';
 import { PracticeResultService } from './services/practice-result.service';
 import { FeedbackService } from './services/feedback.service';
 import { PracticeProgressService } from './services/practice-progress.service';
+import { PracticeCardsService } from './services/practice-cards.service';
 import { PracticeSessionController } from './controllers/practice-session.controller';
 import { PracticeItemController } from './controllers/practice-item.controller';
 import { PracticeResultController } from './controllers/practice-result.controller';
 import { PracticeProgressController } from './controllers/practice-progress.controller';
+import { PracticeCardsController } from './controllers/practice-cards.controller';
 
 @Module({
   imports: [
@@ -21,27 +24,31 @@ import { PracticeProgressController } from './controllers/practice-progress.cont
       PracticeSession,
       PracticeResult,
       PracticeItem,
-      PracticeProgress
-    ])
+      PracticeProgress,
+      Song,
+    ]),
   ],
   controllers: [
+    PracticeCardsController,
     PracticeSessionController,
     PracticeItemController,
     PracticeResultController,
-    PracticeProgressController
+    PracticeProgressController,
   ],
   providers: [
+    PracticeCardsService,
     PracticeSessionService,
     PracticeItemService,
     PracticeResultService,
     FeedbackService,
-    PracticeProgressService
+    PracticeProgressService,
   ],
   exports: [
+    PracticeCardsService,
     PracticeSessionService,
     PracticeItemService,
     PracticeResultService,
-    PracticeProgressService
-  ]
+    PracticeProgressService,
+  ],
 })
 export class PracticeModule {}

@@ -112,6 +112,17 @@ pub struct CardDrawn {
     #[topic]
     pub round_id: u64,
     pub index: u32,
+}
+
+/// LF-278: emitted by `finalize_round`, once per card in the round. The
+/// card id is only published after the round can no longer be played, so
+/// `CardDrawn` never maps a live card to its answer.
+#[contractevent]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct CardRevealed {
+    #[topic]
+    pub round_id: u64,
+    pub index: u32,
     pub card_id: u64,
 }
 
@@ -216,20 +227,35 @@ pub struct RoundBufferUpdated {
     pub value: u64,
 }
 
+/// LF-284: the owner cleared a player's `MilestoneClaimed` flag so a revoked
+/// or burned badge can be claimed again.
 #[contractevent]
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct PlayerKicked {
-    #[topic]
-    pub round_id: u64,
+pub struct MilestoneReset {
     #[topic]
     pub player: Address,
-    pub refunded: i128,
+    pub milestone: Milestone,
 }
 
 #[contractevent]
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct RematchCreated {
+pub struct MaxPlayersUpdated {
+    pub old: u32,
+    pub new: u32,
+}
+
+#[contractevent]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct NftContractUpdated {
+    pub old: Option<Address>,
+    pub new: Address,
+}
+
+#[contractevent]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct EscrowContractUpdated {
     #[topic]
-    pub from: u64,
-    pub to: u64,
+    pub owner: Address,
+    #[topic]
+    pub escrow: Address,
 }

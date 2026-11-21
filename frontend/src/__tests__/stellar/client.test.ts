@@ -16,6 +16,8 @@ const TEST_CONFIG: StellarConfig = {
   networkPassphrase: 'Test SDF Network ; September 2015',
   lyricsflipContractId: 'CTEST_CONTRACT_ID',
   lyricsflipNftContractId: 'CTEST_NFT_CONTRACT_ID',
+  lyricsflipEscrowContractId: '',
+  wageringEnabled: false,
 };
 
 const TEST_ADDRESS = 'GABCDE1234567890TESTADDRESS';

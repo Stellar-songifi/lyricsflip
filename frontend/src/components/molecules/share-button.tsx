@@ -6,8 +6,8 @@ import { CounterBadge } from '../atoms/counter-badge';
 import { Button } from '../atoms/button';
 
 interface ShareButtonProps {
-  shareCount: number
-  hugCount: number
+  shareCount?: number
+  hugCount?: number
   onShare?: () => void
   roundId?: string
   url?: string
@@ -16,8 +16,8 @@ interface ShareButtonProps {
 }
 
 export function ShareButton({
-  shareCount,
-  hugCount,
+  shareCount = 0,
+  hugCount = 0,
   onShare,
   roundId,
   url,

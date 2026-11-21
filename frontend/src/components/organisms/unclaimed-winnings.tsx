@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useStellar } from '@/lib/stellar/hooks/use-stellar';
+import { createConfig } from '@/lib/stellar/stellar-config';
 import { WAGER_ASSET_CODE, formatAmount } from '@/lib/utils';
 import { toast } from 'sonner';
 import { Trophy, Coins, CheckCircle2 } from 'lucide-react';
@@ -197,7 +198,8 @@ export const UnclaimedWinnings: React.FC<UnclaimedWinningsProps> = ({
     }
   };
 
-  if (!address) return null;
+  // LF-303: no claim UI until escrow wagering is enabled.
+  if (!address || !createConfig().wageringEnabled) return null;
 
   return (
     <section

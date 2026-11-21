@@ -1,4 +1,4 @@
-﻿use soroban_sdk::{contracttype, Address, BytesN, Map, String, Vec};
+use soroban_sdk::{contracttype, Address, BytesN, Map, String, Vec};
 
 /// Ported from `onchain/src/utils/types.cairo`. `felt252`/`ByteArray` fields
 /// become `String`; Starknet's `u8` fields become `u32` since Soroban has no
@@ -149,6 +149,7 @@ pub struct Round {
     pub admin: Address,
     pub genre: Genre,
     pub wager_amount: i128,
+    pub wager_token: Option<Address>,
     pub start_time: u64,
     pub is_started: bool,
     pub is_completed: bool,
@@ -165,6 +166,9 @@ pub struct Round {
     pub is_private: bool,
     /// LF-163: solo rounds skip OpenRounds and start in the same call.
     pub solo: bool,
+    /// LF-291: player cap for this round, fixed at creation and never above
+    /// the global `MaxPlayers`. Migrated rounds take the global value.
+    pub max_players: u32,
 }
 
 #[contracttype]
@@ -189,6 +193,7 @@ impl From<LegacyRound> for Round {
             admin: r.admin,
             genre: r.genre,
             wager_amount: r.wager_amount,
+            wager_token: None,
             start_time: r.start_time,
             is_started: r.is_started,
             is_completed: r.is_completed,
@@ -200,6 +205,53 @@ impl From<LegacyRound> for Round {
             round_duration: 300,
             is_private: false,
             solo: false,
+            max_players: 0,
+        }
+    }
+}
+
+/// Schema v4 round layout (pre LF-291): `Round` without `max_players`.
+/// `read_round` lazily re-encodes stored v4 entries as `Round`.
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct RoundV4 {
+    pub round_id: u64,
+    pub admin: Address,
+    pub genre: Genre,
+    pub wager_amount: i128,
+    pub start_time: u64,
+    pub is_started: bool,
+    pub is_completed: bool,
+    pub end_time: u64,
+    pub next_card_index: u32,
+    pub is_cancelled: bool,
+    pub answer_window: u64,
+    pub lobby_timeout: u64,
+    pub round_duration: u64,
+    pub is_private: bool,
+    pub solo: bool,
+}
+
+impl From<RoundV4> for Round {
+    fn from(r: RoundV4) -> Self {
+        Self {
+            round_id: r.round_id,
+            admin: r.admin,
+            genre: r.genre,
+            wager_amount: r.wager_amount,
+            wager_token: None,
+            start_time: r.start_time,
+            is_started: r.is_started,
+            is_completed: r.is_completed,
+            end_time: r.end_time,
+            next_card_index: r.next_card_index,
+            is_cancelled: r.is_cancelled,
+            answer_window: r.answer_window,
+            lobby_timeout: r.lobby_timeout,
+            round_duration: r.round_duration,
+            is_private: r.is_private,
+            solo: r.solo,
+            max_players: 0,
         }
     }
 }
@@ -231,6 +283,7 @@ impl From<RoundV3> for Round {
             admin: r.admin,
             genre: r.genre,
             wager_amount: r.wager_amount,
+            wager_token: None,
             start_time: r.start_time,
             is_started: r.is_started,
             is_completed: r.is_completed,
@@ -242,6 +295,7 @@ impl From<RoundV3> for Round {
             round_duration: r.round_duration,
             is_private: false,
             solo: false,
+            max_players: 0,
         }
     }
 }
@@ -299,6 +353,9 @@ pub struct CardPos {
     pub genre: u32,
     pub artist: u32,
     pub year: u32,
+    pub decade: u32,
+    pub difficulty: u32,
+    pub genre_decade: u32,
 }
 
 /// Mirrors Cairo's single `ADMIN_ROLE` selector. Kept as an enum (instead of
@@ -392,8 +449,35 @@ pub enum DataKey {
     /// Caps how many free (0-wager) lobbies one account can park in
     /// `OpenRounds`; decremented on start, cancel, and expiry.
     OpenRoundsOf(Address),
-    /// LF-290: players invited to a rematch round may join without a code.
-    RematchInvite((u64, Address)),
+    /// LF-293: `(correct, points)` recorded for each answer, keyed by
+    /// `(round_id, player, card_id)`, so result screens need no events.
+    RoundAnswer((u64, Address, u64)),
+    /// LF-286: number of rounds in a player's round-history index.
+    PlayerRoundCount(Address),
+    /// LF-286: the player's `n`th round id, in join order (oldest first).
+    PlayerRoundAt((Address, u32)),
+    /// Address of the `lyricsflip-escrow` contract that holds round wagers.
+    EscrowContract,
+    /// LF-264: invitee allowlist of a private round.
+    RoundInvitees(u64),
+    /// Round-filter indexes: card count per decade / difficulty /
+    /// genre+decade, and the card id at each position.
+    DecadeCardCount(u64),
+    DecadeCardAt((u64, u32)),
+    DifficultyCardCount(u32),
+    DifficultyCardAt((u32, u32)),
+    GenreDecadeCardCount((Genre, u64)),
+    GenreDecadeCardAt((Genre, u64, u32)),
+}
+
+/// LF-293: per-card breakdown returned by `get_round_summary`.
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct CardResult {
+    pub card: Card,
+    pub kind: QuestionKind,
+    /// `(correct, points)` per player who answered this card.
+    pub per_player: Map<Address, (bool, u64)>,
 }
 
 #[contracttype]
@@ -402,5 +486,6 @@ pub struct AnswerResult {
     pub correct: bool,
     pub points: u64,
     pub correct_option: u32,
-    pub next: Vec<Card>,
+    /// The next question, or empty when the deck is exhausted.
+    pub next: Vec<QuestionCard>,
 }

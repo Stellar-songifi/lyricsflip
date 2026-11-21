@@ -45,17 +45,17 @@ The wager modal now connects directly to real escrow parameters, converting stak
 
 **Tasks**
 
-- [x] Pass the stake, converted to stroops (7 decimals) with `bigint` math, to `create_round`.
-- [x] Remove the fields with no contract meaning (odds, duration), or map them to configured values.
-- [x] Show the wager token's balance and the min/max limits, and disable submission when the balance is too low.
-- [x] Show the escrow transfer in the summary modal before the player signs.
+- [ ] Pass the stake, converted to stroops (7 decimals) with `bigint` math, to `create_round`.
+- [ ] Remove the fields with no contract meaning (odds, duration), or map them to configured values.
+- [ ] Show the wager token's balance and the min/max limits, and disable submission when the balance is too low.
+- [ ] Show the escrow transfer in the summary modal before the player signs.
 
 **Acceptance criteria**
 
-- [x] Creating a 5 XLM wager round moves 5 XLM into the contract (testnet).
-- [x] No form field is silently ignored.
+- [ ] Creating a 5 XLM wager round moves 5 XLM into the contract (testnet).
+- [ ] No form field is silently ignored.
 
-**Related:** Closes [#684](https://github.com/Stellar-songifi/lyricsflip/issues/684)
+**Related:** Closes [#684](https://github.com/Stellar-songifi/lyricsflip/issues/684) · Reopened by [#890](https://github.com/Stellar-songifi/lyricsflip/issues/890) (LF-304): the stake is not sent on-chain until LF-256 adds wager arguments to `create_round`.
 ### LF-196 · Make `useRoundEvents` reliable
 
 **Area:** Frontend · **Priority:** P2 · **Type:** Bug · **Effort:** S  

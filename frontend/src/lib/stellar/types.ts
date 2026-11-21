@@ -61,11 +61,6 @@ export interface Card {
   lyrics: string;
 }
 
-/** Raw shape returned by the contract, before `genreFromWire` is applied. */
-export interface WireCard extends Omit<Card, 'genre'> {
-  genre: number;
-}
-
 export interface Round {
   round_id: bigint;
   admin: string;
@@ -80,6 +75,25 @@ export interface Round {
   answer_window?: bigint;
   lobby_timeout?: bigint;
   round_duration?: bigint;
+  /** LF-162: true when joining requires the invite code. */
+  is_private?: boolean;
+  /** LF-291: player cap for this round (≤ the global max). */
+  max_players?: number;
+}
+
+/** LF-293: one card of a finalized round with every player's result. */
+export interface CardResult {
+  card: Card;
+  kind: QuestionKind;
+  /** `{ correct, points }` per player address that answered this card. */
+  perPlayer: Record<string, { correct: boolean; points: number }>;
+}
+
+/** Raw `CardResult` returned by the contract. */
+export interface WireCardResult {
+  card: WireCard;
+  kind: QuestionKind;
+  per_player: Map<string, [boolean, bigint]>;
 }
 
 export interface RoundFilter {
@@ -98,11 +112,6 @@ export const MILESTONE_NAMES: Record<Milestone, string> = {
   [MILESTONES.TenWins]: 'Music Connoisseur',
 };
 
-/** Raw shape returned by the contract, before `genreFromWire` is applied. */
-export interface WireRound extends Omit<Round, 'genre'> {
-  genre: number;
-}
-
 export interface PlayerStats {
   total_rounds: bigint;
   rounds_won: bigint;
@@ -119,6 +128,11 @@ export interface QuestionCard {
   option_two: string;
   option_three: string;
   option_four: string;
+}
+
+/** Raw QuestionCard shape returned by Soroban before kind conversion. */
+export interface WireQuestionCard extends Omit<QuestionCard, 'kind'> {
+  kind: number;
 }
 
 /**

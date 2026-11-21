@@ -4,33 +4,37 @@ NestJS API and WebSocket server for **LyricsFlip**, a lyrics-guessing game with 
 
 ## Module map
 
-Each concern has exactly one module. Entities are owned by the module listed
-here; other modules import that module (or its entity) instead of redefining it.
+`AppModule` imports exactly seven public domain modules from `src/domains/`.
+Each domain is the sole owner of its tables, HTTP prefixes and WebSocket
+namespaces; folders inside a domain are implementation details. The full
+inventory, including deprecated aliases and removed modules, is in
+[`docs/architecture.md`](../docs/architecture.md#backend-module-map-lf-348).
 
-| Concern | Module | Owns | HTTP | WebSocket namespace |
+| Domain | Public module | Owns | HTTP | WebSocket namespace |
 | --- | --- | --- | --- | --- |
-| Auth | `auth/` | JWT issue/verify, `AccessTokenGuard` (global), `JwtAuthGuard`, `WsAuthenticator`, `@CurrentUser()` | `/auth` | — |
-| Users | `user/` | `User` (`users`, incl. `stellarAddress` for wallet login) | `/user` | — |
-| Players | `player/` | `Player` (`players`), `PlayerStatus` | — | — |
-| Songs | `songs/` | `Song` (`songs`, mirrors the contract `Card`), `Tag`, `UserGenrePreference`, `Genre` enum | `/songs`, `/songs/genres` | — |
-| Rooms | `room/` | `Room` (`rooms`), `PlayerRoom`; room CRUD, join/leave, player presence | `/rooms` | `/rooms` |
-| Game | `game/` | Built-in game modes, scoring strategies, matchmaking, stats, `CustomGameMode` | `/game-modes` | `/game` |
-| Game sessions | `game-session/` | `GameSession` (`game_sessions`) for every mode, tournaments and insights | `/game-session` | — |
-| Notifications | `notification/` | `Notification` (`notifications`); also pushes achievement and progression events | `/notifications` | `/notifications` |
-| Chain indexer | `indexer/` | Soroban event indexing | — | `/indexer` |
-| Lesson progress | `music-education/` | `LessonProgress` (`lesson_progress`) | `/lessons/progress` | — |
-| Practice progress | `practice/` | `PracticeProgress` (`practice_progress`) | `/practice/progress` | — |
-| Health | `health/` | Postgres, Redis and Stellar RPC checks | `/health` | — |
+| Identity | `IdentityModule` | Auth, `User`, `Player`, session tokens | `/auth`, `/user` | — |
+| Catalogue | `CatalogueModule` | `Song`, `Tag`, `UserGenrePreference`, `Question` | `/songs`, `/questions` | — |
+| Rounds (chain mirror) | `RoundsModule` | Game modes, sessions, results, scoring, wagers, rooms, all chain entities | `/rounds`, `/game-modes`, `/game-results`, `/wagers`, `/scoring`; legacy `/game-session`, `/quick-game/rounds`, `/rooms` | `/game`, `/rooms`, `/indexer`; `/rounds` relay |
+| Realtime | `RealtimeModule` | `Notification`, chat rooms | `/notifications` | `/notifications` |
+| Social | `SocialModule` | Profiles, friends, activity, challenges, referrals, leaderboards | `/players`, `/leaderboard`, `/profile`, `/friends`, `/activity`, `/challenge`, `/referrals` | — |
+| Rewards | `RewardsModule` | Achievements and progression | `/rewards`, `/achievements`, `/progression`; legacy `/reward` | — |
+| Admin | `AdminModule` | Analytics metrics and song curation | `/analytics`, `/admin/songs` | — |
 
 Rules of thumb:
 
-- One WebSocket namespace per concern. Server-to-user pushes go through
-  `/notifications`, which joins each authenticated socket to a `user:<id>` room.
-  Emit an `EventEmitter2` event and handle it in `NotificationGateway` rather than
-  adding a new gateway.
+- `src/domains/domain-map.ts` is the ownership manifest. Add a folder or route to
+  exactly one domain; `src/domains/domain-map.spec.ts` fails on duplicate or
+  unmapped prefixes/tables, and `src/entity-metadata.spec.ts` fails on duplicate
+  `@Entity` table names.
+- Legacy prefixes remain mounted for existing clients but are marked
+  `deprecated: true` in Swagger. New clients use the canonical routes above.
+- Server-to-user pushes go through `/notifications`, which joins each
+  authenticated socket to a `user:<id>` room. Emit an `EventEmitter2` event and
+  handle it in `NotificationGateway` rather than adding a new gateway.
+- Run `npm run knip:backend` from the repository root to find unused files and
+  unresolved imports before adding a new feature module.
 - The only genre enum is `songs/enums/genre.enum.ts`. It must match the contract's
   `Genre` and the frontend's `GENRE_VALUES`.
-- `src/entity-metadata.spec.ts` fails if two `@Entity` classes map to the same table.
 
 Cross-cutting HTTP behaviour is configured once in `src/config/app-setup.ts`:
 
@@ -117,20 +121,26 @@ npm run migration:run              # apply pending migrations
 npm run migration:revert           # roll back the last migration
 npm run migration:show             # list applied/pending migrations
 npm run migration:generate -- src/migrations/DescriptiveName   # generate one from entity changes
+npm run migration:check            # fail if entities still differ from the migrated database
 ```
 
 Workflow for a schema change:
 
 1. Edit or add the entity.
-2. Generate the migration from the diff:
+2. Apply the current migrations to a fresh local database with `npm run migration:run`.
+3. Generate the migration from the diff:
    `npm run migration:generate -- src/migrations/DescriptiveName`.
-3. Review the generated SQL (it is committed alongside the entity change).
-4. Apply it locally with `npm run migration:run`; `npm run migration:show` lists applied/pending
-   migrations and `npm run migration:revert` rolls back the last one.
+4. Review the generated SQL (it is committed alongside the entity change).
+5. Re-run `npm run migration:run` and `npm run migration:check`; both must pass with no diff.
+   `npm run migration:show` lists applied/pending migrations and `npm run migration:revert`
+   rolls back the last one.
 
-CI enforces this: the `migrations` job runs `migration:run` and then a drift check
-(`migration:generate --dryrun`, or a `schema:log` diff). If the check produces any SQL, the job
-fails — so a PR that adds an entity column without a migration cannot merge.
+CI enforces this: the `migrations` job runs the migrations against the service Postgres, then
+`npm run migration:check`. That command uses TypeORM's `migration:generate --check`, which exits
+0 only when no SQL would be generated and 1 when entities and migrations have drifted. A PR that
+adds an entity column without a migration therefore fails CI. The check uses the same entity set
+as the app (except the quarantined files listed in `src/database/data-source.ts` that still have
+missing imports); enabling one of those requires adding its migration at the same time.
 
 ## API docs and health
 
@@ -150,10 +160,33 @@ of truth.
 
 Real-time multiplayer uses Socket.IO on the same port. Events, payloads and error codes are documented in [`docs/realtime-protocol.md`](../docs/realtime-protocol.md); the namespace map above is the only event summary kept here.
 
+## Syncing the issue backlog
+
+`scripts/sync-issues.ts` turns `### LF-xxx · Title` blocks into GitHub issues. By default it reads the
+repository's `ISSUES.md`; pass another Markdown backlog as the first argument (or with `--file`):
+
+```bash
+# Preview the labels without creating anything
+npm run issues:sync -- --dry-run
+
+# Preview or create issues from a backlog named BACKLOG.md at the repository root
+npm run issues:sync -- --dry-run ../BACKLOG.md
+npm run issues:sync -- ../BACKLOG.md
+
+# The --file form works too
+npm run issues:sync -- --dry-run --file ../BACKLOG.md
+```
+
+Paths are relative to the current working directory (normally `backend/`), so a root-level
+`BACKLOG.md` is `../BACKLOG.md`. Requires an authenticated `gh` CLI with issue-creation permissions;
+`--repo owner/name` targets a different repository. Only exact shorthands (`s`/`m`/`l`/`xl`, `p0`–`p3`
+and the supported type names) are rewritten; every other label — including `security`,
+`help wanted` and `area:onchain` — is preserved exactly as written.
+
 ## Tests
 
 ```bash
-npm test          # unit tests (src/**/*.spec.ts)
+npm test          # unit tests (src/** and scripts/**/*.spec.ts)
 npm run test:cov  # unit tests with coverage (enforces the Jest coverage threshold)
 npm run test:e2e  # e2e tests (test/*.e2e-spec.ts) — no live database required
 ```
@@ -165,6 +198,7 @@ npm run test:e2e  # e2e tests (test/*.e2e-spec.ts) — no live database required
 | `npm run build` | Compile to `dist/` |
 | `npm run start:prod` | Run the compiled build |
 | `npm run lint` / `npm run format` | ESLint / Prettier |
+| `npm run issues:sync -- --dry-run [FILE]` | Preview the GitHub issues generated from a backlog Markdown file |
 
 ## Logging
 

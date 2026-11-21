@@ -107,7 +107,7 @@ stellar contract invoke \
 - Signer: any round participant.
 - State changes: marks the round completed, records final score winners, increments `rounds_won` for winners, marks round finalization.
 - Errors: `NotAParticipant`, `RoundCancelled`, `RoundAlreadyFinalized`, `RoundNotReady`.
-- Events: `RoundCompleted { round_id, winners, scores }`.
+- Events: `RoundCompleted { round_id, winners, scores }`, then one `CardRevealed { round_id, index, card_id }` per round card (LF-278).
 - Example:
 
 ```bash
@@ -283,7 +283,7 @@ stellar contract invoke \
   -- get-question --caller <PLAYER_ADDRESS> --round_id 1
 ```
 
-### `get_cards_of_genre(env: Env, genre: Genre, seed: u64) -> Vec<Card>`
+### `get_cards_of_genre(env: Env, genre: Genre) -> Vec<Card>`
 - Signer: none.
 - State changes: none.
 - Errors: `EmptyGenreCards` when the genre is empty.
@@ -295,10 +295,10 @@ stellar contract invoke \
   --id <LYRICSFLIP_CONTRACT_ID> \
   --source <READONLY_IDENTITY> \
   --network testnet \
-  -- get-cards-of-genre --genre 1 --seed 123
+  -- get-cards-of-genre --genre 1
 ```
 
-### `get_cards_of_artist(env: Env, artist: String, seed: u64) -> Vec<Card>`
+### `get_cards_of_artist(env: Env, artist: String) -> Vec<Card>`
 - Signer: none.
 - State changes: none.
 - Errors: `ArtistCardsIsZero` when the artist has no cards.
@@ -310,10 +310,10 @@ stellar contract invoke \
   --id <LYRICSFLIP_CONTRACT_ID> \
   --source <READONLY_IDENTITY> \
   --network testnet \
-  -- get-cards-of-artist --artist "Adele" --seed 123
+  -- get-cards-of-artist --artist "Adele"
 ```
 
-### `get_cards_of_a_year(env: Env, year: u64, seed: u64) -> Vec<Card>`
+### `get_cards_of_a_year(env: Env, year: u64) -> Vec<Card>`
 - Signer: none.
 - State changes: none.
 - Errors: `EmptyYearCards` when no cards match the year.
@@ -325,7 +325,7 @@ stellar contract invoke \
   --id <LYRICSFLIP_CONTRACT_ID> \
   --source <READONLY_IDENTITY> \
   --network testnet \
-  -- get-cards-of-a-year --year 1999 --seed 123
+  -- get-cards-of-a-year --year 1999
 ```
 
 ### `get_player_stat(env: Env, player: Address) -> PlayerStats`
@@ -403,7 +403,7 @@ stellar contract invoke \
   -- unpause --caller <OWNER_ADDRESS>
 ```
 
-### `create_round(env: Env, caller: Address, genre: Option<Genre>, seed: u64) -> u64`
+### `create_round(env: Env, caller: Address, genre: Option<Genre>, invitees: Vec<Address>, wager_token: Option<Address>, wager_amount: i128) -> u64`
 - Signer: caller wallet.
 - State changes: creates a round, stores players and round cards, pushes round onto the open-round list.
 - Errors: `NonExistingGenre` if a genre is missing, `AmountExceedsLimit`, `LimitMustBeGreaterThanZero` if the genre's card pool is exhausted.
@@ -415,10 +415,10 @@ stellar contract invoke \
   --id <LYRICSFLIP_CONTRACT_ID> \
   --source <PLAYER_IDENTITY> \
   --network testnet \
-  -- create-round --caller <PLAYER_ADDRESS> --genre 1 --seed 123
+  -- create-round --caller <PLAYER_ADDRESS> --genre 1 --invitees '[]' --wager_amount 0
 ```
 
-### `create_round_with_filter(env: Env, caller: Address, filter: RoundFilter, difficulty: Option<u32>, seed: u64) -> u64`
+### `create_round_with_filter(env: Env, caller: Address, filter: RoundFilter, difficulty: Option<u32>, invitees: Vec<Address>) -> u64`
 - Signer: caller wallet.
 - State changes: same as `create_round`, but cards are drawn from the subset matching `filter.genre`/`filter.decade` and the optional `difficulty`.
 - Errors: `InvalidCardDifficulty`, `InvalidDecade`, `EmptyGenreCards`, `AmountExceedsLimit`, `InvalidCardsPerRound`.
@@ -431,7 +431,7 @@ stellar contract invoke \
   --source <PLAYER_IDENTITY> \
   --network testnet \
   -- create-round-with-filter --caller <PLAYER_ADDRESS> \
-     --filter '{"genre": 1, "decade": 1990}' --difficulty 2 --seed 123
+     --filter '{"genre": 1, "decade": 1990}' --difficulty 2 --invitees '[]'
 ```
 
 ### `start_round(env: Env, caller: Address, round_id: u64)`
@@ -452,7 +452,7 @@ stellar contract invoke \
 ### `join_round(env: Env, caller: Address, round_id: u64)`
 - Signer: wallet of the joining player.
 - State changes: appends the player to the round, subject to capacity and pending status.
-- Errors: `RoundAlreadyJoined`, `RoundCancelled`, `RoundAlreadyStarted`, `RoundFull`.
+- Errors (in check order): `Paused`, `NonExistingRound`, `RoundCancelled`, `RoundAlreadyStarted`, `LobbyExpired`, `RoundAlreadyJoined`, `RoundFull`, `InvalidInvite`.
 - Events: `RoundJoined`.
 - Example:
 
@@ -467,7 +467,7 @@ stellar contract invoke \
 ### `leave_round(env: Env, caller: Address, round_id: u64)`
 - Signer: active non-admin participant.
 - State changes: removes the player, clears ready state, refunds the wager stub.
-- Errors: `NotAuthorized`, `NotAParticipant`, `RoundCancelled` and pending-state rejections.
+- Errors: `AdminCannotLeave`, `NotAParticipant`, `RoundCancelled` and pending-state rejections.
 - Events: `RoundLeft`.
 - Example:
 
@@ -482,7 +482,7 @@ stellar contract invoke \
 ### `cancel_round(env: Env, caller: Address, round_id: u64)`
 - Signer: round admin, or any player after lobby timeout.
 - State changes: marks round cancelled, removes it from open rounds, refunds players.
-- Errors: `NotAuthorized`, `RoundCancelled`.
+- Errors: `LobbyTimeoutNotReached`, `RoundCancelled`.
 - Events: `RoundCancelled`.
 - Example:
 
@@ -494,11 +494,13 @@ stellar contract invoke \
   -- cancel-round --caller <PLAYER_ADDRESS> --round_id 1
 ```
 
-### `next_card(env: Env, round_id: u64) -> Card`
+### `next_card(env: Env, round_id: u64) -> QuestionCard`
 - Signer: none (read-like action, but it mutates stored round state).
 - State changes: advances `next_card_index` and sets the current card start time.
+- Return value contains only the lyric, question kind and four shuffled options;
+  it never contains title, artist or year for an active card.
 - Errors: `RoundNotStarted`, `RoundCompleted`.
-- Events: `CardDrawn`.
+- Events: `CardDrawn { round_id, index }` (no card id; see `CardRevealed`).
 - Example:
 
 ```bash
@@ -754,7 +756,7 @@ stellar contract invoke \
   -- claim-reward --caller <PLAYER_ADDRESS> --milestone 0
 ```
 
-### `build_question_card(env: Env, card: Card, seed: u64, kind: QuestionKind) -> QuestionCard`
+### `build_question_card(env: Env, card: Card, kind: QuestionKind) -> QuestionCard`
 - Signer: none.
 - State changes: none; returns a shuffled multiple-choice prompt plus one correct answer and distractors.
 - Errors: `NotEnoughDistinctCards` if the catalogue lacks enough distinct candidates.
@@ -766,7 +768,7 @@ stellar contract invoke \
   --id <LYRICSFLIP_CONTRACT_ID> \
   --source <READONLY_IDENTITY> \
   --network testnet \
-  -- build-question-card --card '{"card_id":1,"genre":1,"artist":"Adele","title":"Hello","year":2015,"lyrics":"Hello, it\'s me"}' --seed 123 --kind 0
+  -- build-question-card --card '{"card_id":1,"genre":1,"artist":"Adele","title":"Hello","year":2015,"lyrics":"Hello, it\'s me"}' --kind 0
 ```
 
 ## `lyricsflip-nft` contract
@@ -1225,3 +1227,25 @@ stellar contract invoke \
   --network testnet \
   -- upgrade --caller <OWNER_ADDRESS> --new_wasm_hash $HASH
 ```
+
+
+## `lyricsflip-escrow` contract
+
+The escrow contract is owned by the game contract. Its lifecycle is `Open → Locked → Settled`; an open or locked round may instead transition to `Cancelled`.
+
+### Lifecycle and token movement
+
+- `create_round(round_id, creator, token, pot)` registers a round and emits `EscrowRoundCreated`. The initial pot must already be held by escrow.
+- `deposit(caller, round_id, amount)` transfers tokens into escrow while the round is `Open` and emits `Deposited`.
+- `lock_round(round_id)` is owner-only, rejects any non-`Open` round, and emits `Locked`.
+- `refund(caller, round_id)` returns that caller's recorded deposit while the round is `Open` and emits `Refunded`.
+- `cancel_round(round_id)` is owner-only for `Open` or `Locked` rounds. It refunds every depositor exactly once, emits one `Refunded` event per transfer, then emits `Cancelled`.
+- `settle_round(round_id, winners)` is owner-only and requires `Locked`. It transfers the protocol fee immediately, records the configurable claim deadline, and emits `Settled`. Passing an empty winner list invokes the no-winner refund path and cancels the round with no fee.
+- `claim_winnings(caller, round_id)` pays a winner before the deadline and emits `Claimed`. The fee is never charged during a claim.
+- `sweep_unclaimed(round_id)` is callable at or after the claim deadline and transfers every remaining winner share to the treasury, emitting `Swept`. A swept round rejects later claims.
+
+Every persistent round read and write extends the round entry TTL by 30 days, and every configuration read/write extends instance TTL by 30 days. The default claim deadline is 90 days and can be changed for future settlements with `set_claim_deadline(seconds)`.
+
+### Escrow events
+
+The typed `#[contractevent]` events are `EscrowRoundCreated`, `Deposited`, `Locked`, `Settled`, `Refunded`, `Cancelled`, `Claimed`, and `Swept`. They are emitted for every escrow token movement and lifecycle transition so indexers can reconcile escrow balances without relying on legacy untyped events.

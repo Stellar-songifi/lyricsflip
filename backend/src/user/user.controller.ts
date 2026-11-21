@@ -23,7 +23,6 @@ import {
 } from '@nestjs/swagger';
 import { UserService } from './providers/user.service';
 import { UserDTO } from './dtos/create-user.dto';
-import { UpdateProfileDto } from './dtos/update-profile.dto';
 import { AccessTokenGuard } from '@app/auth/guard/access-token/access-token.guard';
 import { RolesGuard } from '@app/common/guards/roles.guard';
 import { Roles } from '@app/common/decorators/roles.decorator';
@@ -46,9 +45,10 @@ export class UserController {
   // Player profile built from indexed data (stats, recent rounds, badges, unclaimed winnings)
   @Get('players/:address')
   @ApiOperation({
-    summary: 'Get player profile',
+    summary: 'Get player profile (deprecated)',
     description:
-      'Returns indexed stats, recent rounds, badges and unclaimed winnings for a player address',
+      'Deprecated: use GET /players/:address. Returns indexed stats, recent rounds, badges and unclaimed winnings for a player address.',
+    deprecated: true,
   })
   @ApiParam({
     name: 'address',
@@ -265,46 +265,4 @@ export class UserController {
     return this.userService.updateProfile(profileDto);
   }
 
-  // Update the authenticated user's profile (username, avatar)
-  @UseGuards(AccessTokenGuard)
-  @Patch('me/profile')
-  @ApiOperation({
-    summary: 'Update current user profile',
-    description:
-      'Set a unique, case-insensitive username and optional avatar URL',
-  })
-  @ApiBody({ type: UpdateProfileDto })
-  @ApiResponse({
-    status: 200,
-    description: 'Profile successfully updated',
-  })
-  @ApiResponse({
-    status: 400,
-    description: 'Invalid profile data',
-  })
-  @ApiResponse({
-    status: 409,
-    description: 'Username already taken',
-  })
-  updateMyProfile(@Body() updateProfileDto: UpdateProfileDto) {
-    return this.userService.updateMyProfile(updateProfileDto);
-  }
-
-  // Public player profile lookup by wallet address
-  @Get('players/:address')
-  @ApiOperation({
-    summary: 'Get public player profile',
-    description: 'Returns the public profile for a wallet address',
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Player profile found',
-  })
-  @ApiResponse({
-    status: 404,
-    description: 'Player not found',
-  })
-  getPublicPlayer(@Param('address') address: string) {
-    return this.userService.getPublicPlayer(address);
-  }
 }

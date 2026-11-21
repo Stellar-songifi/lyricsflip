@@ -19,12 +19,20 @@ import { getContractErrorCode, parseContractError } from '@/lib/stellar/errors';
 import { getGenreDisplayName } from '@/lib/stellar/genres';
 import {
   Answer,
-  type Card,
   type QuestionCard,
   type Round,
 } from '@/lib/stellar/types';
-import { formatTime } from '@/lib/utils';
+import { formatAmount, formatTime, WAGER_ASSET_CODE } from '@/lib/utils';
 import { useProfileStore } from '@/store/use-profile-store';
+
+/** Contract error code for `NotAuthorized` — also a wrong invite code (LF-305). */
+const NOT_AUTHORIZED = 14;
+
+/** Reads the private-round invite code from `#invite=<code>` (LF-305). */
+function readInviteFromHash(hash: string): string | undefined {
+  const code = new URLSearchParams(hash.replace(/^#/, '')).get('invite');
+  return code ? code : undefined;
+}
 
 /** Contract error code for `NoMoreCards` — the player has drawn every card. */
 const NO_MORE_CARDS = 34;
@@ -123,7 +131,7 @@ function MultiplayerRoundClient() {
   );
 
   // ── Game state (LF-195) ───────────────────────────────────────────────────
-  const [card, setCard] = useState<Card | null>(null);
+  const [card, setCard] = useState<QuestionCard | null>(null);
   const [question, setQuestion] = useState<QuestionCard | null>(null);
   const [selectedOption, setSelectedOption] = useState<SongOption | null>(null);
   const [answerOutcome, setAnswerOutcome] = useState<AnswerOutcome | null>(null);
@@ -158,6 +166,42 @@ function MultiplayerRoundClient() {
   }, [roundId]);
 
   const lobbyEvents = useRoundEvents(round ? roundId : null);
+
+  // ── Private invite + lobby controls (LF-305 / LF-306) ─────────────────────
+  const [inviteCode] = useState<string | undefined>(() =>
+    typeof window === 'undefined' ? undefined : readInviteFromHash(window.location.hash),
+  );
+  const [createdAt, setCreatedAt] = useState<bigint | null | undefined>(undefined);
+  useEffect(() => {
+    if (!systemCalls || !round || round.is_started || round.is_cancelled) return;
+    let active = true;
+    systemCalls
+      .getRoundCreatedAt(round.round_id, round.lobby_timeout ?? BigInt(600))
+      .then((value) => {
+        if (active) setCreatedAt(value);
+      })
+      .catch(() => {
+        if (active) setCreatedAt(undefined);
+      });
+    return () => {
+      active = false;
+    };
+  }, [systemCalls, round]);
+  const lobbyDeadline =
+    createdAt === undefined || !round
+      ? null
+      : createdAt === null
+        ? 0
+        : Number(createdAt + (round.lobby_timeout ?? BigInt(600)));
+  const lobbySecondsLeft = useDeadlineCountdown(lobbyDeadline);
+  const lobbyExpired = lobbySecondsLeft === 0;
+
+  // Live lobby updates: re-read the round when someone leaves or it's cancelled.
+  useEffect(() => {
+    if (lobbyEvents.lastUpdatedAt === null) return;
+    void loadRound();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lobbyEvents.joined.length, lobbyEvents.cancelled]);
   const gameEvents = useRoundGameEvents(
     round?.is_started ? roundId : null,
   );
@@ -202,12 +246,20 @@ function MultiplayerRoundClient() {
         return;
       }
       if (roundData.is_started || roundPlayers.includes(account.address)) return;
+      if (roundData.is_private && !inviteCode) {
+        setError('This round is private.');
+        return;
+      }
 
       try {
         setIsBusy(true);
-        await systemCalls.joinRound(roundId);
+        await systemCalls.joinRound(roundId, inviteCode);
         await loadRound();
       } catch (err) {
+        if (roundData.is_private && getContractErrorCode(err) === NOT_AUTHORIZED) {
+          setError('That invite code is not valid for this round.');
+          return;
+        }
         setError(err instanceof Error ? err.message : 'Failed to join round');
       } finally {
         setIsBusy(false);
@@ -215,7 +267,35 @@ function MultiplayerRoundClient() {
     };
 
     void run();
-  }, [systemCalls, roundId, account, loadRound]);
+  }, [systemCalls, roundId, account, loadRound, inviteCode]);
+
+  const handleLeaveOrCancel = useCallback(
+    async (action: 'leave' | 'cancel') => {
+      if (!systemCalls || roundId === null || !round) return;
+      const refund = `${formatAmount(round.wager_amount)} ${WAGER_ASSET_CODE}`;
+      const message =
+        action === 'leave'
+          ? `Leave this round? Your stake of ${refund} will be refunded.`
+          : `Cancel this round? Every player will be refunded ${refund}.`;
+      if (!window.confirm(message)) return;
+      setIsBusy(true);
+      setError(null);
+      try {
+        if (action === 'leave') {
+          await systemCalls.leaveRound(roundId);
+          router.push('/multiplayer');
+        } else {
+          await systemCalls.cancelRound(roundId);
+          await loadRound();
+        }
+      } catch (err) {
+        setError(err instanceof Error ? err.message : `Failed to ${action} round`);
+      } finally {
+        setIsBusy(false);
+      }
+    },
+    [systemCalls, roundId, round, loadRound, router],
+  );
 
   const handleReady = useCallback(async () => {
     if (!systemCalls || roundId === null) return;
@@ -252,12 +332,8 @@ function MultiplayerRoundClient() {
     setCard(null);
     try {
       const nextCard = await systemCalls.nextCard(roundId);
-      const questionCard = await systemCalls.buildQuestionCard(
-        nextCard,
-        'Title',
-      );
       setCard(nextCard);
-      setQuestion(questionCard);
+      setQuestion(nextCard);
     } catch (err) {
       if (getContractErrorCode(err) === NO_MORE_CARDS) {
         // Every card in the round has been drawn for this player; the round
@@ -454,7 +530,7 @@ function MultiplayerRoundClient() {
     return shell(<p className="text-red-500">{error ?? 'Round not found.'}</p>);
   }
 
-  if (round.is_cancelled) {
+  if (round.is_cancelled || lobbyEvents.cancelled) {
     return shell(
       <p className="mx-auto max-w-md text-center text-red-500">
         This round was cancelled.
@@ -576,8 +652,8 @@ function MultiplayerRoundClient() {
                   lyrics={[
                     {
                       text: question.lyric,
-                      title: card.title,
-                      artist: card.artist,
+                      title: '',
+                      artist: '',
                     },
                   ]}
                   isFlipped={isCardFlipped}
@@ -591,7 +667,7 @@ function MultiplayerRoundClient() {
                   // correct option before the player picks.
                   correctOption={
                     isCardFlipped
-                      ? { title: card.title, artist: card.artist }
+                      ? null
                       : null
                   }
                   disabled={selectedOption !== null || isSubmitting}
@@ -708,6 +784,45 @@ function MultiplayerRoundClient() {
           ))}
         </ul>
         {error && <p className="mt-4 text-red-500">{error}</p>}
+        <div className="mt-4 flex flex-col gap-2" aria-label="Lobby controls">
+          <p className="text-sm text-gray-600" data-testid="lobby-timeout">
+            {lobbySecondsLeft === null
+              ? 'Lobby timeout pending'
+              : lobbyExpired
+                ? 'The lobby has expired — anyone can cancel and refund it.'
+                : `Lobby expires in ${formatTime(lobbySecondsLeft)}`}
+          </p>
+          {account.address === round.admin ? (
+            <Button
+              onClick={() => void handleLeaveOrCancel('cancel')}
+              disabled={isBusy}
+              className="min-h-[44px]"
+            >
+              Cancel round
+            </Button>
+          ) : (
+            <>
+              {isParticipant && (
+                <Button
+                  onClick={() => void handleLeaveOrCancel('leave')}
+                  disabled={isBusy}
+                  className="min-h-[44px]"
+                >
+                  Leave
+                </Button>
+              )}
+              {lobbyExpired && (
+                <Button
+                  onClick={() => void handleLeaveOrCancel('cancel')}
+                  disabled={isBusy}
+                  className="min-h-[44px]"
+                >
+                  Cancel &amp; refund everyone
+                </Button>
+              )}
+            </>
+          )}
+        </div>
         {lobbyEvents.error && (
           <p className="mt-2 text-sm text-red-500">{lobbyEvents.error}</p>
         )}
@@ -718,6 +833,7 @@ function MultiplayerRoundClient() {
         isReady={isReady}
         isBusy={isBusy}
         onReady={handleReady}
+        inviteCode={inviteCode}
       />
     </>,
   );

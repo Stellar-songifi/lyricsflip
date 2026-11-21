@@ -1,4 +1,4 @@
-﻿//! Resource-budget regression tests (LF-033). Each test records CPU and
+//! Resource-budget regression tests (LF-033). Each test records CPU and
 //! memory for one call with realistic data and fails if it exceeds the
 //! ceiling in `budget_thresholds.rs`.
 
@@ -6,12 +6,12 @@ extern crate std;
 
 use crate::budget_thresholds::*;
 use crate::{
-    Answer, Card, Genre, LyricsFlip, LyricsFlipClient, Milestone, QuestionKind,
+    Answer, Card, Genre, LyricsFlip, LyricsFlipClient, Milestone, QuestionKind, RoundFilter,
     MAX_CARDS_PER_ROUND, MAX_ROUND_PLAYERS,
 };
 use soroban_sdk::{
     testutils::{Address as _, Ledger},
-    Address, Env, String,
+    Address, Env, String, Vec,
 };
 
 const CATALOGUE_SIZE: u64 = 500;
@@ -55,12 +55,12 @@ fn setup_full_round(
     cards_per_round: u32,
 ) -> (u64, std::vec::Vec<Address>) {
     client.set_cards_per_round(owner, &cards_per_round);
-    let round_id = client.create_round(owner, &Some(Genre::Pop), &42u64, &None);
+    let round_id = client.create_round(owner, &Some(Genre::Pop), &Vec::new(&env), &None, &0i128);
 
     let mut joiners = std::vec::Vec::new();
     for _ in 1..MAX_ROUND_PLAYERS {
         let player = Address::generate(env);
-        client.join_round(&player, &round_id, &None);
+        client.join_round(&player, &round_id);
         joiners.push(player);
     }
     for player in joiners.iter() {
@@ -76,10 +76,20 @@ fn setup_full_round(
 /// answer content doesn't matter for these budget tests — `submit_answer`
 /// records "answered" before it checks correctness — so a wrong guess is
 /// used throughout to avoid needing the real card text.
-fn answer_every_card(env: &Env, client: &LyricsFlipClient, player: &Address, round_id: u64, cards: u32) {
+fn answer_every_card(
+    env: &Env,
+    client: &LyricsFlipClient,
+    player: &Address,
+    round_id: u64,
+    cards: u32,
+) {
     for _ in 0..cards {
         client.next_card(player, &round_id);
-        client.submit_answer(player, &round_id, &Answer::Title(String::from_str(env, "wrong")));
+        client.submit_answer(
+            player,
+            &round_id,
+            &Answer::Title(String::from_str(env, "wrong")),
+        );
     }
 }
 
@@ -103,7 +113,28 @@ fn create_round_budget() {
         CREATE_ROUND_MAX_CPU,
         CREATE_ROUND_MAX_MEM,
         || {
-            client.create_round(&owner, &Some(Genre::Pop), &42u64, &None);
+            client.create_round(&owner, &Some(Genre::Pop), &Vec::new(&env), &None, &0i128);
+        },
+    );
+}
+
+/// LF-283: worst-case filtered create, with every filter set so the whole
+/// 500-card catalogue is scanned for matches.
+#[test]
+fn create_round_with_filter_budget() {
+    let (env, client, owner) = setup_catalogue();
+    client.set_cards_per_round(&owner, &MAX_CARDS_PER_ROUND);
+    let filter = RoundFilter {
+        genre: Some(Genre::Pop),
+        decade: Some(1990),
+    };
+    measure(
+        &env,
+        "create_round_with_filter",
+        CREATE_ROUND_WITH_FILTER_MAX_CPU,
+        CREATE_ROUND_WITH_FILTER_MAX_MEM,
+        || {
+            client.create_round_with_filter(&owner, &filter, &Some(2u32), &Vec::new(&env));
         },
     );
 }
@@ -111,11 +142,11 @@ fn create_round_budget() {
 #[test]
 fn start_round_budget() {
     let (env, client, owner) = setup_catalogue();
-    let round_id = client.create_round(&owner, &Some(Genre::Pop), &42u64, &None);
+    let round_id = client.create_round(&owner, &Some(Genre::Pop), &Vec::new(&env), &None, &0i128);
     let mut players = std::vec::Vec::new();
     for _ in 1..MAX_ROUND_PLAYERS {
         let player = Address::generate(&env);
-        client.join_round(&player, &round_id, &None);
+        client.join_round(&player, &round_id);
         players.push(player);
     }
     for player in players.iter() {
@@ -148,7 +179,7 @@ fn build_question_card_budget() {
             BUILD_QUESTION_CARD_MAX_CPU,
             BUILD_QUESTION_CARD_MAX_MEM,
             || {
-                client.build_question_card(&card, &7u64, &kind);
+                client.build_question_card(&card, &kind);
             },
         );
     }
@@ -173,7 +204,7 @@ fn build_question_card_budget_large_catalogue() {
             BUILD_QUESTION_CARD_MAX_CPU,
             BUILD_QUESTION_CARD_MAX_MEM,
             || {
-                client.build_question_card(&card, &7u64, &kind);
+                client.build_question_card(&card, &kind);
             },
         );
     }
@@ -201,7 +232,11 @@ fn submit_answer_budget() {
         SUBMIT_ANSWER_MAX_CPU,
         SUBMIT_ANSWER_MAX_MEM,
         || {
-            client.submit_answer(&owner, &round_id, &Answer::Title(String::from_str(&env, "wrong")));
+            client.submit_answer(
+                &owner,
+                &round_id,
+                &Answer::Title(String::from_str(&env, "wrong")),
+            );
         },
     );
 }
@@ -249,9 +284,9 @@ fn claim_reward_budget() {
 
     // Win a round as the owner so FirstWin is reached.
     client.set_cards_per_round(&owner, &1u32);
-    let round_id = client.create_round(&owner, &Some(Genre::Pop), &42u64, &None);
+    let round_id = client.create_round(&owner, &Some(Genre::Pop), &Vec::new(&env), &None, &0i128);
     client.start_round(&owner, &round_id);
-    let card = client.next_card(&owner, &round_id);
+    let card = crate::test::next_card_full(&env, &client, &owner, round_id);
     client.submit_answer(&owner, &round_id, &Answer::Title(card.title.clone()));
     client.finalize_round(&owner, &round_id);
 
@@ -276,7 +311,7 @@ fn create_solo_round_budget() {
         CREATE_SOLO_ROUND_MAX_CPU,
         CREATE_SOLO_ROUND_MAX_MEM,
         || {
-            client.create_solo_round(&owner, &Some(Genre::Pop), &42u64);
+            client.create_solo_round(&owner, &Some(Genre::Pop));
         },
     );
 }
@@ -285,9 +320,9 @@ fn create_solo_round_budget() {
 fn answer_and_next_budget() {
     let (env, client, owner) = setup_catalogue();
     client.set_cards_per_round(&owner, &5);
-    let round_id = client.create_round(&owner, &Some(Genre::Pop), &42u64, &None);
+    let round_id = client.create_round(&owner, &Some(Genre::Pop), &Vec::new(&env), &None, &0i128);
     client.start_round(&owner, &round_id);
-    let card = client.next_card(&owner, &round_id);
+    let card = crate::test::next_card_full(&env, &client, &owner, round_id);
     measure(
         &env,
         "answer_and_next",

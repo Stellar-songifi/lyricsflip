@@ -1,12 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { InjectDataSource } from '@nestjs/typeorm';
 import {
   HealthCheckError,
   HealthIndicator,
   HealthIndicatorResult,
 } from '@nestjs/terminus';
-import { DataSource } from 'typeorm';
 
 /** Calls the Soroban/Stellar RPC `getHealth` JSON-RPC method. */
 @Injectable()
@@ -96,84 +94,6 @@ export class StellarRpcHealthIndicator extends HealthIndicator {
     } catch (err) {
       throw new HealthCheckError(
         'Stellar RPC getLatestLedger failed',
-        this.getStatus(key, false, { message: (err as Error).message }),
-      );
-    }
-  }
-}
-
-/**
- * Compares the latest RPC ledger with `indexer_state.last_ledger` and fails
- * when the lag exceeds the configured threshold.
- */
-@Injectable()
-export class IndexerLagHealthIndicator extends HealthIndicator {
-  constructor(
-    private readonly config: ConfigService,
-    private readonly rpc: StellarRpcHealthIndicator,
-    @InjectDataSource() private readonly dataSource: DataSource,
-  ) {
-    super();
-  }
-
-  private getThreshold(): number {
-    const raw =
-      this.config.get<number | string>('indexer.maxLagLedgers') ??
-      process.env.INDEXER_MAX_LAG_LEDGERS ??
-      100;
-    const parsed = typeof raw === 'number' ? raw : parseInt(raw, 10);
-    return Number.isFinite(parsed) && parsed >= 0 ? parsed : 100;
-  }
-
-  private getRpcTimeout(): number {
-    const raw =
-      this.config.get<number | string>('soroban.rpcTimeoutMs') ??
-      process.env.SOROBAN_RPC_TIMEOUT_MS ??
-      3000;
-    const parsed = typeof raw === 'number' ? raw : parseInt(raw, 10);
-    return Number.isFinite(parsed) && parsed > 0 ? parsed : 3000;
-  }
-
-  async isHealthy(key: string): Promise<HealthIndicatorResult> {
-    const threshold = this.getThreshold();
-
-    try {
-      const latestLedger = await this.rpc.getLatestLedger(this.getRpcTimeout());
-
-      const rows = await this.dataSource.query(
-        'SELECT last_ledger FROM indexer_state ORDER BY id ASC LIMIT 1',
-      );
-      const lastLedgerRaw = rows?.[0]?.last_ledger;
-      const lastLedger =
-        lastLedgerRaw === null || lastLedgerRaw === undefined
-          ? null
-          : Number(lastLedgerRaw);
-
-      if (lastLedger === null || !Number.isFinite(lastLedger)) {
-        throw new Error('indexer_state.last_ledger not available');
-      }
-
-      const lag = latestLedger - lastLedger;
-      const healthy = lag <= threshold;
-
-      const status = this.getStatus(key, healthy, {
-        latestLedger,
-        lastLedger,
-        lag,
-        threshold,
-      });
-
-      if (!healthy) {
-        throw new HealthCheckError('Indexer lag exceeds threshold', status);
-      }
-
-      return status;
-    } catch (err) {
-      if (err instanceof HealthCheckError) {
-        throw err;
-      }
-      throw new HealthCheckError(
-        'Indexer lag check failed',
         this.getStatus(key, false, { message: (err as Error).message }),
       );
     }

@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { GameGateway } from './game.gateway';
 import { WsAuthenticator } from '../auth/providers/ws-authenticator.provider';
+import { WsRateLimitGuard } from '../common/guards/ws-rate-limit.guard';
 import type {
   PlayerJoinedPayload,
   PlayerLeftPayload,
@@ -45,6 +46,7 @@ describe('Realtime Protocol Contract Test (LF-197)', () => {
       providers: [
         GameGateway,
         { provide: WsAuthenticator, useValue: wsAuthenticator },
+        { provide: WsRateLimitGuard, useValue: { canActivate: () => true } },
       ],
     }).compile();
 

@@ -1,0 +1,10 @@
+{
+  "name": "LyricsFlip Achievement – First Win",
+  "description": "Awarded to a player who won their first round in LyricsFlip.",
+  "image": "https://<host>/images/0.png",
+  "external_url": "https://lyricsflip.io",
+  "attributes": [
+    { "trait_type": "Kind",      "value": 0 },
+    { "trait_type": "Milestone", "value": "FirstWin" }
+  ]
+}

@@ -1,6 +1,6 @@
 import { renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { useSongs } from '../hooks/useSongs';
+import { useSongs } from '../hooks/use-songs';
 
 const queryClient = new QueryClient();
 

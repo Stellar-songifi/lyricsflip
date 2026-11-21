@@ -1,4 +1,4 @@
-use soroban_sdk::{contracttype, Address, BytesN, String};
+use soroban_sdk::{contracttype, Address, BytesN, Map, String, Vec};
 
 /// Ported from `onchain/src/utils/types.cairo`. `felt252`/`ByteArray` fields
 /// become `String`; Starknet's `u8` fields become `u32` since Soroban has no
@@ -11,7 +11,33 @@ pub struct Card {
     pub artist: String,
     pub title: String,
     pub year: u64,
+    pub difficulty: u32,
     pub lyrics: String,
+}
+
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct LegacyCard {
+    pub card_id: u64,
+    pub genre: Genre,
+    pub artist: String,
+    pub title: String,
+    pub year: u64,
+    pub lyrics: String,
+}
+
+impl From<LegacyCard> for Card {
+    fn from(card: LegacyCard) -> Self {
+        Self {
+            card_id: card.card_id,
+            genre: card.genre,
+            artist: card.artist,
+            title: card.title,
+            year: card.year,
+            difficulty: 2,
+            lyrics: card.lyrics,
+        }
+    }
 }
 
 #[contracttype]
@@ -57,9 +83,84 @@ pub enum Genre {
     Folk = 12,
 }
 
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct RoundFilter {
+    pub genre: Option<Genre>,
+    /// The first year of a decade, for example 1990.
+    pub decade: Option<u64>,
+}
+
+impl soroban_sdk::TryFromVal<soroban_sdk::Env, soroban_sdk::Val> for RoundFilter {
+    type Error = soroban_sdk::ConversionError;
+    fn try_from_val(env: &soroban_sdk::Env, val: &soroban_sdk::Val) -> Result<Self, Self::Error> {
+        let map: soroban_sdk::Map<soroban_sdk::Symbol, soroban_sdk::Val> =
+            soroban_sdk::Map::try_from_val(env, val)?;
+        let genre_sym = soroban_sdk::Symbol::new(env, "genre");
+        let decade_sym = soroban_sdk::Symbol::new(env, "decade");
+        let genre = if let Some(v) = map.get(genre_sym) {
+            Option::<Genre>::try_from_val(env, &v)?
+        } else {
+            None
+        };
+        let decade = if let Some(v) = map.get(decade_sym) {
+            Option::<u64>::try_from_val(env, &v)?
+        } else {
+            None
+        };
+        Ok(RoundFilter { genre, decade })
+    }
+}
+
+impl soroban_sdk::IntoVal<soroban_sdk::Env, soroban_sdk::Val> for RoundFilter {
+    fn into_val(&self, env: &soroban_sdk::Env) -> soroban_sdk::Val {
+        let mut map: soroban_sdk::Map<soroban_sdk::Symbol, soroban_sdk::Val> =
+            soroban_sdk::Map::new(env);
+        let genre_val: soroban_sdk::Val = self.genre.into_val(env);
+        let decade_val: soroban_sdk::Val = self.decade.into_val(env);
+        map.set(soroban_sdk::Symbol::new(env, "genre"), genre_val);
+        map.set(soroban_sdk::Symbol::new(env, "decade"), decade_val);
+        map.into_val(env)
+    }
+}
+
+impl soroban_sdk::IntoVal<soroban_sdk::Env, soroban_sdk::Val> for &RoundFilter {
+    fn into_val(&self, env: &soroban_sdk::Env) -> soroban_sdk::Val {
+        (*self).clone().into_val(env)
+    }
+}
+
 #[contracttype]
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Round {
+    pub round_id: u64,
+    pub admin: Address,
+    pub genre: Genre,
+    pub wager_amount: i128,
+    pub wager_token: Option<Address>,
+    pub start_time: u64,
+    pub is_started: bool,
+    pub is_completed: bool,
+    pub end_time: u64,
+    pub next_card_index: u32,
+    pub is_cancelled: bool,
+    /// LF-158: Snapshotted answer window (seconds per card).
+    pub answer_window: u64,
+    /// LF-158: Snapshotted lobby timeout (seconds before non-admin can cancel).
+    pub lobby_timeout: u64,
+    /// LF-158: Snapshotted round duration (seconds from start to deadline).
+    pub round_duration: u64,
+    /// LF-162: true when the round requires an invite code to join.
+    pub is_private: bool,
+    /// LF-163: solo rounds skip OpenRounds and start in the same call.
+    pub solo: bool,
+    /// LF-291: player cap for this round, fixed at creation and never above
+    /// the global `MaxPlayers`. Migrated rounds take the global value.
+    pub max_players: u32,
+}
+
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct LegacyRound {
     pub round_id: u64,
     pub admin: Address,
     pub genre: Genre,
@@ -74,6 +175,120 @@ pub struct Round {
     pub end_time: u64,
     pub next_card_index: u32,
     pub is_cancelled: bool,
+}
+
+impl From<LegacyRound> for Round {
+    fn from(r: LegacyRound) -> Self {
+        Self {
+            round_id: r.round_id,
+            admin: r.admin,
+            genre: r.genre,
+            wager_amount: r.wager_amount,
+            wager_token: None,
+            start_time: r.start_time,
+            is_started: r.is_started,
+            is_completed: r.is_completed,
+            end_time: r.end_time,
+            next_card_index: r.next_card_index,
+            is_cancelled: r.is_cancelled,
+            answer_window: 15,
+            lobby_timeout: 600,
+            round_duration: 300,
+            is_private: false,
+            solo: false,
+            max_players: 0,
+        }
+    }
+}
+
+/// Schema v4 round layout (pre LF-291): `Round` without `max_players`.
+/// `read_round` lazily re-encodes stored v4 entries as `Round`.
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct RoundV4 {
+    pub round_id: u64,
+    pub admin: Address,
+    pub genre: Genre,
+    pub wager_amount: i128,
+    pub start_time: u64,
+    pub is_started: bool,
+    pub is_completed: bool,
+    pub end_time: u64,
+    pub next_card_index: u32,
+    pub is_cancelled: bool,
+    pub answer_window: u64,
+    pub lobby_timeout: u64,
+    pub round_duration: u64,
+    pub is_private: bool,
+    pub solo: bool,
+}
+
+impl From<RoundV4> for Round {
+    fn from(r: RoundV4) -> Self {
+        Self {
+            round_id: r.round_id,
+            admin: r.admin,
+            genre: r.genre,
+            wager_amount: r.wager_amount,
+            wager_token: None,
+            start_time: r.start_time,
+            is_started: r.is_started,
+            is_completed: r.is_completed,
+            end_time: r.end_time,
+            next_card_index: r.next_card_index,
+            is_cancelled: r.is_cancelled,
+            answer_window: r.answer_window,
+            lobby_timeout: r.lobby_timeout,
+            round_duration: r.round_duration,
+            is_private: r.is_private,
+            solo: r.solo,
+            max_players: 0,
+        }
+    }
+}
+
+/// Schema v3 round layout (pre LF-162/163): `Round` without `is_private` and
+/// `solo`. `read_round` lazily re-encodes stored v3 entries as `Round`.
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct RoundV3 {
+    pub round_id: u64,
+    pub admin: Address,
+    pub genre: Genre,
+    pub wager_amount: i128,
+    pub start_time: u64,
+    pub is_started: bool,
+    pub is_completed: bool,
+    pub end_time: u64,
+    pub next_card_index: u32,
+    pub is_cancelled: bool,
+    pub answer_window: u64,
+    pub lobby_timeout: u64,
+    pub round_duration: u64,
+}
+
+impl From<RoundV3> for Round {
+    fn from(r: RoundV3) -> Self {
+        Self {
+            round_id: r.round_id,
+            admin: r.admin,
+            genre: r.genre,
+            wager_amount: r.wager_amount,
+            wager_token: None,
+            start_time: r.start_time,
+            is_started: r.is_started,
+            is_completed: r.is_completed,
+            end_time: r.end_time,
+            next_card_index: r.next_card_index,
+            is_cancelled: r.is_cancelled,
+            answer_window: r.answer_window,
+            lobby_timeout: r.lobby_timeout,
+            round_duration: r.round_duration,
+            is_private: false,
+            solo: false,
+            max_players: 0,
+        }
+    }
 }
 
 /// NFT reward milestones a player can claim once each via `claim_reward`.
@@ -129,6 +344,9 @@ pub struct CardPos {
     pub genre: u32,
     pub artist: u32,
     pub year: u32,
+    pub decade: u32,
+    pub difficulty: u32,
+    pub genre_decade: u32,
 }
 
 /// Mirrors Cairo's single `ADMIN_ROLE` selector. Kept as an enum (instead of
@@ -147,6 +365,8 @@ pub enum DataKey {
     /// Nominated by `transfer_ownership`, pending `accept_ownership`.
     PendingOwner,
     Admin(Address),
+    /// Enumerable index of all active admin addresses (LF-156).
+    Admins,
     RoundCount,
     CardsCount,
     CardsPerRound,
@@ -175,6 +395,8 @@ pub enum DataKey {
     RoundCardStartedAt((u64, u64)),
     RoundPlayerAnswered((u64, Address, u64)),
     RoundFinalized(u64),
+    /// LF-162: preimage hash for private rounds. Present only if private.
+    RoundInviteHash(u64),
     PlayerStats(Address),
     RoundReady((u64, Address)),
     RoundReadyCount(u64),
@@ -191,4 +413,72 @@ pub enum DataKey {
     NftContract,
     /// Whether a player has already claimed a milestone reward.
     MilestoneClaimed((Address, Milestone)),
+    /// Global emergency-pause flag. While set, round creation/joining and
+    /// reward claims are blocked; refund and cancel paths stay open.
+    Paused,
+    /// LF-141: Tracks the next card index per-player for a round.
+    PlayerCardIndex((u64, Address)),
+    /// LF-141: Ledger timestamp when a player drew a card in a round.
+    PlayerCardStartedAt((u64, Address, u64)),
+    /// LF-157: Stored storage schema version for migration hooks.
+    SchemaVersion,
+    /// LF-158: Owner-configured answer window in seconds per card.
+    AnswerWindow,
+    /// LF-158: Owner-configured lobby timeout in seconds.
+    LobbyTimeout,
+    /// LF-158: Owner-configured round duration override in seconds (or None/0 for dynamic).
+    RoundDuration,
+    /// LF-158: Owner-configured latency buffer added per card in seconds.
+    RoundBuffer,
+    /// LF-176: set (true) when a card is removed. The `Card` entry is kept so
+    /// rounds that already drew the card can still read and grade it; the
+    /// flag excludes the card from `get_card` and from all future draws.
+    CardDisabled(u64),
+    /// LF-176: ids of rounds whose `RoundCards` currently reference a card
+    /// and that have not been finalized or cancelled. Guards `update_card`
+    /// against changing answer fields mid-round.
+    CardLiveRounds(u64),
+    /// LF-175: number of public lobby rounds an address currently has open.
+    /// Caps how many free (0-wager) lobbies one account can park in
+    /// `OpenRounds`; decremented on start, cancel, and expiry.
+    OpenRoundsOf(Address),
+    /// LF-293: `(correct, points)` recorded for each answer, keyed by
+    /// `(round_id, player, card_id)`, so result screens need no events.
+    RoundAnswer((u64, Address, u64)),
+    /// LF-286: number of rounds in a player's round-history index.
+    PlayerRoundCount(Address),
+    /// LF-286: the player's `n`th round id, in join order (oldest first).
+    PlayerRoundAt((Address, u32)),
+    /// Address of the `lyricsflip-escrow` contract that holds round wagers.
+    EscrowContract,
+    /// LF-264: invitee allowlist of a private round.
+    RoundInvitees(u64),
+    /// Round-filter indexes: card count per decade / difficulty /
+    /// genre+decade, and the card id at each position.
+    DecadeCardCount(u64),
+    DecadeCardAt((u64, u32)),
+    DifficultyCardCount(u32),
+    DifficultyCardAt((u32, u32)),
+    GenreDecadeCardCount((Genre, u64)),
+    GenreDecadeCardAt((Genre, u64, u32)),
+}
+
+/// LF-293: per-card breakdown returned by `get_round_summary`.
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct CardResult {
+    pub card: Card,
+    pub kind: QuestionKind,
+    /// `(correct, points)` per player who answered this card.
+    pub per_player: Map<Address, (bool, u64)>,
+}
+
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct AnswerResult {
+    pub correct: bool,
+    pub points: u64,
+    pub correct_option: u32,
+    /// The next question, or empty when the deck is exhausted.
+    pub next: Vec<QuestionCard>,
 }

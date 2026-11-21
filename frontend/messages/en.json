@@ -11,35 +11,34 @@
     "locales": {
       "en": "English",
       "fr": "Français"
-    }
+    },
+    "game": "Game",
+    "settings": "Settings",
+    "connectWallet": "Connect Wallet",
+    "disconnectWallet": "Disconnect Wallet"
   },
   "songOptions": {
     "answerOptions": "Answer options"
   },
   "lobby": {
+    "multiplayerGame": "Multiplayer Game",
     "back": "Back",
-    "multiplayerGame": "Wager (Multi Player)",
-    "createRoundTitle": "Create Game",
-    "systemNotInit": "System calls not initialized",
-    "failedCreate": "Failed to create game",
-    "invalidRoundId": "Invalid round ID",
-    "creating": "Creating...",
+    "createRoundTitle": "Create multiplayer round",
+    "joinWithId": "Join with a round ID",
+    "enterRoundId": "Enter Round ID",
+    "joinRound": "Join Round",
+    "creating": "Creating…",
     "createRound": "Create Round",
     "connectWalletToCreate": "Connect wallet to create",
-    "joinWithId": "Join by Round ID",
-    "enterRoundId": "Enter round ID",
-    "joinRound": "Join Round",
-    "connectWallet": "Connect your wallet to join round {roundId}.",
-    "connect": "Connect wallet",
-    "failedJoin": "Failed to join round",
-    "failedReady": "Failed to mark ready",
-    "invalidInvite": "That invite link is not valid.",
+    "systemNotInit": "System calls not initialized",
+    "failedCreate": "Failed to create round",
+    "invalidRoundId": "Round ID must be a number",
     "loadingRound": "Loading round…",
+    "connectWalletToJoin": "Connect your wallet to join round {id}.",
+    "connectWallet": "Connect wallet",
     "players": "Players ({count})",
-    "roundClosed": "This round is no longer open.",
-    "roundNotFound": "Round {roundId} does not exist or could not be loaded.",
-    "songOptions": "Song options",
-    "waitingFirstCard": "Waiting for the first card…"
+    "round": "Round {id}",
+    "waitingForOpponent": "Waiting for the first card…"
   },
   "challengeInvite": {
     "title": "Your wager challenge has been created",
@@ -106,21 +105,59 @@
     "failed": "Failed to update admin role"
   },
   "admin": {
-    "checkingAccess": "Checking access…",
-    "accessRequired": "You need admin access to view this page.",
-    "dashboard": "Admin Dashboard"
+    "checkingAccess": "Checking admin access...",
+    "accessRequired": "Admin access required. Redirecting...",
+    "dashboard": "Admin Dashboard",
+    "errors": "Errors",
+    "addCard": "Add Card",
+    "saving": "Saving...",
+    "bulkImport": "Bulk Import",
+    "importInstructions": "CSV with a header row, or a JSON array, with fields: genre, artist, title, year, lyrics.",
+    "importButton": "Import {count} cards",
+    "catalogue": "Catalogue",
+    "noCardsYet": "No cards yet.",
+    "genre": "Genre",
+    "artist": "Artist",
+    "title": "Title",
+    "year": "Year",
+    "lyrics": "Lyrics"
   },
   "wallet": {
     "title": "Have fun guessing the lyrics to your favourite song",
     "subtitle": "You could have fun, wager against yourself or wager against friends and earn while you are at it.",
     "continueWith": "Continue with {wallet}",
-    "or": "OR",
+    "or": "or",
     "connectWallet": "Connect Wallet",
+    "brandLyric": "Lyrics",
+    "brandFlip": "Flip",
     "wallets": {
       "argent": "Argent",
       "okx": "OKX",
       "braavos": "Braavos"
-    }
+    },
+    "loading": "Loading wallet...",
+    "loadingError": "Failed to load your wallet. Please try again.",
+    "connect": "Connect Wallet",
+    "connecting": "Connecting...",
+    "connectError": "Failed to connect your wallet. Please try again.",
+    "disconnect": "Disconnect",
+    "disconnecting": "Disconnecting...",
+    "disconnectError": "Failed to disconnect your wallet. Please try again.",
+    "connected": "Wallet connected",
+    "notConnected": "Wallet not connected",
+    "address": "Address",
+    "balance": "Balance",
+    "network": "Network",
+    "wrongNetwork": "Wrong network. Please switch to the supported network.",
+    "transactions": "Transactions",
+    "noTransactions": "No transactions yet",
+    "rewards": "Rewards",
+    "claimRewards": "Claim Rewards",
+    "claiming": "Claiming...",
+    "claimError": "Failed to claim rewards. Please try again.",
+    "claimSuccess": "Rewards claimed successfully!",
+    "pendingRewards": "Pending Rewards",
+    "totalEarned": "Total Earned"
   },
   "atoms": {
     "close": "Close"
@@ -141,14 +178,48 @@
     "loadingEngine": "Loading Game Engine...",
     "initializing": "Please wait while we initialize the game",
     "loading": "Loading...",
-    "preparing": "Please wait while we prepare the game"
+    "preparing": "Please wait while we prepare the game",
+    "generic": "Something went wrong. Please try again.",
+    "network": "Network error. Please check your connection.",
+    "notFound": "Page not found",
+    "unauthorized": "You are not authorized to view this page.",
+    "walletRequired": "Please connect your wallet to continue."
   },
   "home": {
     "welcomeTitle": "Welcome to LyricsFlip",
     "welcomeConnect": "to LyricsFlip, ",
     "modeHeader": "CHOOSE YOUR PREFERRED GAME MODE",
     "loading": "Loading game...",
-    "errorPrefix": "Error:"
+    "errorPrefix": "Error:",
+    "title": "LyricsFlip",
+    "tagline": "Guess the lyrics. Win the game.",
+    "subtitle": "Test your music knowledge and earn rewards",
+    "playNow": "Play Now",
+    "howToPlay": "How to Play",
+    "startGame": "Start Game",
+    "loadingError": "Failed to load the game. Please try again.",
+    "connectPrompt": "Connect your wallet to start playing",
+    "welcomeBack": "Welcome back!",
+    "genres": {
+      "title": "Choose a Genre",
+      "afrobeat": "Afrobeat",
+      "gospel": "Gospel",
+      "pop": "Pop",
+      "hipHop": "Hip Hop",
+      "rnb": "R&B",
+      "rock": "Rock",
+      "jazz": "Jazz",
+      "country": "Country",
+      "reggae": "Reggae",
+      "classical": "Classical",
+      "all": "All Genres"
+    },
+    "howToPlaySteps": {
+      "step1": "Connect your wallet",
+      "step2": "Choose a genre",
+      "step3": "Guess the lyrics before the timer runs out",
+      "step4": "Earn rewards for correct answers"
+    }
   },
   "welcome": {
     "modeHeader": "CHOOSE YOUR PREFERRED GAME MODE"
@@ -309,7 +380,24 @@
     "you": "You",
     "prizeWon": "Prize Won",
     "secondPlace": "Second Place",
-    "thirdPlace": "Third Place"
+    "thirdPlace": "Third Place",
+    "title": "Results",
+    "loadingError": "Failed to load your results. Please try again.",
+    "gameOver": "Game Over",
+    "finalScore": "Final Score",
+    "correctAnswers": "Correct Answers",
+    "incorrectAnswers": "Incorrect Answers",
+    "accuracy": "Accuracy",
+    "timePlayed": "Time Played",
+    "bestStreak": "Best Streak",
+    "rewardsEarned": "Rewards Earned",
+    "noRewards": "No rewards earned this round",
+    "backToHome": "Back to Home",
+    "shareResult": "Share Result",
+    "congratulations": "Congratulations!",
+    "greatJob": "Great job!",
+    "keepPracticing": "Keep practicing!",
+    "summary": "You answered {correct} out of {total} questions correctly."
   },
   "wagerSummary": {
     "title": "Wager Summary",
@@ -328,64 +416,6 @@
     "noDetails": "No round details available",
     "unknown": "Unknown",
     "oddsUnit": "x"
-  },
-  "lobby": {
-    "multiplayerGame": "Multiplayer Game",
-    "back": "Back",
-    "createRoundTitle": "Create multiplayer round",
-    "joinWithId": "Join with a round ID",
-    "enterRoundId": "Enter Round ID",
-    "joinRound": "Join Round",
-    "creating": "Creating…",
-    "createRound": "Create Round",
-    "connectWalletToCreate": "Connect wallet to create",
-    "systemNotInit": "System calls not initialized",
-    "failedCreate": "Failed to create round",
-    "invalidRoundId": "Round ID must be a number",
-    "loadingRound": "Loading round…",
-    "connectWalletToJoin": "Connect your wallet to join round {id}.",
-    "connectWallet": "Connect wallet",
-    "players": "Players ({count})",
-    "round": "Round {id}",
-    "waitingForOpponent": "Waiting for the first card…"
-  },
-  "admin": {
-    "checkingAccess": "Checking admin access...",
-    "accessRequired": "Admin access required. Redirecting...",
-    "dashboard": "Admin Dashboard",
-    "errors": "Errors",
-    "addCard": "Add Card",
-    "saving": "Saving...",
-    "bulkImport": "Bulk Import",
-    "importInstructions": "CSV with a header row, or a JSON array, with fields: genre, artist, title, year, lyrics.",
-    "importButton": "Import {count} cards",
-    "catalogue": "Catalogue",
-    "noCardsYet": "No cards yet.",
-    "genre": "Genre",
-    "artist": "Artist",
-    "title": "Title",
-    "year": "Year",
-    "lyrics": "Lyrics"
-  },
-  "wallet": {
-    "title": "Have fun guessing the lyrics to your favourite song",
-    "subtitle": "You could have fun, wager against yourself or wager against friends and earn while you are at it.",
-    "continueWith": "Continue with {wallet}",
-    "or": "or",
-    "connectWallet": "Connect Wallet",
-    "brandLyric": "Lyrics",
-    "brandFlip": "Flip",
-    "wallets": {
-      "argent": "Argent",
-      "okx": "OKX",
-      "braavos": "Braavos"
-    }
-  },
-  "errors": {
-    "loadingEngine": "Loading Game Engine...",
-    "initializing": "Please wait while we initialize the game",
-    "loading": "Loading...",
-    "preparing": "Please wait while we prepare the game"
   },
   "auth": {
     "back": "Back",
@@ -409,5 +439,86 @@
   "shareButton": {
     "label": "Share",
     "hug": "Hug"
+  },
+  "common": {
+    "appName": "LyricsFlip",
+    "loading": "Loading...",
+    "pleaseWait": "Please wait while we prepare the game",
+    "error": "Something went wrong",
+    "retry": "Try again",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "close": "Close",
+    "back": "Back",
+    "next": "Next",
+    "continue": "Continue",
+    "submit": "Submit",
+    "save": "Save",
+    "copy": "Copy",
+    "copied": "Copied!",
+    "share": "Share",
+    "or": "or",
+    "and": "and",
+    "yes": "Yes",
+    "no": "No"
+  },
+  "game": {
+    "title": "Game",
+    "loading": "Loading game...",
+    "loadingError": "Failed to load the game. Please try again.",
+    "starting": "Starting game...",
+    "startError": "Failed to start the game. Please try again.",
+    "submitError": "Failed to submit your answer. Please try again.",
+    "question": "Question {current} of {total}",
+    "score": "Score",
+    "streak": "Streak",
+    "timer": {
+      "label": "Time remaining",
+      "secondsLeft": "{seconds} seconds left",
+      "secondsLeftOne": "1 second left",
+      "timeUp": "Time's up!",
+      "announcement": "You have {seconds} seconds remaining",
+      "announcementOne": "You have 1 second remaining",
+      "warning": "Hurry up!"
+    },
+    "card": {
+      "reveal": "Reveal",
+      "revealed": "Revealed",
+      "hide": "Hide",
+      "flip": "Flip card",
+      "flipped": "Card flipped",
+      "front": "Front",
+      "back": "Back",
+      "tapToReveal": "Tap to reveal the answer",
+      "answer": "Answer",
+      "yourAnswer": "Your answer",
+      "correctAnswer": "Correct answer"
+    },
+    "actions": {
+      "submit": "Submit Answer",
+      "skip": "Skip",
+      "next": "Next Question",
+      "finish": "Finish Game",
+      "quit": "Quit Game",
+      "quitConfirm": "Are you sure you want to quit? Your progress will be lost."
+    },
+    "input": {
+      "placeholder": "Type your answer...",
+      "label": "Your answer",
+      "emptyError": "Please enter an answer before submitting."
+    },
+    "status": {
+      "correct": "Correct!",
+      "incorrect": "Incorrect",
+      "paused": "Game paused",
+      "resumed": "Game resumed"
+    }
+  },
+  "contributors": {
+    "title": "Contributors",
+    "subtitle": "Thanks to everyone who has contributed to LyricsFlip.",
+    "empty": "No contributors to display yet.",
+    "avatarAlt": "{login}'s avatar",
+    "contributions": "{count, plural, one {# contribution} other {# contributions}}"
   }
 }

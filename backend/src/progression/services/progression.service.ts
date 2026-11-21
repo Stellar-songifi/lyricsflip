@@ -20,23 +20,23 @@ export class ProgressionService {
   async addXp(xpEvent: XpEventDto): Promise<PlayerStats> {
     const playerStats = await this.getOrCreatePlayerStats(xpEvent.userId);
     const oldLevel = playerStats.level;
-    
+
     playerStats.totalXp += xpEvent.amount;
-    
+
     // Calculate new level
     const newLevel = this.calculateLevel(playerStats.totalXp);
     if (newLevel > oldLevel) {
       await this.handleLevelUp(playerStats, oldLevel, newLevel);
     }
-    
+
     playerStats.level = newLevel;
-    
+
     // Update skill rating and rank
     await this.updateSkillRating(playerStats);
     await this.updateRank(playerStats);
-    
+
     const updatedStats = await this.playerStatsRepository.save(playerStats);
-    
+
     this.eventEmitter.emit('progression.xp.added', {
       userId: xpEvent.userId,
       amount: xpEvent.amount,
@@ -45,7 +45,7 @@ export class ProgressionService {
       oldLevel,
       newLevel: updatedStats.level,
     });
-    
+
     return updatedStats;
   }
 
@@ -58,7 +58,8 @@ export class ProgressionService {
     const levelUpEvent = this.playerLevelRepository.create({
       playerStats,
       level: newLevel,
-      xpGained: this.calculateLevelXp(newLevel) - this.calculateLevelXp(oldLevel),
+      xpGained:
+        this.calculateLevelXp(newLevel) - this.calculateLevelXp(oldLevel),
       totalXp: playerStats.totalXp,
     });
     await this.playerLevelRepository.save(levelUpEvent);
@@ -86,7 +87,7 @@ export class ProgressionService {
     // Implement reward calculation based on level
     return {
       coins: level * 100,
-      items: [reward_${level}],
+      items: [`reward_${level}`],
     };
   }
 
@@ -110,7 +111,7 @@ export class ProgressionService {
     // Find appropriate rank
     const newRank = ranks
       .reverse()
-      .find(rank => playerStats.skillRating >= rank.threshold);
+      .find((rank) => playerStats.skillRating >= rank.threshold);
 
     if (newRank && newRank.name !== playerStats.rank) {
       const oldRank = playerStats.rank;
@@ -124,7 +125,7 @@ export class ProgressionService {
     }
   }
 
-  private async getOrCreatePlayerStats(userId: string): Promise<PlayerStats> {
+  async getOrCreatePlayerStats(userId: string): Promise<PlayerStats> {
     let playerStats = await this.playerStatsRepository.findOne({
       where: { userId },
       relations: ['levelHistory', 'skills'],
@@ -141,5 +142,5 @@ export class ProgressionService {
     }
 
     return playerStats;
-  }
+  }
 }

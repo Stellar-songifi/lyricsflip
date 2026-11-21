@@ -1,7 +1,7 @@
 # ROOMS API
 # Membership events: socket.io namespace /rooms, connect with query { playerId }.
 
-@baseUrl = http://localhost:3000
+@baseUrl = http://localhost:3000/api/v1
 
 ### List active rooms
 GET {{baseUrl}}/rooms?limit=20&page=1

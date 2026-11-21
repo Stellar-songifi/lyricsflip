@@ -1,0 +1,33 @@
+name: Encoding guard
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions: read-all
+
+jobs:
+  no-mojibake-or-bom:
+    name: No mojibake or BOM in .rs/.ts/.md
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Reject double-encoded UTF-8 and byte-order marks
+        shell: bash
+        run: |
+          mapfile -t files < <(git ls-files '*.rs' '*.ts' '*.tsx' '*.md')
+          bad=0
+          if grep -nP 'Ã¢' -- "${files[@]}"; then
+            echo "::error::Double-encoded UTF-8 (mojibake) found. Re-save these files as UTF-8."
+            bad=1
+          fi
+          for f in "${files[@]}"; do
+            if [[ "$(head -c3 -- "$f" | od -An -tx1 | tr -d ' ')" == "efbbbf" ]]; then
+              echo "::error file=$f::Byte-order mark found. Save as UTF-8 without BOM."
+              bad=1
+            fi
+          done
+          [[ $bad -eq 0 ]] && echo "✅ No mojibake or BOM found."
+          exit $bad

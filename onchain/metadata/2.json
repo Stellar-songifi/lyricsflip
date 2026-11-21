@@ -1,0 +1,10 @@
+{
+  "name": "LyricsFlip Achievement – Ten Wins",
+  "description": "Awarded to a player who won ten rounds in LyricsFlip.",
+  "image": "https://<host>/images/2.png",
+  "external_url": "https://lyricsflip.io",
+  "attributes": [
+    { "trait_type": "Kind",      "value": 2 },
+    { "trait_type": "Milestone", "value": "TenWins" }
+  ]
+}

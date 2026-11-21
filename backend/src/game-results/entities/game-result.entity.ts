@@ -21,6 +21,18 @@ export class GameResult {
   @Column('int')
   timeSpent: number;
 
+  @Column('int', { default: 0 })
+  totalPoints: number;
+
+  @Column('int', { default: 0 })
+  correctAnswers: number;
+
+  @Column('int', { default: 0 })
+  totalAnswers: number;
+
+  @Column('int', { default: 0 })
+  bestRoundScore: number;
+
   @Column('json', { nullable: true })
   achievements: any[];
 

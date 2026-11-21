@@ -16,17 +16,24 @@ async function bootstrap() {
   const config = app.get(ConfigService);
   const logger = new Logger('Main');
 
+  // configureApp applies the global prefix ('api') with URI versioning
+  // (routes resolve to /api/v1/...), excluding /health. Do not set the
+  // prefix elsewhere to avoid duplicate/conflicting configuration.
   configureApp(app);
 
-  const corsOrigin = config.get<string>('cors.origin') ?? '*';
+  const corsOrigin =
+    config.get<string | string[]>('cors.origin') ?? 'http://localhost:3000';
   app.enableCors({
     origin: corsOrigin,
     credentials: true,
   });
 
+  // WebSocket adapter is unaffected by the HTTP global prefix.
   app.useWebSocketAdapter(new SocketIOAdapter(app, config));
 
   if (process.env.NODE_ENV !== 'production') {
+    // Swagger is served outside the versioned API surface at /api/docs.
+    // The generated document reflects the versioned routes (/api/v1/...).
     const document = SwaggerModule.createDocument(app, swaggerConfig);
     SwaggerModule.setup('api/docs', app, document, swaggerCustomOptions);
   }

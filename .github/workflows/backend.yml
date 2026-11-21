@@ -3,9 +3,9 @@ name: Backend CI
 on:
   push:
     branches: [main]
-    paths: ['backend/**', 'seed/**', '.github/workflows/backend.yml']
+    tags: ["backend-v*"]
+    paths: ["backend/**", "seed/**", ".github/workflows/backend.yml"]
   pull_request:
-    paths: ['backend/**', 'seed/**', '.github/workflows/backend.yml']
 
 concurrency:
   group: backend-${{ github.ref }}
@@ -21,7 +21,7 @@ env:
 
 jobs:
   backend:
-    name: Backend CI
+    name: Backend tests
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -33,13 +33,13 @@ jobs:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
           POSTGRES_DB: lyricsflip
-        ports: ['5432:5432']
+        ports: ["5432:5432"]
         options: >-
           --health-cmd pg_isready --health-interval 10s
           --health-timeout 5s --health-retries 5
       redis:
         image: redis:7
-        ports: ['6379:6379']
+        ports: ["6379:6379"]
         options: >-
           --health-cmd "redis-cli ping" --health-interval 10s
           --health-timeout 5s --health-retries 5
@@ -51,10 +51,81 @@ jobs:
           cache: npm
           cache-dependency-path: backend/package-lock.json
       - run: npm ci
+      - name: Dependency audit (production)
+        run: npm audit --omit=dev
       - run: npm run lint
       - run: npx tsc --noEmit
+      - run: npm run build
       - run: npm test
       - run: npm run test:e2e
+
+  openapi:
+    name: OpenAPI spec freshness
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: lyricsflip
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready --health-interval 10s
+          --health-timeout 5s --health-retries 5
+      redis:
+        image: redis:7
+        ports: ["6379:6379"]
+        options: >-
+          --health-cmd "redis-cli ping" --health-interval 10s
+          --health-timeout 5s --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - run: npm ci
+      - name: Install frontend dependencies (needed for generate:api)
+        run: npm ci
+        working-directory: frontend
+      - name: Export openapi.json and regenerate frontend API client
+        run: npm run openapi:export && npm run openapi:generate
+      - name: Verify openapi.json is committed and up to date
+        run: |
+          if ! git diff --quiet -- openapi.json; then
+            echo "::error::openapi.json is out of date."
+            echo "Run the following, then commit both files:"
+            echo "  cd backend && npm run openapi:export && npm run openapi:generate"
+            git diff -- openapi.json
+            exit 1
+          fi
+          if [[ -n "$(git status --porcelain -- openapi.json)" ]]; then
+            echo "::error::openapi.json is not committed."
+            echo "Run: cd backend && npm run openapi:export && npm run openapi:generate"
+            echo "Then commit both files."
+            exit 1
+          fi
+      - name: Verify frontend/src/services/generated/api.ts is committed and up to date
+        working-directory: frontend
+        run: |
+          if ! git diff --quiet -- src/services/generated/api.ts; then
+            echo "::error::frontend/src/services/generated/api.ts is out of date."
+            echo "Run the following, then commit both files:"
+            echo "  cd backend && npm run openapi:export && npm run openapi:generate"
+            git diff -- src/services/generated/api.ts
+            exit 1
+          fi
+          if [[ -n "$(git status --porcelain -- src/services/generated/api.ts)" ]]; then
+            echo "::error::frontend/src/services/generated/api.ts is not committed."
+            echo "Run: cd backend && npm run openapi:export && npm run openapi:generate"
+            echo "Then commit both files."
+            exit 1
+          fi
 
   migrations:
     name: Backend migrations (fresh DB)
@@ -69,7 +140,7 @@ jobs:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
           POSTGRES_DB: lyricsflip
-        ports: ['5432:5432']
+        ports: ["5432:5432"]
         options: >-
           --health-cmd pg_isready --health-interval 10s
           --health-timeout 5s --health-retries 5
@@ -83,5 +154,21 @@ jobs:
       - run: npm ci
       - name: Run migrations against a fresh database
         run: npm run migration:run
+      - name: Check for entity/migration drift
+        run: npm run migration:check
       - name: Seed from seed/songs.json
         run: npm run seed
+
+  ci-summary:
+    name: Backend CI
+    if: always()
+    needs: [backend, openapi, migrations]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require backend checks
+        run: |
+          if [[ "${{ needs.backend.result }}" != "success" || "${{ needs.openapi.result }}" != "success" || "${{ needs.migrations.result }}" != "success" ]]; then
+            echo "Backend checks did not all pass."
+            exit 1
+          fi
+          echo "Backend checks (including npm audit --omit=dev) passed."

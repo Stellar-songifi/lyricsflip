@@ -5,10 +5,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useModalStore } from '@/store/modal-store';
 import { Info } from 'lucide-react';
 import { Modal } from './modal';
-import { useTranslations } from 'next-intl';
+import { GENRE_OPTIONS } from '@/lib/stellar/genres';
 
 export function GameModal() {
-  const t = useTranslations('gameModal');
   const { isOpen, closeModal, modalType } = useModalStore();
   const [genre, setGenre] = useState<string>('');
   const [difficulty, setDifficulty] = useState<string>('');
@@ -19,56 +18,57 @@ export function GameModal() {
     <Modal
       isOpen={isModalOpen}
       onClose={closeModal}
-      title={t('title')}
-      description={t('description')}
-      primaryActionLabel={t('startGame')}
+      title="Quick Game"
+      description="Jump straight in — no wager, no pressure. Guess lyrics across random genres and see how many you can nail."
+      primaryActionLabel="Start Game"
     >
       <div className="grid gap-6">
         <div className="grid gap-2">
           <label htmlFor="genre" className="text-sm font-medium">
-            {t('genre')}
+            Genre
           </label>
           <Select value={genre} onValueChange={setGenre}>
             <SelectTrigger>
-              <SelectValue placeholder={t('selectGenre')} />
+              <SelectValue placeholder="Select genre" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="pop">{t('genres.pop')}</SelectItem>
-              <SelectItem value="rock">{t('genres.rock')}</SelectItem>
-              <SelectItem value="hiphop">{t('genres.hiphop')}</SelectItem>
-              <SelectItem value="rnb">{t('genres.rnb')}</SelectItem>
+              {GENRE_OPTIONS.map(({ value, label }) => (
+                <SelectItem key={value} value={value}>
+                  {label}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
 
         <div className="grid gap-2">
           <label htmlFor="difficulty" className="text-sm font-medium">
-            {t('difficulty')}
+            Difficulty
           </label>
           <Select value={difficulty} onValueChange={setDifficulty}>
             <SelectTrigger>
-              <SelectValue placeholder={t('selectDifficulty')} />
+              <SelectValue placeholder="Select difficulty" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="easy">{t('difficulties.easy')}</SelectItem>
-              <SelectItem value="medium">{t('difficulties.medium')}</SelectItem>
-              <SelectItem value="hard">{t('difficulties.hard')}</SelectItem>
+              <SelectItem value="easy">Easy</SelectItem>
+              <SelectItem value="medium">Medium</SelectItem>
+              <SelectItem value="hard">Hard</SelectItem>
             </SelectContent>
           </Select>
         </div>
 
         <div className="grid gap-2">
           <label htmlFor="duration" className="text-sm font-medium">
-            {t('duration')}
+            Duration
           </label>
           <Select value={duration} onValueChange={setDuration}>
             <SelectTrigger>
-              <SelectValue placeholder={t('selectDuration')} />
+              <SelectValue placeholder="Select duration" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="5min">{t('durations.5min')}</SelectItem>
-              <SelectItem value="10min">{t('durations.10min')}</SelectItem>
-              <SelectItem value="15min">{t('durations.15min')}</SelectItem>
+              <SelectItem value="5min">5 min</SelectItem>
+              <SelectItem value="10min">10 min</SelectItem>
+              <SelectItem value="15min">15 min</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -78,9 +78,9 @@ export function GameModal() {
             <Info className="h-4 w-4 text-purple-600" />
           </div>
           <div className="text-sm">
-            <h4 className="font-medium text-purple-700 mb-1">{t('instructionHeading')}</h4>
+            <h4 className="font-medium text-purple-700 mb-1">Instructions</h4>
             <p className="text-gray-700">
-              {t('instructionText')}
+              A card displaying a lyric from a song will appear along with a list of possible answers. Your goal is to score the highest points.
             </p>
           </div>
         </div>

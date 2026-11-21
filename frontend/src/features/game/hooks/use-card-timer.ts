@@ -1,67 +1,135 @@
-// src/features/game/hooks/use-card-timer.ts
-//
-// Card countdown driven by the round's snapshotted `answer_window` (LF-307).
-// The countdown starts at the ledger-close time of the draw transaction
-// (`closedAtMs`) minus `FIRST_LEDGER_GRACE_SECONDS` of grace, so the UI agrees
-// with the contract's correctness cut-off for any configured window.
-import { useEffect, useState } from 'react';
-import {
-  CARD_ANSWER_WINDOW_SECONDS,
-  FIRST_LEDGER_GRACE_SECONDS,
-  MAX_CORRECT_POINTS,
-  MIN_CORRECT_POINTS,
-  POINTS_DECAY_PER_SECOND,
-} from '@/lib/stellar/types';
+/**
+ * useCardTimer
+ *
+ * Per-card 15-second countdown for Issue #472 (LF-055), synced with the
+ * contract's answer window for Issue #679 (LF-193).
+ */
 
-interface UseCardTimerParams {
-  /** The round's snapshotted answer window, in seconds. */
-  answerWindowSeconds: number;
-  /** Ledger-close timestamp (ms epoch) of the draw transaction. */
-  closedAtMs?: number;
+import { useCallback, useEffect, useRef, useState } from 'react';
+
+export const CARD_TIMEOUT_SECONDS = 15;
+
+/**
+ * Roughly one ledger of latency (~5 s on Stellar). The visible countdown
+ * stops this much before the contract deadline so a click sent at the last
+ * moment still has a chance of being included in time.
+ */
+export const CARD_LEDGER_LATENCY_SECONDS = 5;
+
+export interface UseCardTimerOptions {
+  /** Called exactly once when the countdown reaches zero. */
+  onTimeout: () => void;
+  /**
+   * Set to `true` while a card is waiting for an answer.
+   * Setting it to `false` (e.g. after answer or before new card) pauses
+   * and resets the timer.
+   */
+  isActive: boolean;
+  /**
+   * Ledger close time (unix ms) of the `next_card` transaction. When set, the
+   * remaining time is derived from this absolute anchor instead of from the
+   * moment the hook mounted.
+   */
+  startedAtMs?: number | null;
+  /** Seconds subtracted from the visible countdown (defaults to one ledger). */
+  latencyAllowanceSeconds?: number;
 }
 
-export const useCardTimer = ({
-  answerWindowSeconds,
-  closedAtMs,
-}: UseCardTimerParams) => {
-  const [timeLeft, setTimeLeft] = useState(() =>
-    Math.max(0, answerWindowSeconds - FIRST_LEDGER_GRACE_SECONDS),
-  );
-  const [startMs, setStartMs] = useState<number | undefined>(undefined);
+export interface UseCardTimerResult {
+  /** Remaining seconds (starts at CARD_TIMEOUT_SECONDS, counts down to 0). */
+  timeLeft: number;
+  /** True once the visible countdown hit zero — input must be closed. */
+  isExpired: boolean;
+  /**
+   * Reset the timer to CARD_TIMEOUT_SECONDS without starting it.
+   * Call this before setting `isActive = true` for the next card.
+   */
+  reset: () => void;
+}
 
+const secondsUntil = (deadlineMs: number) =>
+  Math.max(0, Math.ceil((deadlineMs - Date.now()) / 1000));
+
+export function useCardTimer({
+  onTimeout,
+  isActive,
+  startedAtMs = null,
+  latencyAllowanceSeconds = CARD_LEDGER_LATENCY_SECONDS,
+}: UseCardTimerOptions): UseCardTimerResult {
+  const [timeLeft, setTimeLeft] = useState(CARD_TIMEOUT_SECONDS);
+  const onTimeoutRef = useRef(onTimeout);
+  const firedRef = useRef(false);
+
+  // Keep callback ref stable so callers don't need to memoize it
   useEffect(() => {
-    // (Re)start the countdown when a new card is drawn (closedAtMs changes).
-    if (closedAtMs !== undefined) {
-      setStartMs(closedAtMs);
-      const elapsed = Math.max(0, (Date.now() - closedAtMs) / 1000);
-      setTimeLeft(
-        Math.max(0, answerWindowSeconds - elapsed - FIRST_LEDGER_GRACE_SECONDS),
-      );
+    onTimeoutRef.current = onTimeout;
+  }, [onTimeout]);
+
+  // Absolute deadline for this card: ledger close time + window − latency.
+  const deadlineMs =
+    startedAtMs === null || startedAtMs === undefined
+      ? null
+      : startedAtMs + (CARD_TIMEOUT_SECONDS - latencyAllowanceSeconds) * 1000;
+
+  const fireTimeout = useCallback(() => {
+    if (firedRef.current) return;
+    firedRef.current = true;
+    onTimeoutRef.current();
+  }, []);
+
+  // Ledger-anchored countdown: a single interval that recomputes the
+  // remaining seconds from the contract deadline.
+  useEffect(() => {
+    if (deadlineMs === null || !isActive || firedRef.current) return;
+
+    const update = () => {
+      const remaining = secondsUntil(deadlineMs);
+      setTimeLeft(remaining);
+      return remaining;
+    };
+
+    if (update() <= 0) {
+      fireTimeout();
+      return;
     }
-  }, [closedAtMs, answerWindowSeconds]);
 
-  useEffect(() => {
-    if (timeLeft <= 0) return;
-    const interval = setInterval(() => {
-      setTimeLeft((prev) => Math.max(0, prev - 1));
+    const id = setInterval(() => {
+      if (update() <= 0) {
+        clearInterval(id);
+        fireTimeout();
+      }
     }, 1000);
-    return () => clearInterval(interval);
-  }, [timeLeft]);
 
-  const baseMs = startMs ?? Date.now();
-  const elapsedSeconds = Math.max(0, (Date.now() - baseMs) / 1000);
+    return () => clearInterval(id);
+  }, [deadlineMs, isActive, fireTimeout]);
 
-  // Points decay indicator (MAX − 5/s), clamped to the contract's floor.
-  const points = Math.max(
-    MIN_CORRECT_POINTS,
-    Math.min(
-      MAX_CORRECT_POINTS,
-      MAX_CORRECT_POINTS - Math.floor(elapsedSeconds * POINTS_DECAY_PER_SECOND),
-    ),
-  );
+  // Legacy local countdown (no ledger anchor supplied).
+  useEffect(() => {
+    if (deadlineMs !== null || !isActive || firedRef.current) return;
 
-  return { timeLeft, points };
-};
+    if (timeLeft <= 0) {
+      fireTimeout();
+      return;
+    }
 
-/** Fallback window when the round hasn't reported `answer_window` yet. */
-export const DEFAULT_CARD_TIMER_WINDOW_SECONDS = CARD_ANSWER_WINDOW_SECONDS;
+    const id = setInterval(() => {
+      setTimeLeft((prev) => {
+        if (prev <= 1) {
+          clearInterval(id);
+          fireTimeout();
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(id);
+  }, [deadlineMs, isActive, timeLeft, fireTimeout]);
+
+  const reset = useCallback(() => {
+    firedRef.current = false;
+    setTimeLeft(CARD_TIMEOUT_SECONDS);
+  }, []);
+
+  return { timeLeft, isExpired: timeLeft <= 0, reset };
+}

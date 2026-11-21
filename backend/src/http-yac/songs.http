@@ -1,6 +1,6 @@
 # SONGS API
 
-@baseUrl = http://localhost:3000
+@baseUrl = http://localhost:3000/api/v1
 
 ### List songs (filter, search, sort, paginate)
 GET {{baseUrl}}/songs?genre=Pop&q=love&sortBy=year&sortOrder=ASC&page=1&limit=20

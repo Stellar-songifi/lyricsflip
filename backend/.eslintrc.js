@@ -34,4 +34,33 @@ module.exports = {
       },
     ],
   },
+  overrides: [
+    {
+      files: ['src/**/*.ts'],
+      excludedFiles: ['src/_experimental/**/*.ts'],
+      rules: {
+        'no-restricted-imports': [
+          'error',
+          {
+            patterns: [
+              {
+                group: ['src/*', 'src/**/*'],
+                message:
+                  'Bare src/ imports will fail at runtime. Use @app/* path alias instead (e.g., @app/user/user.service instead of src/user/user.service).',
+              },
+              {
+                group: [
+                  '**/_experimental',
+                  '**/_experimental/*',
+                  '**/_experimental/**',
+                ],
+                message:
+                  'Modules under src/_experimental are quarantined and out of scope. Do not import them from live code; promote the module out of _experimental first.',
+              },
+            ],
+          },
+        ],
+      },
+    },
+  ],
 };

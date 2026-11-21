@@ -1,32 +1,44 @@
-'use client';
-
 import { useEffect, useState } from 'react';
 
+const REDUCED_MOTION_QUERY = '(prefers-reduced-motion: reduce)';
+
 /**
- * Reactive wrapper around the `prefers-reduced-motion: reduce` media query.
- * Returns `true` when the user has asked for less motion (LF-311), so callers
- * can swap animations for crossfades and skip purely decorative effects.
- *
- * Safe during SSR (returns `false`) and in jsdom (which stubs `matchMedia`).
+ * Returns `true` when the user has requested reduced motion via
+ * `prefers-reduced-motion: reduce`. Defaults to `false` on the server and
+ * during the first client render to avoid hydration mismatches.
  */
 export function usePrefersReducedMotion(): boolean {
-  const [reduced, setReduced] = useState(false);
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
 
   useEffect(() => {
     if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
       return;
     }
-    const query = window.matchMedia('(prefers-reduced-motion: reduce)');
-    const update = () => setReduced(query.matches);
-    update();
-    // `addEventListener` is the modern API; `addListener` covers old Safari.
-    if (typeof query.addEventListener === 'function') {
-      query.addEventListener('change', update);
-      return () => query.removeEventListener('change', update);
+
+    const mediaQueryList = window.matchMedia(REDUCED_MOTION_QUERY);
+
+    const handleChange = (event: MediaQueryListEvent) => {
+      setPrefersReducedMotion(event.matches);
+    };
+
+    // Sync with the current value once mounted on the client.
+    setPrefersReducedMotion(mediaQueryList.matches);
+
+    if (typeof mediaQueryList.addEventListener === 'function') {
+      mediaQueryList.addEventListener('change', handleChange);
+      return () => {
+        mediaQueryList.removeEventListener('change', handleChange);
+      };
     }
-    query.addListener(update);
-    return () => query.removeListener(update);
+
+    // Fallback for older browsers that only support the deprecated API.
+    mediaQueryList.addListener(handleChange);
+    return () => {
+      mediaQueryList.removeListener(handleChange);
+    };
   }, []);
 
-  return reduced;
+  return prefersReducedMotion;
 }
+
+export default usePrefersReducedMotion;

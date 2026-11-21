@@ -6,10 +6,11 @@ import {
   ConnectedSocket,
   MessageBody,
 } from '@nestjs/websockets';
-import { Logger } from '@nestjs/common';
+import { Logger, UseGuards } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
 import { Server, Socket } from 'socket.io';
 import { WsAuthenticator } from '../auth/providers/ws-authenticator.provider';
+import { WsRateLimitGuard } from '../common/guards/ws-rate-limit.guard';
 import { NotificationService, NOTIFICATION_CREATED } from './providers/notification.service';
 import { Notification } from './entities/notification.entity';
 
@@ -44,6 +45,7 @@ export class NotificationGateway implements OnGatewayConnection {
   }
 
   @SubscribeMessage('markRead')
+  @UseGuards(WsRateLimitGuard)
   markRead(@ConnectedSocket() client: Socket, @MessageBody() notificationId: string) {
     return this.notificationService.markRead(client.data.user.sub, notificationId);
   }

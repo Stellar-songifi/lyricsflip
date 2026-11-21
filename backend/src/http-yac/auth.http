@@ -1,6 +1,6 @@
 # AUTH API
 
-@baseUrl = http://localhost:3000
+@baseUrl = http://localhost:3000/api/v1
 
 # Auth Endpoints
 
@@ -54,6 +54,26 @@ Content-Type: application/json
   "description": "auth description"
 }
 
+### challenge
+POST {{baseUrl}}/auth/challenge
+Content-Type: application/json
+
+{
+  // Auth data
+  "name": "auth name",
+  "description": "auth description"
+}
+
+### verify
+POST {{baseUrl}}/auth/verify
+Content-Type: application/json
+
+{
+  // Auth data
+  "name": "auth name",
+  "description": "auth description"
+}
+
 # Template CRUD Operations
 # These are common operations that might not be implemented in your controller yet
 
@@ -83,4 +103,3 @@ Content-Type: application/json
 
 ### remove (Template)
 DELETE {{baseUrl}}/auth/:id
-

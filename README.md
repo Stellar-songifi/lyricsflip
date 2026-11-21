@@ -170,73 +170,13 @@ The contracts live in a Cargo workspace under [`onchain/`](onchain/) and use **s
 | `RoundReady((u64, Address))` / `RoundReadyCount(u64)` | persistent | Readiness tracking |
 | `PlayerStats(Address)` | persistent | `PlayerStats` |
 
-#### Public functions
-
-| Function | Auth | What it does |
-|---|---|---|
-| `__constructor(owner)` | — | Runs at deploy time. Sets the owner and makes them an admin |
-| **Admin** | | |
-| `set_cards_per_round(caller, value)` | admin | Sets how many cards each round uses (> 0) |
-| `add_card(caller, card)` | admin | Stores a card and indexes it by genre, artist, and year |
-| `set_role(caller, recipient, role, is_enable)` | owner | Grants or revokes admin |
-| **Gameplay** | | |
-| `create_round(caller, genre, seed) → u64` | caller | Creates a round, draws `cards_per_round` random card ids, and adds the caller as the first player. Emits `RoundCreated` |
-| `join_round(caller, round_id)` | caller | Joins a round that hasn't started (no duplicate joins). Emits `RoundJoined` |
-| `start_round(caller, round_id)` | participant | Marks the caller ready (emits `PlayerReady`). When all players are ready, the round starts (emits `RoundStarted`) |
-| `next_card(round_id) → Card` | — | Draws the next card of a started round. Marks the round completed after the last draw |
-| `submit_answer(caller, round_id, answer) → bool` | participant | Checks the answer against the current card, records the answer time, and updates the caller's streaks and score |
-| `finalize_round(caller, round_id)` | participant | Finalizes the round once it is complete or past its deadline, updates winner stats, and emits `RoundCompleted` |
-| `build_question_card(card, seed) → QuestionCard` | — | Picks 3 distinct wrong titles and shuffles them with the right one |
-| **Views** | | |
-| `get_round`, `get_round_cards`, `get_round_players`, `get_players_round_count` | — | Round info |
-| `get_round_scores(round_id)` | — | Final per-player correct-answer counts for the round |
-| `get_card`, `get_cards_per_round` | — | Card info and configuration |
-| `get_cards_of_genre / _of_artist / _of_a_year(…, seed)` | — | `cards_per_round` random cards from an index |
-| `get_player_stat(player)` | — | `PlayerStats` (zeros if the player is unknown) |
-| `is_admin(role, address)` | — | Role check |
-
 #### Randomness
 
 `get_random_numbers` builds a SHA-256 hash of `(seed, ledger sequence, ledger timestamp, i)` for each draw, reduces it modulo the pool size, and skips duplicates until it has enough unique values. `build_question_card` shuffles options with a linear-congruential Fisher–Yates shuffle. This is a straight port of the Cairo logic. It is **not** manipulation-resistant, because the caller supplies `seed` (see [LF-009](ISSUES.md#lf-009--card-selection-randomness-is-predictable-and-caller-controlled)).
 
-#### Errors (`src/errors.rs`)
-
-| Code | Name | Code | Name |
-|---|---|---|---|
-| 1 | `AlreadyInitialized` | 10 | `RoundNotStarted` |
-| 2 | `NonExistingRound` | 11 | `RoundCompleted` |
-| 3 | `RoundAlreadyStarted` | 12 | `NotAParticipant` |
-| 4 | `NonExistingGenre` | 13 | `AlreadyReady` |
-| 5 | `RoundAlreadyJoined` | 14 | `NotAuthorized` |
-| 6 | `InvalidCardsPerRound` | 15 | `AmountExceedsLimit` |
-| 7 | `ArtistCardsIsZero` | 16 | `LimitMustBeGreaterThanZero` |
-| 8 | `EmptyYearCards` | 17 | `NonExistingCard` |
-| 9 | `EmptyGenreCards` | | |
-
-The SDK surfaces these as `Error(Contract, #<code>)`.
-
-#### Events (`src/events.rs`)
-
-| Event | Topics | Data |
-|---|---|---|
-| `RoundCreated` | `round_id`, `admin` | `created_time` |
-| `RoundJoined` | `round_id`, `player` | `joined_time` |
-| `PlayerReady` | `round_id`, `player` | `ready_time` |
-| `RoundStarted` | `round_id`, `admin` | `start_time` |
-| `RoundCompleted` | `round_id` | `winners`, `scores` |
+For every public function, error, and event of both `lyricsflip` and `lyricsflip-nft` — including the reward NFT contract's minter-gated `mint` and its soulbound transfer/approve behavior — see [`onchain/docs/api.md`](onchain/docs/api.md), the single source of truth for the contract API. `onchain/scripts/check-api-docs.sh` runs in CI (LF-182) and fails the build if that file ever falls out of sync with the real contract surface.
 
 ### `lyricsflip-nft` — reward NFT contract
-
-A small, minter-gated NFT:
-
-| Function | Auth | Description |
-|---|---|---|
-| `__constructor(owner, minter, token_name, token_symbol, base_uri)` | — | One-time setup |
-| `mint(caller, recipient) → u128` | `caller == minter` | Mints the next token id to `recipient`. Emits `NftMinted { token_id, recipient }` |
-| `owner_of(token_id)` | — | Owner, or error `TokenDoesNotExist (4)` |
-| `token_name`, `token_symbol`, `base_uri`, `token_count` | — | Metadata |
-
-The intended minter is the game contract's address, so rewards can only come from gameplay. Errors: `AlreadyInitialized=1`, `NotMinter=2`, `TokenAlreadyExists=3`, `TokenDoesNotExist=4`.
 
 ---
 
@@ -278,7 +218,7 @@ All chain access goes through [`src/lib/stellar/`](frontend/src/lib/stellar/):
 | `/multiplayer` | `app/multiplayer/page.tsx` | Join a round by ID, ready up, play with others |
 | `/admin` | `app/admin/page.tsx` | Admin configuration (`cards_per_round`) |
 | `/set-username` | `app/set-username/page.tsx` | Choose a display name |
-| `/sign-in-page` | `app/sign-in-page/page.tsx` | Sign-in landing page |
+| `/sign-in` | `app/sign-in/page.tsx` | Sign-in landing page |
 
 ### Component structure (atomic design)
 
@@ -491,31 +431,18 @@ GitHub Actions (`.github/workflows/onchain.yml`) runs `cargo fmt --check`, a rel
 
 ---
 
-## Project status & known limitations
+## Project status
 
-LyricsFlip is under active development, following its migration from Starknet to Stellar. What works today, and what doesn't yet:
+LyricsFlip is under active development, following its migration from Starknet to Stellar. Rather than listing individual bugs here (they go stale quickly), progress is tracked in GitHub milestones:
 
-**✅ Working**
-- Both Soroban contracts build to WASM and pass their unit tests in CI.
-- Rounds can be created, joined, readied, and started. Cards can be added, drawn, and answered. Streaks are tracked on-chain.
-- The frontend connects Stellar wallets and can call every contract function through `SystemCalls`.
+| Area | Status | Tracked in |
+|---|---|---|
+| **Smart contracts** (`onchain/`) | Both contracts build to WASM and pass their unit tests in CI. Rounds, cards, answers, and streaks work on-chain; wagering, payouts, and NFT rewards are in progress. | [Contracts milestone](https://github.com/Stellar-songifi/lyricsflip/milestones) · [LF-001 – LF-034](ISSUES.md) |
+| **Frontend** (`frontend/`) | Wallet connection and typed contract calls work; screens are being wired to real on-chain data. | [Frontend milestone](https://github.com/Stellar-songifi/lyricsflip/milestones) · [LF-035 – LF-072](ISSUES.md) |
+| **Backend** (`backend/`) | Does not compile yet; being rebuilt module by module. | [Backend milestone](https://github.com/Stellar-songifi/lyricsflip/milestones) · [LF-073 – LF-105](ISSUES.md) |
+| **DevOps & docs** | Contract CI runs on every PR; frontend/backend CI and deployment are planned. | [DevOps milestone](https://github.com/Stellar-songifi/lyricsflip/milestones) · [LF-106 – LF-125](ISSUES.md) |
 
-**🚧 Known gaps** (each is tracked in [`ISSUES.md`](ISSUES.md))
-- **Contract logic:**
-  - `create_round` doesn't restrict cards to the chosen genre (LF-001).
-  - The last card of a round can't be answered (LF-003).
-  - Players can answer the same card more than once (LF-004).
-  - `rounds_won` is never updated (LF-005).
-  - `next_card` is unauthenticated (LF-007).
-  - Answers are readable on-chain (LF-008).
-  - Storage TTLs aren't extended (LF-012).
-- **Wagering and payouts** are not implemented yet. `wager_amount` is always 0 (LF-013, LF-014).
-- **NFT rewards** aren't connected to gameplay yet (LF-017).
-- **Frontend:**
-  - The single-player and multiplayer screens still use mock lyric and room data (LF-042, LF-043).
-  - A few imports point at a missing `src/mock` module (LF-035).
-  - Some Starknet-era labels remain, such as "STRK" and "Argent" (LF-039, LF-040).
-- **Backend** doesn't compile yet and has duplicate modules (LF-073 – LF-080).
+For the current list of open work, see [`ISSUES.md`](ISSUES.md) and the repository's [milestones](https://github.com/Stellar-songifi/lyricsflip/milestones).
 
 ---
 
@@ -543,6 +470,7 @@ Contributions are welcome! Please read [`ContributionGuidelines.md`](Contributio
 2. Create a branch (never push to `main`).
 3. Keep PRs focused. Include a clear description, link the issue, and show test evidence or screenshots.
 4. Make sure `cargo fmt --check && cargo test` (contracts) and `npm run lint && npm test` (frontend/backend) pass.
+5. Update the README (and any package README) if behavior changed. Contract API details belong in the generated [`onchain/docs/api.md`](onchain/docs/api.md), not hand-copied into the README.
 
 Design references: [Figma](https://www.figma.com/design/6phOWkHKQgLRhRwmBBQDXB/LyricsFlip?node-id=0-1&t=0U8SlbaJijr7XNeG-1), [`docs/design/`](docs/README.md).
 
@@ -558,3 +486,6 @@ Design references: [Figma](https://www.figma.com/design/6phOWkHKQgLRhRwmBBQDXB/L
 - #487: LF-070 · Fix misspelled file and component names
 <!-- handsoff-issue-485 -->
 - #485: LF-068 · Add `frontend/.env.example`
+
+<!-- handsoff-issue-430 -->
+- #430: LF-013 · Implement real token wagering (escrow) for rounds

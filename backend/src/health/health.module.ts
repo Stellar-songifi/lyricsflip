@@ -1,12 +1,25 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { TerminusModule } from '@nestjs/terminus';
+import { IndexerModule } from '../indexer/indexer.module';
 import { HealthController } from './health.controller';
 import { RedisHealthIndicator } from './redis.health';
-import { StellarRpcHealthIndicator } from './stellar-rpc.health';
+import {
+  IndexerLagHealthIndicator,
+  StellarRpcHealthIndicator,
+} from './stellar-rpc.health';
 
 @Module({
-  imports: [TerminusModule],
+  imports: [TerminusModule, forwardRef(() => IndexerModule)],
+  imports: [
+    TerminusModule,
+    TypeOrmModule.forFeature([]),
+    forwardRef(() => IndexerModule),
+  ],
   controllers: [HealthController],
-  providers: [RedisHealthIndicator, StellarRpcHealthIndicator],
+  providers: [
+    RedisHealthIndicator,
+    StellarRpcHealthIndicator,
+    IndexerLagHealthIndicator,
+  ],
 })
 export class HealthModule {}

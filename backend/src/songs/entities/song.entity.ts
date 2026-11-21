@@ -13,6 +13,19 @@ import { SongDifficulty } from '../enums/song-difficulty.enum';
 import { Tag } from './tag.entity';
 
 /**
+ * Curation state of a song in the catalogue:
+ *  - draft: newly added, not yet reviewed; excluded from public listings.
+ *  - approved: reviewed and ready to be pushed on-chain.
+ *  - on_chain: synced to the contract via add_card/add_cards (see
+ *    SongSyncService); onChainCardId holds the id the contract returned.
+ */
+export enum SongStatus {
+  DRAFT = 'draft',
+  APPROVED = 'approved',
+  ON_CHAIN = 'on_chain',
+}
+
+/**
  * Off-chain copy of the contract `Card` (card_id, genre, artist, title, year,
  * lyrics) plus metadata the contract does not store.
  */
@@ -25,6 +38,9 @@ export class Song {
   /** Contract `card_id`. Null until the card has been added on-chain. */
   @Column({ type: 'bigint', unique: true, nullable: true })
   onChainCardId: string | null;
+
+  @Column({ type: 'enum', enum: SongStatus, default: SongStatus.DRAFT })
+  status: SongStatus;
 
   @Column({ type: 'enum', enum: Genre })
   genre: Genre;
@@ -42,7 +58,11 @@ export class Song {
   @Column('text')
   lyrics: string;
 
-  @Column({ type: 'enum', enum: SongDifficulty, default: SongDifficulty.MEDIUM })
+  @Column({
+    type: 'enum',
+    enum: SongDifficulty,
+    default: SongDifficulty.MEDIUM,
+  })
   difficulty: SongDifficulty;
 
   @ManyToMany(() => Tag, (tag) => tag.songs, { eager: true })

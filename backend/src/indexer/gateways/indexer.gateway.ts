@@ -7,15 +7,21 @@ import {
 import { Server, Socket } from 'socket.io';
 import { OnEvent } from '@nestjs/event-emitter';
 import { Logger } from '@nestjs/common';
+import { WS_MAX_HTTP_BUFFER_SIZE } from '../../config/socket-io.config';
 
 /**
  * IndexerGateway broadcasts indexed events to connected clients.
  * 
  * Optionally implements LF-045: WebSocket broadcast of indexed events.
  * Clients subscribe to event streams per round or globally.
+ *
+ * This gateway is broadcast-only: it exposes no client-triggered handlers,
+ * so no WsRateLimitGuard is needed here. It still shares the global
+ * Socket.IO configuration (including maxHttpBufferSize) via socket-io.config.
  */
 @WebSocketGateway({
   namespace: '/indexer',
+  maxHttpBufferSize: WS_MAX_HTTP_BUFFER_SIZE,
 })
 export class IndexerGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()

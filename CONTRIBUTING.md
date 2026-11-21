@@ -21,6 +21,7 @@ Thank you for your interest in contributing to LyricsFlip! This document provide
 ## Code of Conduct
 
 We're all here to have fun and build something awesome. Treat everyone with respect, even if their code is off-key. We value:
+
 - Respectful communication
 - Constructive feedback
 - Inclusive collaboration
@@ -52,6 +53,8 @@ lyricsflip/
 └── README.md          # Project overview
 ```
 
+The mobile app lives in its own repository: [Stellar-songifi/lyricsflip_mobile](https://github.com/Stellar-songifi/lyricsflip_mobile).
+
 ---
 
 ## Development Setup
@@ -71,6 +74,7 @@ The root `package.json` uses workspaces for `frontend` and `backend`.
 Each package has its own environment configuration:
 
 **Backend** (`backend/.env.development`):
+
 ```
 NODE_ENV=development
 DATABASE_URL=postgresql://user:password@localhost:5432/lyricsflip
@@ -85,6 +89,7 @@ CORS_ORIGIN=http://localhost:3001
 ```
 
 **Frontend** (`frontend/.env.local`):
+
 ```
 NEXT_PUBLIC_API_URL=http://localhost:3000
 NEXT_PUBLIC_WALLET_NETWORK=testnet
@@ -145,6 +150,7 @@ Use descriptive branch names that follow this pattern:
 ```
 
 **Types:**
+
 - `feature/` - New feature
 - `bugfix/` - Bug fix
 - `docs/` - Documentation updates
@@ -152,6 +158,7 @@ Use descriptive branch names that follow this pattern:
 - `refactor/` - Code refactoring without behavior changes
 
 **Examples:**
+
 ```
 feature/510-websocket-auth
 bugfix/511-fix-imports
@@ -160,6 +167,7 @@ refactor/optimize-database-queries
 ```
 
 **Rules:**
+
 - Always create a new branch; never push directly to `main`
 - Use lowercase letters and hyphens (no spaces or underscores)
 - Include the issue number if applicable
@@ -172,6 +180,7 @@ refactor/optimize-database-queries
 LyricsFlip uses [Conventional Commits](https://www.conventionalcommits.org/) to maintain a clear commit history.
 
 **Format:**
+
 ```
 <type>(<scope>): <subject>
 
@@ -181,6 +190,7 @@ LyricsFlip uses [Conventional Commits](https://www.conventionalcommits.org/) to 
 ```
 
 **Types:**
+
 - `feat:` - A new feature
 - `fix:` - A bug fix
 - `docs:` - Documentation changes
@@ -191,6 +201,7 @@ LyricsFlip uses [Conventional Commits](https://www.conventionalcommits.org/) to 
 - `chore:` - Build system, dependencies, or other maintenance
 
 **Scopes:**
+
 - `auth` - Authentication & authorization
 - `api` - API endpoints
 - `db` - Database & migrations
@@ -200,12 +211,14 @@ LyricsFlip uses [Conventional Commits](https://www.conventionalcommits.org/) to 
 - `contracts` - Smart contracts
 
 **Subject:**
+
 - Use imperative mood ("add" not "added" or "adds")
 - Don't capitalize first letter
 - No period (.) at the end
 - Maximum 50 characters
 
 **Examples:**
+
 ```
 feat(auth): add websocket jwt authentication
 
@@ -225,6 +238,7 @@ git config --global commit.template ~/.gitcommit_template
 ```
 
 Create `~/.gitcommit_template`:
+
 ```
 # <type>(<scope>): <subject>
 #
@@ -247,18 +261,22 @@ Create `~/.gitcommit_template`:
 ### Opening a PR
 
 1. **Push your branch** (first time):
+
    ```bash
    git push -u origin feature/510-websocket-auth
    ```
 
 2. **Create PR on GitHub** with this checklist:
+
    ```markdown
    ## Description
+
    Brief description of changes.
 
    Fixes #510
 
    ## Type of Change
+
    - [ ] Feature
    - [ ] Bug Fix
    - [ ] Documentation
@@ -266,12 +284,14 @@ Create `~/.gitcommit_template`:
    - [ ] Performance Improvement
 
    ## Testing
+
    - [ ] Unit tests added/updated
    - [ ] Integration tests added/updated
    - [ ] Manual testing completed
    - [ ] Tested on: [browser/OS]
 
    ## Checklist
+
    - [ ] Code follows project standards
    - [ ] All tests pass
    - [ ] Commit messages follow conventions
@@ -281,6 +301,7 @@ Create `~/.gitcommit_template`:
    ```
 
 3. **Address feedback** - Respond to reviewer comments and push updates:
+
    ```bash
    git add .
    git commit -m "fix: address review feedback"
@@ -295,6 +316,12 @@ Create `~/.gitcommit_template`:
 - **Small is better** - Aim for < 400 lines per PR if possible
 - **Write good descriptions** - Explain what, why, and how
 - **Respond promptly** - Reply to feedback within 24-48 hours
+
+### Merge Policy
+
+- All changes to `main` must go through an approved pull request; direct pushes are not allowed.
+- Before merging, the branch must be up to date with `main` and these required checks must pass: `LyricsFlip Contracts`, `Frontend CI`, `Backend CI`, and `Merge guards`.
+- These checks run for every pull request, including documentation-only changes. Do not bypass a failed or pending check; fix the failure and rerun CI.
 
 ---
 
@@ -354,12 +381,14 @@ npm --prefix frontend exec -- eslint --fix src/
 ### Backend (NestJS + TypeScript)
 
 **Naming Conventions:**
+
 - Classes: `PascalCase` (e.g., `UserController`, `AuthService`)
 - Methods & functions: `camelCase` (e.g., `getUserById`, `verifyToken`)
 - Constants: `UPPER_SNAKE_CASE` (e.g., `REQUEST_USER_KEY`, `JWT_SECRET`)
 - File names: `kebab-case.ts` (e.g., `user.controller.ts`, `ws-jwt-auth.guard.ts`)
 
 **Module Organization:**
+
 ```
 src/
 ├── feature/
@@ -367,151 +396,7 @@ src/
 │   ├── feature.service.ts          # Business logic
 │   ├── feature.module.ts           # Module definition
 │   ├── feature.spec.ts             # Tests
-│   ├── dtos/                       # Data Transfer Objects
-│   │   └── create-feature.dto.ts
-│   ├── entities/                   # Database entities
-│   │   └── feature.entity.ts
-│   └── providers/                  # Service implementations
-│       └── feature.service.ts
+│
+
+/* … truncated 4299 chars — edit only what you need near the top … */
 ```
-
-**Imports:**
-- Use relative imports within modules
-- Use `@app/*` path aliases for cross-module imports
-- Never use bare `src/` imports
-
-**API Decorators:**
-- All controllers must have `@ApiTags('tag-name')`
-- All public endpoints must document responses with `@ApiResponse()`
-- Protected endpoints should have `@ApiBearerAuth()`
-- DTOs should document properties with `@ApiProperty()`
-
-### Frontend (Next.js + React + TypeScript)
-
-**Naming Conventions:**
-- Components: `PascalCase` (e.g., `UserProfile.tsx`)
-- Hooks: `camelCase` starting with `use` (e.g., `useAuth.ts`)
-- Utils: `camelCase` (e.g., `formatDate.ts`)
-- Constants: `UPPER_SNAKE_CASE`
-
-**Component Structure:**
-```typescript
-// Imports
-import { FC } from 'react';
-import { useAuth } from '@/hooks/useAuth';
-
-// Types
-interface UserProfileProps {
-  userId: string;
-}
-
-// Component
-const UserProfile: FC<UserProfileProps> = ({ userId }) => {
-  return <div>{/* ... */}</div>;
-};
-
-// Export
-export default UserProfile;
-```
-
----
-
-## Claiming Issues
-
-### How to Claim an Issue
-
-1. **Comment on the issue** with: "I'd like to work on this"
-2. **Wait for assignment** - A maintainer will assign it to you
-3. **Create a branch** following [Branch Naming](#branch-naming-conventions)
-4. **Open a draft PR** early to avoid duplicate work
-5. **Keep the issue updated** with progress
-
-### Issue Types in ISSUES.md
-
-Issues are categorized by:
-- **Area**: auth, backend, frontend, contracts, docs, security, etc.
-- **Type**: feature, bugfix, chore, docs, refactor
-- **Priority**: P0 (critical), P1 (high), P2 (medium), P3 (low)
-- **Difficulty**: easy, medium, hard
-
----
-
-## Event Issue Rule
-
-⚠️ **IMPORTANT:** If an issue is tagged for an event (e.g., `event: hacktoberfest`) and you apply for it **before the official event start date**, **you are automatically disqualified for that issue**.
-
-- Issues tagged `event: *` are reserved for official event participants
-- Apply only after the event officially begins
-- See [ISSUES.md](ISSUES.md) for event-tagged issues
-
----
-
-## Getting Help
-
-### Resources
-
-- **Documentation**: See [README.md](README.md) for project overview
-- **Issue Backlog**: [ISSUES.md](ISSUES.md) has 125+ scoped issues with tasks and acceptance criteria
-- **Design**: [Figma Design Board](https://www.figma.com/design/6phOWkHKQgLRhRwmBBQDXB/LyricsFlip)
-
-### Communication Channels
-
-- **GitHub Issues** - Ask questions or report bugs
-- **GitHub Discussions** - General Q&A and ideas
-- **Telegram** - Community chat (link in repository description)
-- **Discord** - Dev coordination (if applicable)
-
-### Common Questions
-
-**Q: How do I resolve import path errors?**
-A: Use `@app/*` path aliases (e.g., `import { User } from '@app/user/user.entity'`). See backend `tsconfig.json` for the alias definition.
-
-**Q: What if my branch has conflicts?**
-A: Sync with `main` and resolve conflicts locally:
-```bash
-git fetch origin
-git rebase origin/main
-# Resolve conflicts in your editor
-git add .
-git rebase --continue
-```
-
-**Q: Can I work on multiple issues at once?**
-A: It's better to focus on one issue at a time. Once your PR is merged, claim another issue.
-
-**Q: What's the expected response time for reviews?**
-A: Maintainers aim to review PRs within 48 hours. If no response, feel free to comment for a gentle reminder.
-
----
-
-## Summary of Git Workflow
-
-```bash
-# 1. Clone and set up
-git clone https://github.com/Stellar-songifi/lyricsflip.git
-cd lyricsflip && npm install
-
-# 2. Create a feature branch
-git checkout -b feature/510-websocket-auth
-
-# 3. Make changes and commit
-git add .
-git commit -m "feat(auth): add websocket jwt authentication"
-
-# 4. Push and create PR
-git push -u origin feature/510-websocket-auth
-
-# 5. Respond to reviews and make updates
-git commit -m "fix: address review feedback"
-git push
-
-# 6. Merge (maintainer)
-# PR is merged to main
-```
-
----
-
-Thank you for contributing! 🎉 Every contribution helps make LyricsFlip better for everyone.
-
-**Questions?** Open an issue or reach out in the community channels. We're happy to help!
-

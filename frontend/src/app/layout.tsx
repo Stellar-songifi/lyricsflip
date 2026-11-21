@@ -1,14 +1,10 @@
-import Navbar, { MobileNav } from '@/components/molecules/navbar';
-import { ClientProvider } from '@/components/providers/client-provider';
-import { Inter, JetBrains_Mono } from 'next/font/google';
-import localFont from 'next/font/local';
+import { NextIntlClientProvider } from 'next-intl';
+import { getLocale, getMessages, getTranslations } from 'next-intl/server';
+import { ThemeProvider } from '@/components/providers/theme-provider';
+import ClientShell from './client-shell';
 import './globals.css';
-import dynamic from 'next/dynamic';
-import { Suspense } from 'react';
-import { Toaster } from 'sonner';
-import { NextIntlClientProvider, useTranslations } from 'next-intl';
-import { getCurrentLocale } from '@/i18n/cookie';
-import { getMessagesForLocale } from '@/i18n/messages';
+
+export { metadata } from './metadata';
 
 const inter = Inter({
   variable: '--font-geist-sans',
@@ -25,59 +21,47 @@ const interV = localFont({
   variable: '--font-interv',
 });
 
-/** Loading fallback while the Stellar provider (loaded lazily) initializes. */
-function EngineLoading() {
-  const t = useTranslations('errors');
-  return (
-    <div className="flex items-center justify-center min-h-screen">
-      <div className="text-center">
-        <h2 className="text-xl font-semibold mb-2">{t('loadingEngine')}</h2>
-        <p className="text-gray-500">{t('initializing')}</p>
-      </div>
-    </div>
-  );
-}
-
-/** Suspense fallback while the page prepares. */
-function GameLoading() {
-  const t = useTranslations('errors');
-  return (
-    <div className="flex items-center justify-center min-h-screen">
-      <div className="text-center">
-        <h2 className="text-xl font-semibold mb-2">{t('loading')}</h2>
-        <p className="text-gray-500">{t('preparing')}</p>
-      </div>
-    </div>
-  );
-}
-
-const DynamicStellarProvider = dynamic(() => import('@/lib/stellar/StellarProvider').then(mod => mod.StellarProvider), {
-  ssr: false,
-  loading: EngineLoading,
-});
 
 export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const locale = await getCurrentLocale();
-  const messages = getMessagesForLocale(locale);
+  const locale = await getLocale();
+  const messages = await getMessages();
+  const t = await getTranslations('common');
 
   return (
-    <html lang={locale}>
-      <body className={`${inter.variable} ${jetBrainsMono.variable} ${interV.variable} antialiased`}>
+    <html lang={locale} suppressHydrationWarning>
+      {/* Inline script runs before paint to avoid a flash of wrong theme */}
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var s=localStorage.getItem('lyricsflip-theme');var t=s?JSON.parse(s).state?.theme:null;if(t==='dark'||(t===null&&window.matchMedia('(prefers-color-scheme: dark)').matches)){document.documentElement.classList.add('dark')}}catch(e){}})()`,
+          }}
+        />
+      </head>
+      <body
+        className={`${inter.variable} ${jetBrainsMono.variable} ${interV.variable} antialiased bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition-colors`}
+      >
         <NextIntlClientProvider locale={locale} messages={messages}>
-          <ClientProvider>
-            <Suspense fallback={<GameLoading />}>
-              <DynamicStellarProvider>
-                <Navbar />
-                {children}
-                <MobileNav />
-              </DynamicStellarProvider>
+          <ThemeProvider>
+            <Suspense
+              fallback={
+                <div className="flex items-center justify-center min-h-screen">
+                  <div className="text-center">
+                    <h2 className="text-xl font-semibold mb-2">
+                      {t('loading')}
+                    </h2>
+                    <p className="text-gray-500">{t('pleaseWait')}</p>
+                  </div>
+                </div>
+              }
+            >
+              <ClientShell>{children}</ClientShell>
             </Suspense>
-          </ClientProvider>
-          <Toaster richColors position="top-center" />
+            <Toaster richColors position="top-center" />
+          </ThemeProvider>
         </NextIntlClientProvider>
       </body>
     </html>

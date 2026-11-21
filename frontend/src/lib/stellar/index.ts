@@ -1,5 +1,5 @@
-export * from './StellarProvider';
-export * from './stellarConfig';
+export * from './stellar-provider';
+export * from './stellar-config';
 export * from './client';
 export * from './types';
 export * from './errors';

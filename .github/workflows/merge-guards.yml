@@ -1,0 +1,26 @@
+name: Merge Guards
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  guards:
+    name: Merge guards
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Reject conflict markers
+        run: |
+          if git grep -n -E '^(<<<<<<<|=======|>>>>>>>)' -- .; then
+            echo "Conflict markers were found in tracked files."
+            exit 1
+          fi
+      - name: Reject duplicate top-level declarations
+        run: node .github/scripts/check-top-level-declarations.cjs
+      - name: Reject supply-chain malware indicators
+        run: bash .github/scripts/check-malware-indicators.sh

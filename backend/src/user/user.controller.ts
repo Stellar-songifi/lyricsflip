@@ -2,6 +2,7 @@ import {
   Controller,
   Post,
   Put,
+  Patch,
   Body,
   Get,
   Param,
@@ -11,14 +12,22 @@ import {
   Query,
   DefaultValuePipe,
   ParseIntPipe,
+  NotFoundException,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBody } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBody,
+  ApiParam,
+} from '@nestjs/swagger';
 import { UserService } from './providers/user.service';
 import { UserDTO } from './dtos/create-user.dto';
 import { AccessTokenGuard } from '@app/auth/guard/access-token/access-token.guard';
 import { RolesGuard } from '@app/common/guards/roles.guard';
 import { Roles } from '@app/common/decorators/roles.decorator';
 import { UserRole } from '@app/common/enums/role.enum';
+import { LeaderboardService } from '@app/leaderboard/providers/leaderboard.service';
 //import { SignInDTO } from './dtos/sign-in.dto';
 //import { UpdateProfileDTO } from './dtos/update-profile.dto';
 //import { RefreshTokenDTO } from './dtos/refresh-token.dto';
@@ -30,7 +39,37 @@ import { UserRole } from '@app/common/enums/role.enum';
 export class UserController {
   constructor(
     private readonly userService: UserService, //dependency injection of userService
+    private readonly leaderboardService: LeaderboardService, // indexed leaderboard/profile data
   ) {}
+
+  // Player profile built from indexed data (stats, recent rounds, badges, unclaimed winnings)
+  @Get('players/:address')
+  @ApiOperation({
+    summary: 'Get player profile (deprecated)',
+    description:
+      'Deprecated: use GET /players/:address. Returns indexed stats, recent rounds, badges and unclaimed winnings for a player address.',
+    deprecated: true,
+  })
+  @ApiParam({
+    name: 'address',
+    description: 'Stellar account address of the player',
+    example: 'GABCDEFGHIJKLMNOPQRSTUVWXYZ234567ABCDEFGHIJKLMNOPQRSTUV',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Player profile successfully retrieved',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Player not found',
+  })
+  async getPlayerProfile(@Param('address') address: string) {
+    const profile = await this.leaderboardService.getPlayerProfile(address);
+    if (!profile) {
+      throw new NotFoundException(`Player ${address} not found`);
+    }
+    return profile;
+  }
 
   //get users
   @Get()
@@ -222,7 +261,8 @@ export class UserController {
     status: 400,
     description: 'Invalid profile data',
   })
-  updateProfile() {
-    return this.userService.updateProfile();
+  updateProfile(@Body() profileDto: Record<string, unknown>) {
+    return this.userService.updateProfile(profileDto);
   }
+
 }

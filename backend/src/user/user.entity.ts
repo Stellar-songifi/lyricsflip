@@ -6,16 +6,20 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   OneToMany,
+  Index,
 } from 'typeorm';
 import { UserRole } from '../common/enums/role.enum';
-import { Referral } from '../referral/entities/referral.entity';
+import { Referral } from '../social/entities/referral.entity';
 
 @Entity('users')
+@Index('IDX_users_username_lower', { synchronize: false })
 export class User {
   @PrimaryGeneratedColumn('uuid')
   id: string; // Unique identifier for the user
 
   // Common Attributes
+  // Username is stored as provided but uniqueness is enforced case-insensitively
+  // via the functional unique index IDX_users_username_lower (lower(username)).
   @Column({ unique: true })
   username: string; // The username for the player
 
@@ -66,6 +70,7 @@ export class User {
   points: number;
 
   // Wallet login (LF-082). Stellar G... public key.
+  // This is the primary lookup key for wallet-based profiles (LF-230).
   @Column({ type: 'varchar', length: 56, unique: true, nullable: true })
   stellarAddress: string | null;
 
@@ -86,4 +91,18 @@ export class User {
     pendingReferrals: number;
     totalRewardsEarned: number;
   };
+
+  /**
+   * Helper to find a user by their Stellar wallet address.
+   * The repository must be passed in to keep this entity free of DI concerns.
+   */
+  static findByStellarAddress<T extends User>(
+    repository: { findOne: (options: any) => Promise<T | null> },
+    stellarAddress: string,
+  ): Promise<T | null> {
+    if (!stellarAddress) {
+      return Promise.resolve(null);
+    }
+    return repository.findOne({ where: { stellarAddress } });
+  }
 }

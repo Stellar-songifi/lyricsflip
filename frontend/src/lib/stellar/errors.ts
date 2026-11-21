@@ -10,7 +10,7 @@ export interface ContractErrorInfo {
 
 /**
  * Mapping of numeric error code to contract Error enum variant name for lyricsflip.
- * Stable ABI codes 1..44 matching `onchain/contracts/lyricsflip/src/errors.rs`.
+ * Stable ABI codes 1..50 matching `onchain/contracts/lyricsflip/src/errors.rs`.
  */
 export const CONTRACT_ERROR_NAMES: Record<number, string> = {
   1: 'AlreadyInitialized',

@@ -25,6 +25,7 @@ const relativeAge = (createdAtSeconds: number | null, nowSeconds: number) => {
 };
 
 export default function MultiplayerLobbyPage() {
+  const t = useTranslations('lobby');
   const router = useRouter();
   const { systemCalls, account, connect } = useStellar();
   const [genre, setGenre] = useState<Genre>(GENRE_VALUES[0]);
@@ -76,7 +77,7 @@ export default function MultiplayerLobbyPage() {
     }
 
     if (!systemCalls) {
-      setError('System calls not initialized');
+      setError(t('systemNotInit'));
       return;
     }
 
@@ -90,7 +91,7 @@ export default function MultiplayerLobbyPage() {
       await openRounds.refresh();
       router.push(code ? `/multiplayer/${id}#invite=${code}` : `/multiplayer/${id}`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create round');
+      setError(err instanceof Error ? err.message : t('failedCreate'));
     } finally {
       setIsLoading(false);
     }
@@ -98,7 +99,7 @@ export default function MultiplayerLobbyPage() {
 
   const handleJoinRound = () => {
     if (!/^\d+$/.test(roundId.trim())) {
-      setError('Round ID must be a number');
+      setError(t('invalidRoundId'));
       return;
     }
 
@@ -155,7 +156,7 @@ export default function MultiplayerLobbyPage() {
         className="flex items-center text-gray-600 mb-4 min-h-[44px]"
       >
         <ArrowLeft className="h-4 w-4 mr-2" />
-        Back
+        {t('back')}
       </button>
 
       <h1 className="text-2xl sm:text-3xl font-bold mb-8">Multiplayer Game</h1>
@@ -189,16 +190,16 @@ export default function MultiplayerLobbyPage() {
             className="w-full min-h-[44px]"
           >
             {isLoading
-              ? 'Creating…'
+              ? t('creating')
               : account
-                ? 'Create Round'
-                : 'Connect wallet to create'}
+                ? t('createRound')
+                : t('connectWalletToCreate')}
           </Button>
         </div>
 
         {/* Join an existing round */}
         <div>
-          <h2 className="text-xl font-bold mb-4">Join with a round ID</h2>
+          <h2 className="text-xl font-bold mb-4">{t('joinWithId')}</h2>
           <input
             type="text"
             inputMode="numeric"
@@ -221,7 +222,7 @@ export default function MultiplayerLobbyPage() {
             disabled={!roundId}
             className="w-full min-h-[44px]"
           >
-            Join Round
+            {t('joinRound')}
           </Button>
         </div>
       </div>

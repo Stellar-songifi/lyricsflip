@@ -103,6 +103,7 @@ const Navbar = () => {
                           {unreadCount > 99 ? '99+' : unreadCount}
                         </span>
                       )}
+>>>>>>> upstream/main
                     </Link>
                   </li>
                 );
@@ -165,6 +166,13 @@ export const MobileNav = () => {
     const unsubscribe = subscribeToNotifications();
     return unsubscribe;
   }, [fetchUnreadCount, subscribeToNotifications]);
+
+  const mobileNavItems = [
+    { href: '/', id: 'home', icon: <FiHome className="h-6 w-6" /> },
+    { href: '/wallet', id: 'wallet', icon: <FiCreditCard className="h-6 w-6" /> },
+    { href: '/leaderboard', id: 'leaderboard', icon: <IoTrophyOutline className="h-6 w-6" /> },
+    { href: '/more', id: 'more', icon: <FiGrid className="h-6 w-6" /> },
+  ];
 
   return (
     <>

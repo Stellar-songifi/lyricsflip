@@ -5,10 +5,14 @@ const withBundleAnalyzer = require('@next/bundle-analyzer')({
 });
 const testnetDeployment = require('../deployments/testnet.json');
 
-// Build-time check: fail next build in production mode when contract IDs are empty
+// Build-time check: fail next build in production mode when contract IDs are empty.
+// Skip when SKIP_CONTRACT_ID_CHECK=true to allow Docker image builds that receive
+// contract IDs at run time (the contracts-init service writes them to a shared
+// volume that is sourced by docker-entrypoint.sh before the Node process starts).
 if (
   process.env.NODE_ENV === 'production' &&
-  process.env.NEXT_PHASE !== 'phase-development-server'
+  process.env.NEXT_PHASE !== 'phase-development-server' &&
+  process.env.SKIP_CONTRACT_ID_CHECK !== 'true'
 ) {
   const gameContractId =
     process.env.NEXT_PUBLIC_LYRICSFLIP_CONTRACT_ID || testnetDeployment.lyricsflip;
@@ -25,6 +29,10 @@ if (
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  // Enable standalone output so the Docker image only ships the minimal
+  // server bundle (no node_modules copy, no full .next directory).
+  // See: https://nextjs.org/docs/pages/api-reference/next-config-js/output
+  output: 'standalone',
   // LF-204: the page moved from the doubled path to /notifications.
   async redirects() {
     return [

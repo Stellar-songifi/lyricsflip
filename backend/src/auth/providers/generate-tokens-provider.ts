@@ -63,9 +63,13 @@ export class GenerateTokensProvider {
     const jti = randomUUID();
 
     const [accessToken, refreshToken] = await Promise.all([
-      // generate access token
+      // generate access token — include stellarAddress so WsAuthenticator
+      // can surface it as `identity.address` on WebSocket connections (LF-339).
       this.signToken(user.id, this.jwtConfiguration.ttl, {
         email: user.email,
+        // stellarAddress is null for email/password accounts; omit the key
+        // rather than including an explicit null to keep the token compact.
+        ...(user.stellarAddress ? { address: user.stellarAddress } : {}),
       }),
 
       // generate refresh token

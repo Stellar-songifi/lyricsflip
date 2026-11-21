@@ -17,11 +17,11 @@ pub use events::{
     CardsPerRoundUpdated, ContractUpgraded, LobbyTimeoutUpdated, OwnershipTransferStarted,
     OwnershipTransferred, Paused, PlayerReady, RewardClaimed, RoleUpdated, RoundBufferUpdated,
     RoundCancelled, RoundCompleted, RoundCreated, RoundDurationUpdated, RoundJoined, RoundLeft,
-    RoundStarted, SchemaMigrated, Unpaused,
+    RoundStarted, SchemaMigrated, Unpaused, PlayerKicked, RematchCreated,
 };
 pub use types::{
     Answer, AnswerResult, Card, CardPos, DataKey, Genre, LegacyCard, LegacyRound, Milestone,
-    PlayerStats, QuestionCard, QuestionKind, Role, Round, RoundFilter, RoundV3,
+    PlayerStats, QuestionCard, QuestionKind, Role, Round, RoundFilter, RoundV3, RoundView,
 };
 
 use soroban_sdk::{
@@ -1060,8 +1060,13 @@ impl LyricsFlip {
         invite_code: Option<String>,
     ) {
         caller.require_auth();
+        let invited = env
+            .storage()
+            .persistent()
+            .has(&DataKey::RematchInvite((round_id, caller.clone())));
         // LF-162: private rounds require the preimage of RoundInviteHash.
-        if let Some(expected) = env
+        if invited {
+        } else if let Some(expected) = env
             .storage()
             .persistent()
             .get::<_, BytesN<32>>(&DataKey::RoundInviteHash(round_id))
@@ -1123,7 +1128,176 @@ impl LyricsFlip {
             .persistent()
             .set(&DataKey::RoundPlayers(round_id), &players);
 
-        let ready_key = DataKey::RoundReady((round_id, caller.clone()));
+        Self::clear_ready(&env, round_id, &caller);
+
+        let refunded = Self::refund_wager(&env, &round, &caller);
+        RoundLeft {
+            round_id,
+            player: caller,
+            refunded,
+        }
+        .publish(&env);
+    }
+
+    /// LF-288: players of a round that have marked themselves ready.
+    pub fn get_ready_players(env: Env, round_id: u64) -> Vec<Address> {
+        let mut ready = Vec::new(&env);
+        for player in Self::read_round_players(&env, round_id).iter() {
+            if Self::is_ready(env.clone(), round_id, player.clone()) {
+                ready.push_back(player);
+            }
+        }
+        ready
+    }
+
+    /// LF-288: whether `player` is ready in `round_id`.
+    pub fn is_ready(env: Env, round_id: u64, player: Address) -> bool {
+        env.storage()
+            .persistent()
+            .get(&DataKey::RoundReady((round_id, player)))
+            .unwrap_or(false)
+    }
+
+    /// LF-287: everything the round page needs in a single read.
+    pub fn get_round_view(env: Env, round_id: u64, player: Address) -> RoundView {
+        let round = Self::read_round(&env, round_id);
+        let players = Self::read_round_players(&env, round_id);
+        let mut ready = Vec::new(&env);
+        for p in players.iter() {
+            ready.push_back(Self::is_ready(env.clone(), round_id, p));
+        }
+        let my_card_index: u32 = env
+            .storage()
+            .persistent()
+            .get(&DataKey::PlayerCardIndex((round_id, player.clone())))
+            .unwrap_or(0);
+        let my_answered_current = my_card_index > 0
+            && Self::read_round_cards(&env, round_id)
+                .get(my_card_index - 1)
+                .map(|card_id| {
+                    env.storage()
+                        .persistent()
+                        .has(&DataKey::RoundPlayerAnswered((
+                            round_id,
+                            player.clone(),
+                            card_id,
+                        )))
+                })
+                .unwrap_or(false);
+        let finalized = env
+            .storage()
+            .persistent()
+            .get(&DataKey::RoundFinalized(round_id))
+            .unwrap_or(false);
+        let expires_at = if round.is_started {
+            round.start_time + round.round_duration
+        } else {
+            let created_at: u64 = env
+                .storage()
+                .persistent()
+                .get(&DataKey::RoundCreatedAt(round_id))
+                .unwrap_or(0);
+            created_at + round.lobby_timeout
+        };
+        RoundView {
+            scores: Self::get_round_scores(env.clone(), round_id),
+            round,
+            players,
+            ready,
+            my_card_index,
+            my_answered_current,
+            finalized,
+            expires_at,
+        }
+    }
+
+    /// LF-289: the round admin removes a player before the round starts,
+    /// refunding their wager and clearing their ready flag.
+    pub fn kick_player(env: Env, caller: Address, round_id: u64, player: Address) {
+        caller.require_auth();
+        let round = Self::read_round(&env, round_id);
+        Self::assert_round_pending(&env, &round);
+        if round.admin != caller || player == caller {
+            panic_with_error!(env, Error::NotAuthorized);
+        }
+        let mut players = Self::read_round_players(&env, round_id);
+        let idx = players
+            .first_index_of(&player)
+            .unwrap_or_else(|| panic_with_error!(env, Error::NotAParticipant));
+        players.remove(idx);
+        env.storage()
+            .persistent()
+            .set(&DataKey::RoundPlayers(round_id), &players);
+        Self::clear_ready(&env, round_id, &player);
+        let refunded = Self::refund_wager(&env, &round, &player);
+        PlayerKicked {
+            round_id,
+            player,
+            refunded,
+        }
+        .publish(&env);
+    }
+
+    /// LF-290: any player of a finalized round opens a private rematch with
+    /// the same settings; the previous players may join without a code.
+    pub fn create_rematch(env: Env, caller: Address, round_id: u64) -> u64 {
+        caller.require_auth();
+        let round = Self::read_round(&env, round_id);
+        let finalized: bool = env
+            .storage()
+            .persistent()
+            .get(&DataKey::RoundFinalized(round_id))
+            .unwrap_or(false);
+        if !finalized {
+            panic_with_error!(env, Error::RoundNotStarted);
+        }
+        let players = Self::read_round_players(&env, round_id);
+        if !players.contains(&caller) {
+            panic_with_error!(env, Error::NotAParticipant);
+        }
+        let invite_hash: BytesN<32> = env
+            .storage()
+            .persistent()
+            .get(&DataKey::RoundInviteHash(round_id))
+            .unwrap_or_else(|| {
+                env.crypto()
+                    .sha256(&env.prng().gen::<BytesN<32>>().into())
+                    .into()
+            });
+        let new_id = Self::create_round_internal(
+            &env,
+            caller.clone(),
+            RoundFilter {
+                genre: Some(round.genre),
+                decade: None,
+            },
+            None,
+            env.ledger().sequence() as u64 ^ round_id,
+            Some(invite_hash),
+            false,
+        );
+        let mut new_round = Self::read_round(&env, new_id);
+        new_round.wager_amount = round.wager_amount;
+        env.storage()
+            .persistent()
+            .set(&DataKey::Round(new_id), &new_round);
+        for player in players.iter() {
+            if player != caller {
+                let key = DataKey::RematchInvite((new_id, player));
+                env.storage().persistent().set(&key, &true);
+                bump_persistent(&env, &key);
+            }
+        }
+        RematchCreated {
+            from: round_id,
+            to: new_id,
+        }
+        .publish(&env);
+        new_id
+    }
+
+    fn clear_ready(env: &Env, round_id: u64, player: &Address) {
+        let ready_key = DataKey::RoundReady((round_id, player.clone()));
         if env.storage().persistent().get(&ready_key).unwrap_or(false) {
             env.storage().persistent().remove(&ready_key);
             let ready_count_key = DataKey::RoundReadyCount(round_id);
@@ -1136,14 +1310,6 @@ impl LyricsFlip {
                 .persistent()
                 .set(&ready_count_key, &ready_count.saturating_sub(1));
         }
-
-        let refunded = Self::refund_wager(&env, &round, &caller);
-        RoundLeft {
-            round_id,
-            player: caller,
-            refunded,
-        }
-        .publish(&env);
     }
 
     /// Cancels a round that hasn't started and refunds every player. Callable

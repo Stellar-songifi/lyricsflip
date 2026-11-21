@@ -215,3 +215,21 @@ pub struct RoundDurationUpdated {
 pub struct RoundBufferUpdated {
     pub value: u64,
 }
+
+#[contractevent]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct PlayerKicked {
+    #[topic]
+    pub round_id: u64,
+    #[topic]
+    pub player: Address,
+    pub refunded: i128,
+}
+
+#[contractevent]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct RematchCreated {
+    #[topic]
+    pub from: u64,
+    pub to: u64,
+}

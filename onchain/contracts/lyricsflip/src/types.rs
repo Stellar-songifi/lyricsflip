@@ -1,4 +1,4 @@
-﻿use soroban_sdk::{contracttype, Address, BytesN, String, Vec};
+﻿use soroban_sdk::{contracttype, Address, BytesN, Map, String, Vec};
 
 /// Ported from `onchain/src/utils/types.cairo`. `felt252`/`ByteArray` fields
 /// become `String`; Starknet's `u8` fields become `u32` since Soroban has no
@@ -81,6 +81,19 @@ pub enum Genre {
     Afrobeat = 10,
     Gospel = 11,
     Folk = 12,
+}
+
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct RoundView {
+    pub round: Round,
+    pub players: Vec<Address>,
+    pub ready: Vec<bool>,
+    pub scores: Map<Address, u64>,
+    pub my_card_index: u32,
+    pub my_answered_current: bool,
+    pub finalized: bool,
+    pub expires_at: u64,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -379,6 +392,8 @@ pub enum DataKey {
     /// Caps how many free (0-wager) lobbies one account can park in
     /// `OpenRounds`; decremented on start, cancel, and expiry.
     OpenRoundsOf(Address),
+    /// LF-290: players invited to a rematch round may join without a code.
+    RematchInvite((u64, Address)),
 }
 
 #[contracttype]

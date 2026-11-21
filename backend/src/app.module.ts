@@ -4,6 +4,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { CacheModule } from '@nestjs/cache-manager';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { ThrottlerModule } from '@nestjs/throttler';
+import { APP_GUARD } from '@nestjs/core';
 import { Redis } from 'ioredis';
 import { redisStore } from 'cache-manager-redis-yet';
 import { AppController } from './app.controller';
@@ -11,6 +12,7 @@ import { AppService } from './app.service';
 import { PaginationModule } from './common/pagination/pagination.module';
 import { RedisThrottlerStorage } from './common/throttler/redis-throttler.storage';
 import { DEFAULT_THROTTLE } from './common/throttler/throttle-limits';
+import { CustomThrottlerGuard } from './auth/guard/throttler.guard';
 import { AppConfigModule } from './config/config.module';
 import { HealthModule } from './health/health.module';
 import { LoggerModule } from './logger/logger.module';
@@ -79,6 +81,13 @@ import {
     HealthModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    AppService,
+    // Register CustomThrottlerGuard globally so every HTTP handler is covered
+    // without needing an explicit @UseGuards() on each controller.
+    // Per-route @Throttle() overrides (SearchThrottle, LeaderboardThrottle,
+    // etc.) still take effect — NestJS resolves the most-specific metadata.
+    { provide: APP_GUARD, useClass: CustomThrottlerGuard },
+  ],
 })
 export class AppModule {}

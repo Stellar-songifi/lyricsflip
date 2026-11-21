@@ -5,6 +5,7 @@
 [![LyricsFlip Contracts](https://github.com/Stellar-songifi/lyricsflip/actions/workflows/onchain.yml/badge.svg)](https://github.com/Stellar-songifi/lyricsflip/actions/workflows/onchain.yml)
 
 - 🎨 **Figma design:** https://www.figma.com/design/6phOWkHKQgLRhRwmBBQDXB/LyricsFlip?node-id=0-1&t=0U8SlbaJijr7XNeG-1
+- 📚 **Documentation index:** [`docs/README.md`](docs/README.md)
 - 🗂️ **Issue backlog:** [`ISSUES.md`](ISSUES.md) (125 scoped issues with tasks and acceptance criteria)
 - 🤝 **Contributing:** [`CONTRIBUTING.md`](CONTRIBUTING.md) - Start here to contribute!
 

@@ -1,4 +1,3 @@
-const webpack = require('webpack');
 const createNextIntlPlugin = require('next-intl/plugin');
 const withBundleAnalyzer = require('@next/bundle-analyzer')({
   enabled: process.env.ANALYZE === 'true',
@@ -35,22 +34,21 @@ const nextConfig = {
       },
     ];
   },
+  // LF-325: @stellar/stellar-sdk v17 ships its own browser-compatible
+  // bundle and no longer needs Node polyfills. Keeping them added ~40 kB
+  // to the initial JS. The fallback entries below tell webpack to ignore
+  // any residual `require('buffer')` / `require('crypto')` / `require('stream')`
+  // calls so the build still succeeds if any transitive dependency references
+  // them without bundling the full polyfill.
   webpack: (config, { isServer }) => {
     if (!isServer) {
       config.resolve = config.resolve ?? {};
       config.resolve.fallback = {
         ...(config.resolve.fallback ?? {}),
-        buffer: require.resolve('buffer/'),
-        crypto: require.resolve('crypto-browserify'),
-        stream: require.resolve('stream-browserify'),
+        buffer: false,
+        crypto: false,
+        stream: false,
       };
-
-      config.plugins = config.plugins ?? [];
-      config.plugins.push(
-        new webpack.ProvidePlugin({
-          Buffer: ['buffer', 'Buffer'],
-        }),
-      );
     }
 
     return config;

@@ -6,6 +6,7 @@ import {
   ManyToOne,
   CreateDateColumn,
   UpdateDateColumn,
+  Index,
 } from 'typeorm';
 
 export enum ReferralStatus {
@@ -54,6 +55,25 @@ export class Referral {
 
   @Column({ default: false })
   isRewardDistributed: boolean;
+
+  /**
+   * The on-chain round ID whose finalization triggered this referral credit
+   * (LF-355).  Null until the referral is completed.  Used to prevent
+   * double-crediting: a referee's first qualifying round is recorded here and
+   * any subsequent round events for the same referee are ignored.
+   */
+  @Index()
+  @Column({ type: 'varchar', length: 128, nullable: true })
+  firstRoundId: string | null;
+
+  /**
+   * Ledger number at which the referee's account first appeared on-chain, as
+   * observed by the indexer (LF-355).  Null until the first RoundCompleted
+   * event for this referee is processed.  Used by the minimum-account-age
+   * anti-abuse check.
+   */
+  @Column({ type: 'integer', nullable: true })
+  refereeJoinedLedger: number | null;
 
   @CreateDateColumn()
   createdAt: Date;

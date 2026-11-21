@@ -1,4 +1,5 @@
 import { forwardRef, Inject, Injectable, Logger } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { AuthService } from './../../auth/providers/auth.service';
 import { FindOneUserByEmailProvider } from './find-one-user-by-email.provider';
 import { User } from '../user.entity';
@@ -25,6 +26,8 @@ export class UserService {
 
     //Inject create user provider
     private readonly createUserProvider: CreateUserProvider,
+
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   public async getAll(limit: number, page: number): Promise<User[]> {
@@ -60,13 +63,18 @@ export class UserService {
    * Finds the user tied to a Stellar wallet address, creating one on first
    * sign-in. Used by wallet-based auth (auth/providers/wallet-auth.provider.ts),
    * which never collects an email/password.
+   *
+   * When `referralCode` is supplied and the address is brand new, emits
+   * `'referral.signup'` so ReferralService can link the pending referral
+   * without creating a circular dependency (LF-355).
    */
   public async findOrCreateByStellarAddress(
     stellarAddress: string,
-  ): Promise<User> {
+    referralCode?: string,
+  ): Promise<{ user: User; isNew: boolean }> {
     const existing = await this.userRepository.findOneBy({ stellarAddress });
     if (existing) {
-      return existing;
+      return { user: existing, isNew: false };
     }
 
     const newUser = this.userRepository.create({
@@ -75,7 +83,18 @@ export class UserService {
       // unlike a name derived from a slice of the address.
       username: `wallet_${stellarAddress}`,
     });
-    return this.userRepository.save(newUser);
+    const saved = await this.userRepository.save(newUser);
+
+    if (referralCode) {
+      // Emit asynchronously so ReferralService can process the signup without
+      // blocking the auth response or creating a DI cycle.
+      this.eventEmitter.emit('referral.signup', {
+        newUserId: saved.id,
+        referralCode,
+      });
+    }
+
+    return { user: saved, isNew: true };
   }
   //update password
 

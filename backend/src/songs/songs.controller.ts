@@ -15,6 +15,10 @@ import { QuerySongsDto } from './dto/query-songs.dto';
 import { RecordGenrePlayDto } from './dto/record-genre-play.dto';
 import { Genre } from './enums/genre.enum';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import {
+  RecommendedThrottle,
+  SearchThrottle,
+} from '../common/throttler/throttle-limits';
 
 // Public, read-only song catalogue. Curation (create/update/delete/approve)
 // lives under AdminSongsController ('/admin/songs') — see LF-090.
@@ -27,6 +31,7 @@ export class SongsController {
   ) {}
 
   @Get()
+  @SearchThrottle()
   @ApiOperation({
     summary: 'List songs with filtering, search, sorting and pagination',
   })
@@ -68,6 +73,7 @@ export class SongsController {
   }
 
   @Get('recommended')
+  @RecommendedThrottle()
   @ApiOperation({
     summary: "Songs ordered by the current user's genre preferences",
   })

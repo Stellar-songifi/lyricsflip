@@ -7,6 +7,7 @@ import { WagerModal } from '@/components/organisms/wager-modal';
 import { useModalStore } from '@/store/modal-store';
 import { useStellar, type UseStellarResult } from '@/lib/stellar/hooks/use-stellar';
 import { useTranslations } from 'next-intl';
+import Link from 'next/link';
 
 export default function Home() {
   const { openModal } = useModalStore();
@@ -51,6 +52,11 @@ export default function Home() {
     <main className="lg:max-w-[53rem] mt-4 mx-auto h-fit w-full mb-20 lg:mb-12 p-4 lg:p-0 md:mt-24 lg:mt-32">
       <Welcome />
       <GameOptions onSelectGame={handleGameSelect} />
+      <div className="mt-6 text-center">
+        <Link href="/how-to-play" className="underline">
+          How to play
+        </Link>
+      </div>
 
       {/* Modals */}
       <GameModal />

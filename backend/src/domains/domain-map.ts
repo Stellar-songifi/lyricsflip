@@ -115,6 +115,7 @@ export const DOMAIN_MAP: readonly DomainOwnership[] = [
       'song_category_metrics',
       'token_metrics',
       'user_progression_metrics',
+      'onboarding_funnel_metrics',
     ],
     folders: ['admin', 'analytics', 'player-engagement'],
   },

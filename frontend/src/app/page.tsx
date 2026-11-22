@@ -4,6 +4,7 @@ import Welcome from '@/components/atoms/welcome';
 import { GameModal } from '@/components/organisms/game-modal';
 import { GameOptions } from '@/components/organisms/game-mode-selection';
 import { WagerModal } from '@/components/organisms/wager-modal';
+import { OnboardingStepper } from '@/components/organisms/onboarding-stepper';
 import { useModalStore } from '@/store/modal-store';
 import { useStellar, type UseStellarResult } from '@/lib/stellar/hooks/use-stellar';
 import { useTranslations } from 'next-intl';
@@ -50,6 +51,7 @@ export default function Home() {
   return (
     <main className="lg:max-w-[53rem] mt-4 mx-auto h-fit w-full mb-20 lg:mb-12 p-4 lg:p-0 md:mt-24 lg:mt-32">
       <Welcome />
+      <OnboardingStepper onPlayTutorial={() => openModal('game')} />
       <GameOptions onSelectGame={handleGameSelect} />
 
       {/* Modals */}

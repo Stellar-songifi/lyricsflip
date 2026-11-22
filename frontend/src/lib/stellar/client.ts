@@ -81,6 +81,24 @@ export interface AnswerAndNextResult extends TimedResult<boolean> {
   next: QuestionCard | null;
 }
 
+export interface OwnerConfiguration {
+  answerWindow: number;
+  lobbyTimeout: number;
+  roundDuration: number | null;
+  roundBuffer: number;
+  maxPlayers: number;
+  cardsPerRound: number;
+  isPaused: boolean;
+  nftContract: string | null;
+  admins: string[];
+}
+
+export interface ConfigurationHistoryEntry {
+  name: string;
+  ledger: number;
+  value: string;
+}
+
 export interface SystemCalls {
   /**
    * `inviteCode` makes the round private (LF-305): only its SHA-256 hash is
@@ -109,6 +127,16 @@ export interface SystemCalls {
    */
   answerAndNext: (roundId: bigint, answer: Answer) => Promise<AnswerAndNextResult>;
   getCardsPerRound: () => Promise<number>;
+  getOwnerConfiguration: () => Promise<OwnerConfiguration>;
+  getConfigurationHistory: () => Promise<ConfigurationHistoryEntry[]>;
+  setAnswerWindow: (value: number) => Promise<void>;
+  setLobbyTimeout: (value: number) => Promise<void>;
+  setRoundDuration: (value: number | null) => Promise<void>;
+  setRoundBuffer: (value: number) => Promise<void>;
+  setMaxPlayers: (value: number) => Promise<void>;
+  setNftContract: (address: string) => Promise<void>;
+  pause: () => Promise<void>;
+  unpause: () => Promise<void>;
   /** The caller's current question in `roundId` (simulation only, no signature). */
   getQuestion: (roundId: bigint) => Promise<QuestionCard>;
   joinRound: (roundId: bigint) => Promise<void>;
@@ -144,6 +172,7 @@ export interface SystemCalls {
   removeCard: (cardId: bigint) => Promise<void>;
   getCard: (cardId: bigint) => Promise<Card>;
   getCardsCount: () => Promise<bigint>;
+  getCards: (start: number, limit: number) => Promise<Card[]>;
   setCardsPerRound: (value: number) => Promise<void>;
   setRole: (recipient: string, isEnable: boolean) => Promise<void>;
   isAdmin: (address: string) => Promise<boolean>;
@@ -274,6 +303,22 @@ type LyricsFlipContract = {
     limit: number;
   }) => Promise<contract.AssembledTransaction<bigint[]>>;
   get_max_players: () => Promise<contract.AssembledTransaction<number>>;
+  get_nft_contract: () => Promise<contract.AssembledTransaction<string | null>>;
+  get_answer_window: () => Promise<contract.AssembledTransaction<bigint>>;
+  get_lobby_timeout: () => Promise<contract.AssembledTransaction<bigint>>;
+  get_round_duration: () => Promise<contract.AssembledTransaction<bigint | null>>;
+  get_round_buffer: () => Promise<contract.AssembledTransaction<bigint>>;
+  get_admins: () => Promise<contract.AssembledTransaction<string[]>>;
+  is_paused: () => Promise<contract.AssembledTransaction<boolean>>;
+  owner: () => Promise<contract.AssembledTransaction<string>>;
+  set_answer_window: (args: { caller: string; value: bigint }) => Promise<contract.AssembledTransaction<null>>;
+  set_lobby_timeout: (args: { caller: string; value: bigint }) => Promise<contract.AssembledTransaction<null>>;
+  set_round_duration: (args: { caller: string; value: bigint | null }) => Promise<contract.AssembledTransaction<null>>;
+  set_round_buffer: (args: { caller: string; value: bigint }) => Promise<contract.AssembledTransaction<null>>;
+  set_max_players: (args: { caller: string; value: number }) => Promise<contract.AssembledTransaction<null>>;
+  set_nft_contract: (args: { caller: string; nft_contract: string }) => Promise<contract.AssembledTransaction<null>>;
+  pause: (args: { caller: string }) => Promise<contract.AssembledTransaction<null>>;
+  unpause: (args: { caller: string }) => Promise<contract.AssembledTransaction<null>>;
   start_round: (args: { caller: string; round_id: bigint }) => Promise<contract.AssembledTransaction<null>>;
   next_card: (args: { caller: string; round_id: bigint }) => Promise<contract.AssembledTransaction<WireQuestionCard>>;
   submit_answer: (args: {
@@ -286,6 +331,11 @@ type LyricsFlipContract = {
   update_card: (args: { caller: string; card_id: bigint; card: WireCard }) => Promise<contract.AssembledTransaction<null>>;
   remove_card: (args: { caller: string; card_id: bigint }) => Promise<contract.AssembledTransaction<null>>;
   get_card: (args: { card_id: bigint }) => Promise<contract.AssembledTransaction<WireCard>>;
+  get_cards: (args: {
+    caller: string;
+    start: number;
+    limit: number;
+  }) => Promise<contract.AssembledTransaction<WireCard[]>>;
   get_cards_count: () => Promise<contract.AssembledTransaction<bigint>>;
   set_cards_per_round: (args: { caller: string; value: number }) => Promise<contract.AssembledTransaction<null>>;
   set_role: (args: {
@@ -552,6 +602,89 @@ export function createSystemCalls(config: StellarConfig, publicKey: string | nul
       return res.result;
     },
 
+    getOwnerConfiguration: async () => {
+      const client = await getGameClient(config, publicKey);
+      const [
+        answerWindow,
+        lobbyTimeout,
+        roundDuration,
+        roundBuffer,
+        maxPlayers,
+        cardsPerRound,
+        isPaused,
+        nftContract,
+        admins,
+      ] = await Promise.all([
+        client.get_answer_window(),
+        client.get_lobby_timeout(),
+        client.get_round_duration(),
+        client.get_round_buffer(),
+        client.get_max_players(),
+        client.get_cards_per_round(),
+        client.is_paused(),
+        client.get_nft_contract(),
+        client.get_admins(),
+      ]);
+      return {
+        answerWindow: Number(answerWindow.result),
+        lobbyTimeout: Number(lobbyTimeout.result),
+        roundDuration:
+          roundDuration.result == null ? null : Number(roundDuration.result),
+        roundBuffer: Number(roundBuffer.result),
+        maxPlayers: maxPlayers.result,
+        cardsPerRound: cardsPerRound.result,
+        isPaused: isPaused.result,
+        nftContract: nftContract.result ?? null,
+        admins: admins.result,
+      };
+    },
+
+    getConfigurationHistory: async () => {
+      const server = new rpc.Server(config.rpcUrl, {
+        allowHttp: config.rpcUrl.startsWith('http://'),
+      });
+      const { sequence } = await server.getLatestLedger();
+      const startLedger = Math.max(1, sequence - 10_000);
+      const eventNames = [
+        'answer_window_updated',
+        'lobby_timeout_updated',
+        'round_duration_updated',
+        'round_buffer_updated',
+        'cards_per_round_updated',
+        'max_players_updated',
+        'nft_contract_updated',
+        'paused',
+        'unpaused',
+        'role_updated',
+      ];
+      const pages = await Promise.all(
+        eventNames.map(async (name) => {
+          const { events } = await server.getEvents({
+            startLedger,
+            filters: [
+              {
+                type: 'contract',
+                contractIds: [config.lyricsflipContractId],
+                topics: [[xdr.ScVal.scvSymbol(name).toXDR('base64')]],
+              },
+            ],
+          });
+          return events.map((event) => {
+            const value = scValToNative(event.value);
+            return {
+              name,
+              ledger: event.ledger,
+              value:
+                JSON.stringify(value, (_key, item) =>
+                  typeof item === 'bigint' ? item.toString() : item,
+                ) ?? String(value),
+            };
+          });
+        }),
+      );
+      return pages.flat().sort((left, right) => right.ledger - left.ledger);
+    },
+
     joinRound: async (roundId) => {
       const caller = requireAccount();
       const client = await getGameClient(config, caller);
@@ -664,10 +797,70 @@ export function createSystemCalls(config: StellarConfig, publicKey: string | nul
       return res.result;
     },
 
+    getCards: async (start, limit) => {
+      const caller = requireAccount();
+      const client = await getGameClient(config, caller);
+      const res = await client.get_cards({ caller, start, limit });
+      return res.result.map(cardFromWire);
+    },
+
     setCardsPerRound: async (value) => {
       const caller = requireAccount();
       const client = await getGameClient(config, caller);
       await submit(() => client.set_cards_per_round({ caller, value }));
+    },
+
+    setAnswerWindow: async (value) => {
+      const caller = requireAccount();
+      const client = await getGameClient(config, caller);
+      await submit(() => client.set_answer_window({ caller, value: BigInt(value) }));
+    },
+
+    setLobbyTimeout: async (value) => {
+      const caller = requireAccount();
+      const client = await getGameClient(config, caller);
+      await submit(() => client.set_lobby_timeout({ caller, value: BigInt(value) }));
+    },
+
+    setRoundDuration: async (value) => {
+      const caller = requireAccount();
+      const client = await getGameClient(config, caller);
+      await submit(() =>
+        client.set_round_duration({
+          caller,
+          value: value === null ? null : BigInt(value),
+        }),
+      );
+    },
+
+    setRoundBuffer: async (value) => {
+      const caller = requireAccount();
+      const client = await getGameClient(config, caller);
+      await submit(() => client.set_round_buffer({ caller, value: BigInt(value) }));
+    },
+
+    setMaxPlayers: async (value) => {
+      const caller = requireAccount();
+      const client = await getGameClient(config, caller);
+      await submit(() => client.set_max_players({ caller, value }));
+    },
+
+    setNftContract: async (address) => {
+      const caller = requireAccount();
+      const client = await getGameClient(config, caller);
+      await submit(() => client.set_nft_contract({ caller, nft_contract: address }));
+    },
+
+    pause: async () => {
+      const caller = requireAccount();
+      const client = await getGameClient(config, caller);
+      await submit(() => client.pause({ caller }));
+    },
+
+    unpause: async () => {
+      const caller = requireAccount();
+      const client = await getGameClient(config, caller);
+      await submit(() => client.unpause({ caller }));
     },
 
     setRole: async (recipient, isEnable) => {
@@ -691,8 +884,8 @@ export function createSystemCalls(config: StellarConfig, publicKey: string | nul
 
     isOwner: async (address) => {
       const client = await getGameClient(config, publicKey);
-      const res = await client.is_admin({ role: 0 as WireRole, address });
-      return res.result;
+      const res = await client.owner();
+      return res.result === address;
     },
 
     isRoundPlayer: async (roundId, address) => {

@@ -363,7 +363,8 @@ NEXT_PUBLIC_STELLAR_RPC_URL=https://soroban-testnet.stellar.org
 NEXT_PUBLIC_STELLAR_NETWORK_PASSPHRASE=Test SDF Network ; September 2015
 NEXT_PUBLIC_LYRICSFLIP_CONTRACT_ID=<LYRICSFLIP_CONTRACT_ID>
 NEXT_PUBLIC_LYRICSFLIP_NFT_CONTRACT_ID=<LYRICSFLIP_NFT_CONTRACT_ID>
-NEXT_PUBLIC_API_URL=http://localhost:4000
+NEXT_PUBLIC_LYRICSFLIP_ESCROW_CONTRACT_ID=<LYRICSFLIP_ESCROW_CONTRACT_ID>
+NEXT_PUBLIC_API_URL=http://localhost:4000/api/v1
 ENV
 npm run dev        # http://localhost:3000
 ```
@@ -391,7 +392,20 @@ npm run start:dev  # Swagger at http://localhost:<PORT>/api/docs
 | `NEXT_PUBLIC_STELLAR_NETWORK_PASSPHRASE` | `Test SDF Network ; September 2015` | Network passphrase (also picks the wallet-kit network) |
 | `NEXT_PUBLIC_LYRICSFLIP_CONTRACT_ID` | — | Deployed game contract ID (`C…`) |
 | `NEXT_PUBLIC_LYRICSFLIP_NFT_CONTRACT_ID` | — | Deployed NFT contract ID (`C…`) |
-| `NEXT_PUBLIC_API_URL` | `http://localhost:3000/api` | Backend base URL |
+| `NEXT_PUBLIC_LYRICSFLIP_ESCROW_CONTRACT_ID` | — | Deployed escrow contract ID (`C…`) |
+| `NEXT_PUBLIC_API_URL` | `http://localhost:4000/api/v1` | Versioned backend API root; REST calls append paths such as `/auth/challenge` |
+| `NEXT_PUBLIC_WS_URL` | `http://localhost:4000` | Backend WebSocket origin |
+| `NEXT_PUBLIC_WAGERING_ENABLED` | `false` | Enables wager UI when an escrow contract is configured |
+| `NEXT_PUBLIC_STELLAR_HORIZON_URL` | `https://horizon-testnet.stellar.org` | Horizon endpoint |
+| `NEXT_PUBLIC_STELLAR_FRIENDBOT_URL` | `https://friendbot.stellar.org` | Friendbot endpoint for testnet onboarding |
+| `NEXT_PUBLIC_WAGER_ASSET_CODE` | `XLM` | Wager asset code |
+| `NEXT_PUBLIC_STELLAR_NETWORK` | `testnet` | Frontend network label |
+| `NEXT_PUBLIC_SITE_URL`, `NEXT_PUBLIC_APP_URL` | `https://lyricsflip.xyz` | Public site/app URLs |
+| `NEXT_PUBLIC_INDEXER_URL` | — | Optional event-indexer endpoint |
+
+Frontend public environment variables are validated with Zod during the Next.js
+build/render. In production, the game and NFT contract IDs must
+be valid Stellar contract StrKeys; a configured escrow ID is validated too.
 
 ### Backend (`backend/.env`, see `backend/.env.example`)
 

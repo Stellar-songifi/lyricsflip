@@ -8,6 +8,7 @@
 // Env vars still take precedence for local or custom deployments.
 
 import testnetDeployment from '../../../../deployments/testnet.json';
+import { env } from '@/env';
 
 const getEnvVar = (name: string, defaultValue = ''): string => {
   if (typeof window !== 'undefined') {
@@ -44,21 +45,35 @@ export interface StellarConfig {
 }
 
 export const createConfig = (): StellarConfig => ({
-  rpcUrl: getEnvVar('NEXT_PUBLIC_STELLAR_RPC_URL', 'https://soroban-testnet.stellar.org'),
+  rpcUrl: getEnvVar(
+    'NEXT_PUBLIC_STELLAR_RPC_URL',
+    env.NEXT_PUBLIC_STELLAR_RPC_URL,
+  ),
   networkPassphrase: getEnvVar(
     'NEXT_PUBLIC_STELLAR_NETWORK_PASSPHRASE',
-    'Test SDF Network ; September 2015',
+    env.NEXT_PUBLIC_STELLAR_NETWORK_PASSPHRASE,
   ),
   lyricsflipContractId: getEnvVar(
     'NEXT_PUBLIC_LYRICSFLIP_CONTRACT_ID',
-    testnetDeployment.lyricsflip || '',
+    env.NEXT_PUBLIC_LYRICSFLIP_CONTRACT_ID || testnetDeployment.lyricsflip || '',
   ),
   lyricsflipNftContractId: getEnvVar(
     'NEXT_PUBLIC_LYRICSFLIP_NFT_CONTRACT_ID',
-    testnetDeployment.lyricsflipNft || '',
+    env.NEXT_PUBLIC_LYRICSFLIP_NFT_CONTRACT_ID ||
+      testnetDeployment.lyricsflipNft ||
+      '',
   ),
-  lyricsflipEscrowContractId: getEnvVar('NEXT_PUBLIC_LYRICSFLIP_ESCROW_CONTRACT_ID'),
+  lyricsflipEscrowContractId: getEnvVar(
+    'NEXT_PUBLIC_LYRICSFLIP_ESCROW_CONTRACT_ID',
+    env.NEXT_PUBLIC_LYRICSFLIP_ESCROW_CONTRACT_ID,
+  ),
   wageringEnabled:
-    getEnvVar('NEXT_PUBLIC_WAGERING_ENABLED') === 'true' &&
-    getEnvVar('NEXT_PUBLIC_LYRICSFLIP_ESCROW_CONTRACT_ID') !== '',
+    getEnvVar(
+      'NEXT_PUBLIC_WAGERING_ENABLED',
+      env.NEXT_PUBLIC_WAGERING_ENABLED,
+    ) === 'true' &&
+    getEnvVar(
+      'NEXT_PUBLIC_LYRICSFLIP_ESCROW_CONTRACT_ID',
+      env.NEXT_PUBLIC_LYRICSFLIP_ESCROW_CONTRACT_ID,
+    ) !== '',
 });

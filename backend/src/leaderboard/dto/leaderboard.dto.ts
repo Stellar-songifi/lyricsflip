@@ -68,6 +68,23 @@ export class LeaderboardEntryDto {
 
   @ApiProperty()
   maxStreak: number;
+
+  /**
+   * Moderation status of the address.
+   *
+   * Null means no flags exist. 'hidden' or 'banned' means an admin has
+   * suppressed this entry; public leaderboard responses omit those entries
+   * entirely, but admin-facing responses include them with this field set.
+   *
+   * Possible values: 'pending' | 'reviewed' | 'hidden' | 'banned' | null
+   */
+  @ApiPropertyOptional({
+    nullable: true,
+    description:
+      'Anti-cheat moderation status. Null = no flags. ' +
+      "'hidden'/'banned' entries are suppressed on public leaderboards.",
+  })
+  flagStatus: string | null;
 }
 
 export class PaginatedLeaderboardDto {

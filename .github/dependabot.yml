@@ -1,4 +1,3 @@
-# LF-109: weekly grouped dependency updates for every ecosystem in the repo.
 version: 2
 updates:
   - package-ecosystem: npm
@@ -30,6 +29,8 @@ updates:
     schedule:
       interval: weekly
     groups:
+      soroban:
+        patterns: ["soroban-*"]
       minor-and-patch:
         update-types: [minor, patch]
 

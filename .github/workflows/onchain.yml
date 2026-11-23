@@ -140,6 +140,28 @@ jobs:
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
 
+  deny:
+    name: Supply-chain checks (LF-367)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: onchain
+      - uses: taiki-e/install-action@cargo-deny
+      - name: cargo deny
+        working-directory: onchain
+        run: |
+          set -o pipefail
+          cargo deny check advisories licenses bans 2>&1 | tee deny.log
+          {
+            echo "### cargo deny"
+            echo '```'
+            cat deny.log
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
   bindings-check:
     name: TypeScript bindings are up to date (LF-032)
     runs-on: ubuntu-latest
@@ -173,12 +195,12 @@ jobs:
   ci-summary:
     name: LyricsFlip Contracts
     if: always()
-    needs: [build, test, bindings-check, api-docs-check]
+    needs: [build, test, audit, deny, bindings-check, api-docs-check]
     runs-on: ubuntu-latest
     steps:
       - name: Require contract checks
         run: |
-          if [[ "${{ needs.build.result }}" != "success" || "${{ needs.test.result }}" != "success" || "${{ needs.bindings-check.result }}" != "success" || "${{ needs.api-docs-check.result }}" != "success" ]]; then
+          if [[ "${{ needs.build.result }}" != "success" || "${{ needs.test.result }}" != "success" || "${{ needs.audit.result }}" != "success" || "${{ needs.deny.result }}" != "success" || "${{ needs.bindings-check.result }}" != "success" || "${{ needs.api-docs-check.result }}" != "success" ]]; then
             echo "Contract checks did not all pass."
             exit 1
           fi

@@ -9,6 +9,7 @@
     "backend"
   ],
   "scripts": {
+    "//": "npm workspaces: run a single `npm install` at the repo root. Do not run installs inside frontend/ or backend/; the root package-lock.json is the only lockfile.",
     "dev": "bash onchain/scripts/dev-local.sh",
     "dev:all": "npm run dev",
     "dev:frontend": "npm --prefix frontend run dev",
@@ -27,7 +28,7 @@
     "check:backend": "npm --prefix backend run lint && npm --prefix backend exec -- tsc --noEmit && npm --prefix backend run test",
     "knip:backend": "npm exec --yes --package=knip@6 -- knip --directory backend",
     "check:all": "npm run check:contracts && npm run check:frontend && npm run check:backend",
-    "prepare": "husky || true"
+    "prepare": "husky"
   },
   "engines": {
     "node": ">=20.18.0 <21"

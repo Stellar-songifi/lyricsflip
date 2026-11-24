@@ -1,14 +1,32 @@
 # Local development stack: Postgres, Redis, Mailpit, the backend API, the
-# frontend, the indexer and (optionally) a local Soroban network.
+# frontend, the indexer and a local Soroban network with auto-deployed contracts.
 #
-#   docker compose up                      # app on http://localhost:3000
-#   docker compose --profile soroban up    # also start stellar/quickstart
+#   docker compose up                       # full stack on http://localhost:3000
+#   docker compose --profile soroban up    # explicit: same as above (soroban
+#                                           #   is included in the default stack
+#                                           #   but kept under a named profile so
+#                                           #   it can still be skipped for
+#                                           #   testnet/mainnet-only workflows)
+#
+# On first run the contracts-init service builds the WASM, deploys the game,
+# NFT, and escrow contracts to the local quickstart node, seeds the card
+# catalogue, and writes the contract IDs to the `contracts-env` volume.  The
+# backend, indexer, and frontend source those IDs before starting.
 #
 # The frontend is served on http://localhost:3000 and proxies API calls to the
-# backend on http://localhost:4000. Mailpit's web UI (for password-reset
-# emails) is on http://localhost:8025.
+# backend on http://localhost:4000.  Mailpit's web UI (password-reset emails)
+# is on http://localhost:8025.
+#
+# NEXT_PUBLIC_* variables are baked into the Next.js bundle at build time.
+# If you need to redeploy contracts, run:
+#   docker compose down -v
+#   docker compose up --build
+# (the -v flag removes the contracts-env volume so IDs are regenerated)
 
 services:
+  # ---------------------------------------------------------------------------
+  # Infrastructure
+  # ---------------------------------------------------------------------------
   postgres:
     image: postgres:16
     environment:
@@ -40,7 +58,58 @@ services:
     ports:
       - '1025:1025' # SMTP
       - '8025:8025' # Web UI
+    healthcheck:
+      test: ['CMD-SHELL', 'wget -qO- http://localhost:8025/api/v1/info || exit 1']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
 
+  # ---------------------------------------------------------------------------
+  # Local Stellar / Soroban network
+  # ---------------------------------------------------------------------------
+  soroban:
+    # Pinned for reproducible local builds; bump deliberately when upgrading.
+    image: stellar/quickstart:v430
+    command: --local --enable rpc
+    ports:
+      - '8000:8000'
+    healthcheck:
+      test:
+        - 'CMD-SHELL'
+        - >
+          curl -sf -X POST -H "Content-Type: application/json"
+          -d '{"jsonrpc":"2.0","id":1,"method":"getHealth"}'
+          http://localhost:8000/soroban/rpc || exit 1
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+
+  # ---------------------------------------------------------------------------
+  # contracts-init: one-shot service that deploys contracts and seeds cards.
+  # Runs AFTER the quickstart node is healthy; exits 0 on success.
+  # The backend, indexer, and frontend wait for it to complete before starting.
+  # ---------------------------------------------------------------------------
+  contracts-init:
+    build:
+      context: .
+      dockerfile: docker/contracts-init/Dockerfile
+    environment:
+      SOROBAN_RPC_URL: http://soroban:8000/soroban/rpc
+      NETWORK_PASSPHRASE: 'Standalone Network ; February 2017'
+      OUTPUT_ENV_FILE: /run/contracts/.env
+      CARDS_PER_ROUND: '5'
+    volumes:
+      - contracts-env:/run/contracts
+    depends_on:
+      soroban:
+        condition: service_healthy
+    restart: 'no'
+
+  # ---------------------------------------------------------------------------
+  # Backend API (NestJS)
+  # ---------------------------------------------------------------------------
   backend:
     build:
       context: ./backend
@@ -57,14 +126,24 @@ services:
       JWT_TOKEN_AUDIENCE: localhost:4000
       JWT_TOKEN_ISSUER: localhost:4000
       JWT_ACCESS_TOKEN_TTL: 3600
+      RATE_LIMIT_TTL: 60000
+      RATE_LIMIT_LIMIT: 60
+      CORS_ORIGINS: http://localhost:3000
       LOG_LEVEL: debug
       SMTP_HOST: mailpit
       SMTP_PORT: 1025
       SMTP_SECURE: 'false'
       MAIL_FROM: 'LyricsFlip <no-reply@lyricsflip.local>'
       APP_URL: http://localhost:3000
+      # Contract IDs and Stellar config are sourced from the shared volume by
+      # docker-entrypoint.sh; the values below act as safe fallbacks when the
+      # soroban profile is not active.
       STELLAR_NETWORK: local
       STELLAR_RPC_URL: http://soroban:8000/soroban/rpc
+      SOROBAN_RPC_URL: http://soroban:8000/soroban/rpc
+      CONTRACTS_ENV_FILE: /run/contracts/.env
+    volumes:
+      - contracts-env:/run/contracts:ro
     ports:
       - '4000:4000'
     depends_on:
@@ -73,24 +152,53 @@ services:
       redis:
         condition: service_healthy
       mailpit:
-        condition: service_started
+        condition: service_healthy
+      contracts-init:
+        condition: service_completed_successfully
 
+  # ---------------------------------------------------------------------------
+  # Frontend (Next.js)
+  # ---------------------------------------------------------------------------
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      # NEXT_PUBLIC_* args are baked into the bundle at build time.
+      # contracts-init must complete before this build runs so the IDs are
+      # available; Docker Compose resolves build-time depends_on correctly.
+      args:
+        NEXT_PUBLIC_API_URL: http://localhost:4000
+        NEXT_PUBLIC_WS_URL: http://localhost:4000
+        NEXT_PUBLIC_WAGER_ASSET_CODE: XLM
+        NEXT_PUBLIC_STELLAR_HORIZON_URL: http://localhost:8000
+        NEXT_PUBLIC_STELLAR_RPC_URL: http://localhost:8000/soroban/rpc
+        NEXT_PUBLIC_STELLAR_NETWORK_PASSPHRASE: 'Standalone Network ; February 2017'
     environment:
-      NODE_ENV: development
+      NODE_ENV: production
       PORT: 3000
       NEXT_PUBLIC_API_URL: http://localhost:4000
+      NEXT_PUBLIC_WS_URL: http://localhost:4000
       API_INTERNAL_URL: http://backend:4000
+      CONTRACTS_ENV_FILE: /run/contracts/.env
+    volumes:
+      - contracts-env:/run/contracts:ro
     ports:
       - '3000:3000'
     depends_on:
       backend:
-        condition: service_started
+        condition: service_healthy
+      contracts-init:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ['CMD-SHELL', 'wget -qO- http://localhost:3000/ || exit 1']
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
 
-  # The indexer runs the same image as the backend, with the indexer flag set.
+  # ---------------------------------------------------------------------------
+  # Indexer (runs the same backend image with RUN_INDEXER=true)
+  # ---------------------------------------------------------------------------
   indexer:
     build:
       context: ./backend
@@ -102,33 +210,21 @@ services:
       REDIS_URL: redis://redis:6379
       STELLAR_NETWORK: local
       STELLAR_RPC_URL: http://soroban:8000/soroban/rpc
+      SOROBAN_RPC_URL: http://soroban:8000/soroban/rpc
       LOG_LEVEL: debug
+      CONTRACTS_ENV_FILE: /run/contracts/.env
+    volumes:
+      - contracts-env:/run/contracts:ro
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
-      backend:
-        condition: service_started
-
-  soroban:
-    # Pinned for reproducible local builds; bump deliberately when upgrading.
-    image: stellar/quickstart:v430
-    profiles: ['soroban']
-    command: --local --enable rpc
-    ports:
-      - '8000:8000'
-    healthcheck:
-      # The RPC endpoint answers a JSON-RPC POST; any HTTP response means it is up.
-      test:
-        [
-          'CMD-SHELL',
-          'curl -sf -X POST -H "Content-Type: application/json" -d ''{"jsonrpc":"2.0","id":1,"method":"getHealth"}'' http://localhost:8000/soroban/rpc || exit 1',
-        ]
-      interval: 5s
-      timeout: 5s
-      retries: 30
-      start_period: 30s
+      contracts-init:
+        condition: service_completed_successfully
 
 volumes:
   postgres-data:
+  # Shared volume: contracts-init writes contract IDs here; backend, indexer,
+  # and frontend mount it read-only and source /run/contracts/.env at startup.
+  contracts-env:

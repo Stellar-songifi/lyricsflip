@@ -69,6 +69,10 @@ export class WagerService {
    * (status = ESCROWED), grouped by asset.  Used by the nightly
    * reconciliation job to compare the database's open pots against the
    * escrow contract's actual on-chain token balance.
+   * LF-340: Sums the amount of every wager still in escrow (status =
+   * ESCROWED), grouped by asset. Used by the nightly reconciliation job to
+   * compare the database's open pots against the escrow contract's actual
+   * on-chain token balance.
    */
   async sumEscrowedAmounts(): Promise<Record<string, string>> {
     const rows = await this.wagerRepository

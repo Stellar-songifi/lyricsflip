@@ -1,5 +1,4 @@
 "use client";
-import { SongOptions } from '@/components/molecules/song-options';
 import { StatisticsPanel } from '@/components/molecules/statistics-panel';
 import { LyricCard } from '@/components/organisms/lyric-card';
 import BadgeModal from '@/components/organisms/new-badge-modal';
@@ -79,6 +78,7 @@ function parseYearOption(option: string): bigint | null {
 }
 
 export default function SinglePlayerGame() {
+  const t = useTranslations('singlePlayer');
   const router = useRouter();
   const searchParams = useSearchParams();
   const roundIdParam = searchParams?.get('roundId') ?? null;
@@ -100,7 +100,6 @@ export default function SinglePlayerGame() {
   const [totalCards, setTotalCards] = useState(0);
   const [answeredCount, setAnsweredCount] = useState(0);
   const [txStatus, setTxStatus] = useState<string | null>(null);
-  const [isGameStarted, setIsGameStarted] = useState(false);
   const [selectedOption, setSelectedOption] = useState<SongOption | null>(null);
   const [correctOption, setCorrectOption] = useState<SongOption | null>(null);
   const [isCardFlipped, setIsCardFlipped] = useState(false);
@@ -211,7 +210,7 @@ export default function SinglePlayerGame() {
   useEffect(() => {
     const fetchRoundData = async () => {
       if (!systemCalls) {
-        setError('System calls not initialized');
+        setError(t('noSystemCalls'));
         return;
       }
       if (hasStartedRef.current) return;
@@ -245,7 +244,7 @@ export default function SinglePlayerGame() {
           showQuestion(current, null);
         }
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to get round data');
+        setError(err instanceof Error ? err.message : t('failedFetch'));
       } finally {
         setTxStatus(null);
         setIsLoading(false);
@@ -622,7 +621,7 @@ export default function SinglePlayerGame() {
               onClick={handleNextCard}
               className="self-end rounded bg-black px-4 py-2 text-white"
             >
-              Next card
+              {t('nextCard')}
             </button>
           )}
         </section>

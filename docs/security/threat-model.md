@@ -235,7 +235,50 @@ Each invariant is enforced in code and covered by a test. Tests live in
 
 ---
 
-## 5. Automated checks
+---
+
+## 5. HTTP Rate-Limit Budget Table (LF-350)
+
+The backend enforces per-route throttle limits via `@nestjs/throttler` with a
+Redis-backed shared counter.  Limits are keyed by **authenticated wallet address
+first**, then by JWT subject, then by IP — meaning a single attacker who
+authenticates cannot hide behind shared NAT, and a NAT network is not penalised
+for one bad actor on it.
+
+The global `APP_GUARD` (`CustomThrottlerGuard`) applies the default budget to
+every HTTP route.  Routes listed below carry a tighter `@Throttle()` override
+that the guard resolves automatically (method-level metadata takes precedence
+over class-level, which takes precedence over the global default).
+
+| Route | Method | Tier | Limit | TTL | Rationale |
+|---|---|---|---|---|---|
+| `/api/v1/*` (all others) | any | `DEFAULT` | 60 req | 60 s | Broad safety net |
+| `/api/v1/auth/*` | POST | `AUTH` | 5 req | 60 s | Brute-force / credential stuffing protection |
+| `/api/v1/auth/forgot-password` | POST | `FORGOT_PASSWORD` | 3 req | 60 s | Email-send abuse |
+| `/api/v1/auth/reset-password` | POST | `RESET_PASSWORD` | 5 req | 60 s | Token-exhaustion protection |
+| `/api/v1/game-session/:id/guess` | POST | `ANSWER` | 10 req | 60 s | Prevents automated answer flooding |
+| `/api/v1/songs` | GET | `SEARCH` | 20 req | 60 s | Full-text DB scan; cache-bypass protection |
+| `/api/v1/songs/recommended` | GET | `RECOMMENDED` | 15 req | 60 s | Multi-table preference join |
+| `/api/v1/leaderboard` | GET | `LEADERBOARD` | 30 req | 60 s | Aggregation query; can be served from cache but direct calls capped |
+| `/api/v1/leaderboard/rank/:id` | GET | `LEADERBOARD` | 30 req | 60 s | Per-player rank lookup |
+| `/api/v1/players/:address` | GET | `PLAYER_PROFILE` | 20 req | 60 s | Cross-table stat aggregation per address |
+
+**WebSocket budget** (`WsRateLimitGuard` — in-process per node):
+
+| Namespace | Handler | Limit | Window | Key |
+|---|---|---|---|---|
+| `/game` | all message handlers | 60 msg | 10 s | wallet address → JWT sub → socket ID |
+| `/rooms` | `room:join`, `room:leave` | 60 msg | 10 s | wallet address → JWT sub → socket ID |
+| `/rounds` | `room:join`, `room:leave`, `room:ready` | 60 msg | 10 s | wallet address → JWT sub → socket ID |
+
+> **Note:** WebSocket limits are enforced in-process and are not shared across
+> backend instances.  Sessions are sticky to a single node in the current
+> deployment, so this is acceptable; if sticky sessions are removed, migrate
+> `WsRateLimitGuard` to Redis-backed storage.
+
+---
+
+## 6. Automated checks
 
 The following run on every PR (see `.github/workflows/`):
 

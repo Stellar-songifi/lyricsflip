@@ -8,13 +8,14 @@ import {
   WebSocketServer,
   WsException,
 } from '@nestjs/websockets';
-import { Logger } from '@nestjs/common';
+import { Logger, UseGuards } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
 import { Server, Socket } from 'socket.io';
 
 import { WsAuthenticator } from '../auth/providers/ws-authenticator.provider';
 import { RoundPlayersRepository } from './round-players.repository';
 import { IndexerEventNames } from '../indexer/events/indexer-events';
+import { WsRateLimitGuard } from '../common/guards/ws-rate-limit.guard';
 
 /**
  * Payload shapes follow docs/realtime-protocol.md.
@@ -117,6 +118,7 @@ export class RoundGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   @SubscribeMessage('room:join')
+  @UseGuards(WsRateLimitGuard)
   async handleRoomJoin(
     @ConnectedSocket() socket: AuthenticatedSocket,
     @MessageBody() payload: RoundJoinPayload,
@@ -146,6 +148,7 @@ export class RoundGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   @SubscribeMessage('room:leave')
+  @UseGuards(WsRateLimitGuard)
   async handleRoomLeave(
     @ConnectedSocket() socket: AuthenticatedSocket,
     @MessageBody() payload: RoundLeavePayload,
@@ -157,6 +160,7 @@ export class RoundGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   @SubscribeMessage('room:ready')
+  @UseGuards(WsRateLimitGuard)
   async handleRoomReady(
     @ConnectedSocket() socket: AuthenticatedSocket,
     @MessageBody() payload: RoundReadyPayload,

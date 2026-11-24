@@ -130,7 +130,7 @@ export default function SetUsername() {
                       <div className="flex items-center text-red-600 mt-2 gap-x-2">
                         <CircleX className="w-5 h-5" />
                         <span>
-                          {username} has been taken, please try another name
+                          {username} is already taken
                         </span>
                       </div>
                     )}
@@ -176,7 +176,7 @@ export default function SetUsername() {
       <div className="w-full col-span-1 relative hidden md:flex">
         <div className="absolute inset-0 bg-purplePrimary5/[.98] z-10 flex items-center justify-center">
           <div className="text-white text-5xl md:text-6xl font-bold">
-            <span className="text-white">Lyric</span>
+            <span className="text-white">Lyrics</span>
             <span className="text-tealPrimary1">Flip</span>
           </div>
         </div>

@@ -3,6 +3,7 @@
 **LyricsFlip is an on-chain, card-based music guessing game built on Stellar (Soroban).** A card shows a snippet of song lyrics, and players race to guess the song, artist, or year before the card flips. Rounds can be played solo or against friends, and players can wager tokens and earn NFT badges. Every round, answer, and stat is recorded on the Stellar blockchain.
 
 [![LyricsFlip Contracts](https://github.com/Stellar-songifi/lyricsflip/actions/workflows/onchain.yml/badge.svg)](https://github.com/Stellar-songifi/lyricsflip/actions/workflows/onchain.yml)
+[![Contract Coverage](https://img.shields.io/badge/coverage-contracts-brightgreen)](https://github.com/Stellar-songifi/lyricsflip/actions/workflows/onchain.yml)
 
 - 🎨 **Figma design:** https://www.figma.com/design/6phOWkHKQgLRhRwmBBQDXB/LyricsFlip?node-id=0-1&t=0U8SlbaJijr7XNeG-1
 - 🗂️ **Issue backlog:** [`ISSUES.md`](ISSUES.md) (125 scoped issues with tasks and acceptance criteria)

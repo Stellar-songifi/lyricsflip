@@ -10,6 +10,7 @@ export type ModalType =
   | 'won'
   | 'lost'
   | 'cancelled'
+  | 'practice'
   | null;
 
 interface ModalState {

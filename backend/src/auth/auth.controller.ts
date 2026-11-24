@@ -200,7 +200,7 @@ async resetPassword(@Body() resetPasswordDto: ResetPasswordDto) {
     @Res({ passthrough: true }) res: Response,
   ) {
     const { accessToken, refreshToken, user } =
-      await this.walletAuthProvider.verify(dto.address, dto.signedChallenge);
+      await this.walletAuthProvider.verify(dto.address, dto.signedChallenge, dto.referralCode);
     setRefreshCookie(res, refreshToken);
     return { accessToken, user };
   }

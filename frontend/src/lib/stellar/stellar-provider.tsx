@@ -37,6 +37,8 @@ export interface StellarContextType {
   isLoading: boolean;
   error: Error | null;
   warnings: string[];
+  /** True when the connected wallet's network passphrase differs from the app's expected network. */
+  networkMismatch: boolean;
   connect: () => Promise<void>;
   disconnect: () => Promise<void>;
   /** True once the user holds a backend JWT: from `connect()`'s signed challenge, or restored from the refresh cookie on reload. */
@@ -53,6 +55,7 @@ const StellarContext = createContext<StellarContextType>({
   isLoading: true,
   error: null,
   warnings: [],
+  networkMismatch: false,
   connect: async () => {},
   disconnect: async () => {},
   isAuthenticated: false,
@@ -75,6 +78,7 @@ export const StellarProvider = ({ children }: { children: React.ReactNode }) => 
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [authError, setAuthError] = useState<Error | null>(null);
   const [isSessionChecked, setIsSessionChecked] = useState(false);
+  const [networkMismatch, setNetworkMismatch] = useState(false);
   const hasInit = useRef(false);
   const queryClient = useQueryClient();
   // Mirrors `account` for the polling effect, which must not re-subscribe
@@ -243,8 +247,16 @@ export const StellarProvider = ({ children }: { children: React.ReactNode }) => 
 
     const checkAddress = async () => {
       try {
-        const { address } = await StellarWalletsKit.getAddress();
-        if (!cancelled) handleAddressChange(address || null);
+        const [{ address }, { network }] = await Promise.all([
+          StellarWalletsKit.getAddress(),
+          StellarWalletsKit.getNetwork().catch(() => ({ network: null as string | null })),
+        ]);
+        if (!cancelled) {
+          if (network !== null) {
+            setNetworkMismatch(network !== configRef.current.networkPassphrase);
+          }
+          handleAddressChange(address || null);
+        }
       } catch {
         // `getAddress` throws when no wallet is connected/authorized; treat
         // that as a disconnection only if we previously had an account.
@@ -274,6 +286,7 @@ export const StellarProvider = ({ children }: { children: React.ReactNode }) => 
     isLoading,
     error,
     warnings,
+    networkMismatch,
     connect,
     disconnect,
     isAuthenticated,

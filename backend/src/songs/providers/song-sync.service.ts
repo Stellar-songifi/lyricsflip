@@ -1,20 +1,24 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { SongsService } from '../songs.service';
 import { SongStatus } from '../entities/song.entity';
 import {
   MAX_CARDS_PER_BATCH,
   SongChainSyncService,
 } from './song-chain-sync.service';
-
-export interface SyncResult {
-  synced: number;
-  cardIds: string[];
-}
+import { PublishBatchDto, PublishResultDto } from '../dto/publish-result.dto';
 
 /**
- * Orchestrates `POST /admin/songs/sync`: submits every 'approved' song to
- * the contract in batches, then records the card id the contract returned
- * and flips the song to 'on_chain'.
+ * Orchestrates POST /admin/songs/publish.
+ *
+ * The API process holds **no** secret key (LF-227).  Instead of signing and
+ * submitting the transaction itself, this service builds one unsigned
+ * add_cards transaction per batch of ≤20 approved songs and returns the XDR
+ * payloads for the admin wallet to sign in the admin UI (LF-219).
+ *
+ * After the admin wallet signs and submits each batch the client must call
+ * POST /admin/songs/:id/mark-published for each card, supplying the on-chain
+ * card_id the transaction returned.  That call flips the song to ON_CHAIN and
+ * stores the card_id.
  */
 @Injectable()
 export class SongSyncService {
@@ -25,22 +29,52 @@ export class SongSyncService {
     private readonly chainSyncService: SongChainSyncService,
   ) {}
 
-  async syncApprovedSongs(): Promise<SyncResult> {
+  /**
+   * Fetches all APPROVED songs, splits them into batches of MAX_CARDS_PER_BATCH,
+   * and builds an unsigned add_cards transaction XDR for each batch.
+   *
+   * Returns the list of XDR strings and the song UUIDs included in each batch
+   * so the admin UI can correlate the on-chain card_ids after submission.
+   */
+  async buildPublishBatches(): Promise<PublishResultDto> {
     const approved = await this.songsService.findByStatus(SongStatus.APPROVED);
-    const cardIds: string[] = [];
+
+    if (approved.length === 0) {
+      this.logger.log('No approved songs to publish');
+      return { total: 0, batches: [] };
+    }
+
+    const batches: PublishBatchDto[] = [];
 
     for (let i = 0; i < approved.length; i += MAX_CARDS_PER_BATCH) {
       const batch = approved.slice(i, i + MAX_CARDS_PER_BATCH);
-      const ids = await this.chainSyncService.addCards(batch);
-
-      for (let j = 0; j < batch.length; j++) {
-        const cardId = ids[j].toString();
-        await this.songsService.markSynced(batch[j].id, cardId);
-        cardIds.push(cardId);
-      }
+      const xdr = await this.chainSyncService.buildAddCardsTransaction(batch);
+      batches.push({
+        xdr,
+        songIds: batch.map((s) => s.id),
+      });
     }
 
-    this.logger.log(`Synced ${cardIds.length} song(s) to the contract`);
-    return { synced: cardIds.length, cardIds };
+    this.logger.log(
+      `Built ${batches.length} unsigned add_cards batch(es) for ${approved.length} approved song(s)`,
+    );
+
+    return { total: approved.length, batches };
+  }
+
+  /**
+   * @deprecated  The old sync flow signed and submitted the transaction
+   * server-side, which violates the LF-227 no-secret-in-API rule.  Use
+   * buildPublishBatches() + POST /admin/songs/:id/mark-published instead.
+   *
+   * Kept as a compatibility shim so any callers that haven't migrated yet
+   * get a clear error rather than a silent no-op.
+   */
+  async syncApprovedSongs(): Promise<never> {
+    throw new BadRequestException(
+      'syncApprovedSongs() is deprecated.  Use POST /admin/songs/publish to get ' +
+        'unsigned XDR batches, sign them in the admin wallet, then call ' +
+        'POST /admin/songs/:id/mark-published for each confirmed card.',
+    );
   }
 }

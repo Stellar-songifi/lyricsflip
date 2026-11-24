@@ -25,11 +25,18 @@ FROM node:20-alpine AS runtime
 WORKDIR /app
 ENV NODE_ENV=production
 ENV PORT=4000
+# Contracts env file written by the contracts-init service into the shared
+# volume. Sourced by the entrypoint before the Node process starts.
+ENV CONTRACTS_ENV_FILE=/run/contracts/.env
 COPY --from=prod-deps --chown=node:node /app/node_modules ./node_modules
 COPY --from=build --chown=node:node /app/package.json ./
 COPY --from=build --chown=node:node /app/dist ./dist
+# Entrypoint: source contract IDs from the shared volume (if present), then
+# exec the original command so PID 1 stays the Node process.
+COPY --chown=node:node docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 USER node
 EXPOSE 4000
-HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
+HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=5 \
   CMD node -e "require('http').get('http://127.0.0.1:'+(process.env.PORT||4000)+'/health/live',r=>process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1))"
+ENTRYPOINT ["/bin/sh", "/usr/local/bin/docker-entrypoint.sh"]
 CMD ["node", "dist/main"]

@@ -1,0 +1,25 @@
+{
+  "parser": "@typescript-eslint/parser",
+  "parserOptions": {
+    "ecmaVersion": 2022,
+    "sourceType": "module",
+    "ecmaFeatures": { "jsx": true }
+  },
+  "extends": [
+    "next/core-web-vitals",
+    "plugin:i18next/recommended"
+  ],
+  "plugins": ["@typescript-eslint", "i18next"],
+  "rules": {
+    // Enforce proper typing instead of `any` (LF-067).
+    "@typescript-eslint/no-explicit-any": "error",
+    "@typescript-eslint/no-unused-vars": [
+      "error",
+      { "argsIgnorePattern": "^_", "varsIgnorePattern": "^_" }
+    ],
+    "no-console": ["warn", { "allow": ["warn", "error"] }],
+    // (LF-310) No hard-coded user-facing strings: everything shown to users
+    // must go through `useTranslations`.
+    "i18next/no-literal-string": "error"
+  }
+}

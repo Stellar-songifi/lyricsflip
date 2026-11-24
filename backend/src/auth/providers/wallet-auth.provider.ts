@@ -57,7 +57,7 @@ export class WalletAuthProvider {
    * Verifies a signed challenge and issues access/refresh tokens for the
    * (upserted) user tied to that Stellar address.
    */
-  public async verify(address: string, signedChallenge: string) {
+  public async verify(address: string, signedChallenge: string, referralCode?: string) {
     this.assertValidAddress(address);
 
     const key = this.challengeKey(address);
@@ -78,7 +78,10 @@ export class WalletAuthProvider {
       throw new UnauthorizedException('Invalid signature');
     }
 
-    const user = await this.userService.findOrCreateByStellarAddress(address);
+    const { user } = await this.userService.findOrCreateByStellarAddress(
+      address,
+      referralCode,
+    );
     return this.generateTokensProvider.generateTokens(user);
   }
 

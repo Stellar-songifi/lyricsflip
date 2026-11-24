@@ -1,4 +1,367 @@
 {
+  "nav": {
+    "home": "Accueil",
+    "wallet": "Portefeuille",
+    "leaderboard": "Classement",
+    "notifications": "Notifications",
+    "profile": "Profil",
+    "more": "Plus",
+    "language": "Langue",
+    "walletAddress": "0xg5600134d...55e1",
+    "locales": {
+      "en": "English",
+      "fr": "Français"
+    }
+  },
+  "songOptions": {
+    "answerOptions": "Options de réponse"
+  },
+  "lobby": {
+    "multiplayerGame": "Jeu Multijoueur",
+    "back": "Retour",
+    "createRoundTitle": "Créer une partie multijoueur",
+    "joinWithId": "Rejoindre avec un identifiant de partie",
+    "enterRoundId": "Saisissez l'ID de la partie",
+    "joinRound": "Rejoindre la partie",
+    "creating": "Création…",
+    "createRound": "Créer une partie",
+    "connectWalletToCreate": "Connectez le portefeuille pour créer",
+    "systemNotInit": "Système du jeu non initialisé",
+    "failedCreate": "Échec de la création de la partie",
+    "invalidRoundId": "L'ID de la partie doit être un nombre",
+    "loadingRound": "Chargement de la partie…",
+    "connectWalletToJoin": "Connectez votre portefeuille pour rejoindre la partie {id}.",
+    "connectWallet": "Connecter le portefeuille",
+    "players": "{count} joueurs",
+    "round": "Partie {id}",
+    "waitingForOpponent": "En attente de la première carte…"
+  },
+  "challengeInvite": {
+    "title": "Votre défi de mise a été créé",
+    "subtitle": "Partagez le code d'invitation ci-dessous pour que d'autres joueurs puissent rejoindre",
+    "gameMode": "Mode de jeu",
+    "participants": "Nombre de participants",
+    "wagerAmount": "Montant de la mise",
+    "instructionHeading": "INSTRUCTIONS",
+    "instructionText": "Une carte affichant un paragraphe d'une chanson apparaîtra avec une liste de réponses possibles. Votre objectif est de marquer le plus grand nombre de points parmi vos adversaires.",
+    "shareInviteLink": "Partager le lien d'invitation",
+    "waitingForPlayers": "En attente de joueurs…",
+    "submitting": "Soumission…",
+    "ready": "Prêt",
+    "copied": "Copié !",
+    "copyToClipboard": "Copier dans le presse-papiers",
+    "gameModeValue": "Mise (Multijoueur)",
+    "shareTitle": "Rejoins mon défi !",
+    "shareText": "Rejoins mon défi LyricsFlip (partie {roundId})",
+    "inviteCopied": "Lien d'invitation copié dans le presse-papiers !"
+  },
+  "adminCards": {
+    "addCardTitle": "Ajouter une carte",
+    "saving": "Enregistrement...",
+    "bulkImportTitle": "Importation en masse",
+    "csvHint": "CSV avec une ligne d'en-tête, ou un tableau JSON, avec les champs : genre, artiste, titre, année, paroles.",
+    "importCards": "Importer {count} cartes",
+    "submitting": "Envoi des cartes {from}–{to} sur {total}...",
+    "catalogueTitle": "Catalogue",
+    "noCards": "Aucune carte pour l'instant.",
+    "genreMustBeOneOf": "Le genre doit être l'un de {values}",
+    "artistRequired": "L'artiste est requis",
+    "titleRequired": "Le titre est requis",
+    "lyricsRequired": "Les paroles sont requises",
+    "lyricsTooLong": "Les paroles doivent contenir au maximum {max} caractères",
+    "yearRange": "L'année doit être comprise entre {min} et {max}",
+    "headers": {
+      "genre": "Genre",
+      "artist": "Artiste",
+      "title": "Titre",
+      "year": "Année",
+      "lyrics": "Paroles",
+      "errors": "Erreurs"
+    },
+    "failedLoad": "Échec du chargement des cartes",
+    "failedAdd": "Échec de l'ajout de la carte",
+    "failedParse": "Échec de l'analyse du fichier",
+    "failedImport": "Échec de l'importation des cartes"
+  },
+  "adminConfig": {
+    "title": "Configuration d'administration",
+    "cardsPerRound": "Cartes par partie",
+    "saving": "Enregistrement...",
+    "save": "Enregistrer la configuration",
+    "invalidCount": "Veuillez saisir un nombre valide de cartes",
+    "noSystem": "Système non initialisé",
+    "failed": "Échec de la configuration du nombre de cartes"
+  },
+  "adminRoles": {
+    "title": "Administrateurs",
+    "walletAddress": "Adresse du portefeuille",
+    "invalidAddress": "Veuillez saisir une adresse Stellar valide (G...)",
+    "grant": "Accorder l'administration",
+    "revoke": "Révoquer l'administration",
+    "failed": "Échec de la mise à jour du rôle"
+  },
+  "admin": {
+    "checkingAccess": "Vérification de l'accès administrateur...",
+    "accessRequired": "Accès administrateur requis. Redirection...",
+    "dashboard": "Tableau de bord Admin",
+    "errors": "Erreurs",
+    "addCard": "Ajouter une carte",
+    "saving": "Enregistrement...",
+    "bulkImport": "Import en masse",
+    "importInstructions": "CSV avec une ligne d'en-tête, ou un tableau JSON, avec les champs : genre, artiste, titre, année, paroles.",
+    "importButton": "Importer {count} cartes",
+    "catalogue": "Catalogue",
+    "noCardsYet": "Aucune carte pour le moment.",
+    "genre": "Genre",
+    "artist": "Artiste",
+    "title": "Titre",
+    "year": "Année",
+    "lyrics": "Paroles"
+  },
+  "wallet": {
+    "title": "Amuse-toi à deviner les paroles de ta chanson préférée",
+    "subtitle": "Amuse-toi, mise contre toi-même ou contre tes amis et gagne en profitant du voyage.",
+    "continueWith": "Continuer avec {wallet}",
+    "or": "ou",
+    "connectWallet": "Connecter le portefeuille",
+    "brandLyric": "Paroles",
+    "brandFlip": "Turnovers",
+    "wallets": {
+      "argent": "Argent",
+      "okx": "OKX",
+      "braavos": "Braavos"
+    }
+  },
+  "atoms": {
+    "close": "Fermer"
+  },
+  "musicDashboard": {
+    "loading": "Chargement des données musicales...",
+    "noSystemCalls": "Système non initialisé",
+    "failedLoad": "Échec du chargement des données",
+    "errorPrefix": "Erreur :",
+    "title": "Tableau de bord musical",
+    "topSongs": "Top Chansons",
+    "plays": "{count} écoutes",
+    "categories": "Catégories",
+    "leaderboard": "Classement",
+    "points": "{points} pts"
+  },
+  "errors": {
+    "loadingEngine": "Chargement du moteur du jeu...",
+    "initializing": "Veuillez patienter pendant que nous initialisons le jeu",
+    "loading": "Chargement...",
+    "preparing": "Veuillez patienter pendant que nous préparons le jeu"
+  },
+  "home": {
+    "welcomeTitle": "Bienvenue sur LyricsFlip",
+    "welcomeConnect": "sur LyricsFlip, ",
+    "modeHeader": "CHOISISZ VOTRE MODE DE JEU PRÉFÉRÉ",
+    "loading": "Chargement du jeu...",
+    "errorPrefix": "Erreur:"
+  },
+  "welcome": {
+    "modeHeader": "CHOISISZ VOTRE MODE DE JEU PRÉFÉRÉ"
+  },
+  "gameModal": {
+    "title": "Partie rapide",
+    "description": "Quisque ipsum dolor sit amet, consectetur adipiscing elit. Nunc vulputate libero et velit interdum.",
+    "instructionText": "Une carte affichant un paragraphe d'une chanson apparaîtra avec une liste de réponses possibles. Votre objectif est de sélectionner la bonne réponse aussi vite que possible.",
+    "startGame": "Commencer la partie",
+    "genre": "Genre",
+    "selectGenre": "Sélectionnez un genre",
+    "genres": {
+      "pop": "Pop",
+      "rock": "Rock",
+      "hiphop": "Hip Hop",
+      "rnb": "R&B"
+    },
+    "difficulty": "Niveau de difficulté",
+    "selectDifficulty": "Sélectionnez la difficulté",
+    "difficulties": {
+      "easy": "Facile",
+      "medium": "Moyen",
+      "hard": "Difficile"
+    },
+    "duration": "Durée",
+    "selectDuration": "Sélectionnez la durée",
+    "durations": {
+      "5min": "5 minutes",
+      "10min": "10 minutes",
+      "15min": "15 minutes"
+    },
+    "instructionHeading": "INSTRUCTIONS"
+  },
+  "gameOptions": {
+    "titles": {
+      "quick-game": "Partie rapide",
+      "single-player": "Mise (Solo)",
+      "multi-player": "Mise (Multijoueur)",
+      "challenge": "Défi"
+    },
+    "description": "Une carte affichant un paragraphe d'une chanson apparaîtra avec une liste de réponses possibles. Votre objectif est de sélectionner la bonne réponse."
+  },
+  "wagerModal": {
+    "title": "Mise (Solo)",
+    "summaryTitle": "Résumé de la mise",
+    "description": "Une carte affichant un paragraphe d'une chanson apparaîtra ainsi qu'une liste de réponses possibles. Votre objectif est de sélectionner la bonne réponse aussi vite que possible.",
+    "proceedToSummary": "Continuer vers le résumé",
+    "startGame": "Commencer la partie",
+    "genre": "Genre",
+    "selectGenre": "Sélectionnez un genre",
+    "difficulties": {
+      "easy": "Facile",
+      "medium": "Moyen",
+      "hard": "Difficile"
+    },
+    "difficulty": "Niveau de difficulté",
+    "selectDifficulty": "Sélectionnez la difficulté",
+    "durations": {
+      "5min": "5 minutes",
+      "10min": "10 minutes",
+      "15min": "15 minutes"
+    },
+    "duration": "Durée",
+    "selectDuration": "Sélectionnez la durée",
+    "odds": "Cotes",
+    "selectOdds": "Sélectionnez les cotes",
+    "oddsOptions": {
+      "5": "5 cotes",
+      "10": "10 cotes",
+      "15": "15 cotes"
+    },
+    "walletBalance": "Solde du portefeuille:",
+    "walletBalanceValue": "18 678 STRK (5 678 $US)",
+    "selectCurrency": "Sélectionnez la devise",
+    "yourWager": "Votre mise",
+    "enterAmount": "Saisissez le montant",
+    "youWin": "Vous gagnez",
+    "required": {
+      "genre": "Le genre est requis",
+      "invalidGenre": "Genre sélectionné invalide",
+      "difficulty": "Le niveau de difficulté est requis",
+      "duration": "La durée est requise",
+      "odds": "Les cotes sont requises",
+      "wagerAmount": "Le montant de la mise est requis"
+    },
+    "errors": {
+      "account": "Aucun compte connecté. Veuillez connecter votre portefeuille.",
+      "system": "Le système du jeu n'est pas initialisé. Veuillez réessayer.",
+      "invalidGenre": "Genre sélectionné invalide.",
+      "createRound": "Échec de la création de la partie. Veuillez réessayer."
+    }
+  },
+  "singlePlayer": {
+    "title": "Mise (Solo)",
+    "genreHeader": "Difficulté d'expert",
+    "optionsLabel": "Options du jeu",
+    "startingRound": "Démarrage de la partie…",
+    "loading": "Chargement du jeu...",
+    "noSystemCalls": "Système non initialisé",
+    "failedFetch": "Échec de la récupération des données de la partie",
+    "noRound": "Aucune partie trouvée",
+    "returnHome": "Retour à l'accueil",
+    "back": "Retour",
+    "drawingCard": "Tirage de la prochaine carte…",
+    "buildingQuestion": "Construction de la question…",
+    "submittingAnswer": "Soumission de la réponse…",
+    "failedNextCard": "Échec du chargement de la prochaine carte",
+    "failedSubmit": "Échec de l'envoi de la réponse",
+    "correct": "C'est correct !",
+    "wrong": "Erreur ! La bonne réponse était {title} de {artist}",
+    "roundComplete": "Partie terminée : {score} / {total} correct",
+    "nextCard": "Carte suivante",
+    "pointsDecay": "Vous pouvez gagner jusqu'à {points} points pour cette carte."
+  },
+  "statistics": {
+    "title": "STATISTIQUES",
+    "timeLeft": "Temps restant :",
+    "potWin": "Pot. Gain",
+    "scores": "Scores",
+    "secondsLeft": "{count} secondes restantes",
+    "timeUp": "Temps écoulé"
+  },
+  "lyricCard": {
+    "footer": "LyricFlip...à vous de jouer🎶🩵"
+  },
+  "questionCard": {
+    "Title": "Quelle est la chanson ?",
+    "Artist": "Qui la chante ?",
+    "Year": "Quelle est l'année ?"
+  },
+  "results": {
+    "loading": "Chargement...",
+    "points": "Points",
+    "noSystemCalls": "Système non initialisé",
+    "failedFetch": "Échec de la récupération des données de la partie",
+    "noRound": "Aucune donnée de partie disponible",
+    "score": "Score",
+    "odds": "Cotes",
+    "wagerAmount": "Montant de la mise",
+    "strk": "STRK",
+    "youWin": "Vous gagnez",
+    "youWonMultiplayer": "Vous avez gagné🥇",
+    "youAreAmazing": "Vous êtes formidable🔥",
+    "youLost": "Vous avez perdu😞",
+    "betterLuck": "Bonne chance pour la prochaine fois🍀",
+    "getEverythingRight": "(Toutes les réponses justes)",
+    "oddsUnit": "cotes",
+    "share": "Partager",
+    "playAgain": "Rejouer",
+    "claiming": "Récupération…",
+    "claimEarning": "Récupérer le gain",
+    "shareTitle": "Découvre le résultat de ma partie !",
+    "shareText": "J'ai marqué {score} points dans LyricsFlip !",
+    "linkCopied": "Lien copié dans le presse-papiers !",
+    "claimSuccess": "Gains récupérés avec succès !",
+    "claimFail": "Échec de la récupération des gains",
+    "winner": "Vainqueur",
+    "you": "Vous",
+    "prizeWon": "Prix gagné",
+    "secondPlace": "Deuxième place",
+    "thirdPlace": "Troisième place"
+  },
+  "wagerSummary": {
+    "title": "Résumé de la mise",
+    "genre": "Genre :",
+    "difficulty": "Niveau de difficulté :",
+    "duration": "Durée :",
+    "odds": "Cotes :",
+    "wagerAmount": "Montant de la mise :",
+    "potentialWin": "Gain potentiel :",
+    "instructions": "Instructions :",
+    "instruction1": "Terminez la partie dans la durée spécifiée",
+    "instruction2": "Marquez des points en identifiant correctement les paroles",
+    "instruction3": "Vos gains seront calculés selon votre score et les cotes",
+    "setupNotInitialized": "Installation Stellar non initialisée",
+    "failedFetch": "Échec de la récupération des détails de la mise",
+    "noDetails": "Aucun détail de mise disponible",
+    "unknown": "Inconnu",
+    "oddsUnit": "x"
+  },
+  "auth": {
+    "back": "Retour",
+    "createUsername": "Créer un nom d'utilisateur",
+    "chooseUsername": "Choisis un nom d'utilisateur unique qui te représente.",
+    "enterUsername": "Saisissez votre nom d'utilisateur",
+    "usernameAvailable": "{username} est disponible",
+    "usernameTaken": "{username} est déjà pris, essayez un autre nom",
+    "usernameInvalid": "Le nom d'utilisateur doit contenir 4 à 15 caractères avec des lettres, chiffres ou _ uniquement",
+    "brandLyric": "Paroles",
+    "brandFlip": "Turnovers"
+  },
+  "notifications": {
+    "title": "Notifications",
+    "unreadCount": "{count} nouveaux",
+    "markAllAsRead": "Tout marquer comme lu",
+    "none": "Aucune notification pour le moment.",
+    "unread": "Non lu",
+    "dismiss": "Ignorer"
+  },
+  "shareButton": {
+    "label": "Partager",
+    "hug": "Câlins"
+  },
   "Metadata": {
     "title": "LyricsFlip",
     "description": "Apprenez les paroles de vos chansons préférées en jouant."

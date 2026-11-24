@@ -1,5 +1,7 @@
 import { INestApplication, ValidationPipe, VersioningType } from '@nestjs/common';
 import { AllExceptionsFilter } from '../filters/all-exceptions.filter';
+import { LoggingInterceptor } from '../interceptors/logging.interceptor';
+import { AppLogger } from '../logger/app-logger.service';
 
 /**
  * Global HTTP pipeline shared by main.ts and the e2e tests, so tests
@@ -7,6 +9,10 @@ import { AllExceptionsFilter } from '../filters/all-exceptions.filter';
  *
  * All REST routes are served under the `/api/v1` prefix (URI versioning),
  * while `/health` remains at the root for probes and reverse proxies.
+ *
+ * LF-349: LoggingInterceptor is applied globally here so every handler emits
+ * structured `request received` / `request handled` entries that carry
+ * round_id, address, and tx_hash alongside the request id.
  */
 export function configureApp(app: INestApplication): INestApplication {
   app.setGlobalPrefix('api', { exclude: ['health'] });
@@ -22,5 +28,12 @@ export function configureApp(app: INestApplication): INestApplication {
     }),
   );
   app.useGlobalFilters(new AllExceptionsFilter());
+
+  // Structured per-route logging: stamps round_id / address / tx_hash on
+  // every handler entry and exit, within the AsyncLocalStorage request
+  // context set by RequestLoggerMiddleware (applied in AppModule).
+  const appLogger = app.get(AppLogger);
+  app.useGlobalInterceptors(new LoggingInterceptor(appLogger));
+
   return app;
 }

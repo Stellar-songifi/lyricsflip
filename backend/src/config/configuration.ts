@@ -79,6 +79,17 @@ export default () => ({
     // comparison. A delta within this threshold is not flagged as a mismatch.
     reconciliationTolerance:
       process.env.WAGER_RECONCILIATION_TOLERANCE ?? '0',
+  // Referral-reward tuning (LF-355).
+  referral: {
+    // Points credited to the referrer when a qualifying round completes.
+    rewardPoints: parseInt(process.env.REFERRAL_REWARD_POINTS, 10) || 50,
+    // Minimum ledger age for the referee's account (anti-sybil).
+    // 100 ledgers ≈ 8 minutes on Stellar mainnet (5-second ledger close).
+    minAccountAgeLedgers:
+      parseInt(process.env.REFERRAL_MIN_ACCOUNT_AGE_LEDGERS, 10) || 100,
+    // Max credits one referrer may earn per UTC calendar day.
+    maxCreditsPerDay:
+      parseInt(process.env.REFERRAL_MAX_CREDITS_PER_DAY, 10) || 10,
   },
   cors: {
     // Comma-separated list of allowed origins (main.ts). Must be explicit,

@@ -90,6 +90,9 @@ jobs:
 
   test:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
@@ -99,11 +102,13 @@ jobs:
         with:
           workspaces: onchain
       - uses: taiki-e/install-action@cargo-llvm-cov
-      - name: Test with coverage
+      - name: Test with coverage and generate LCOV
         working-directory: onchain
         run: |
           set -o pipefail
+          cargo llvm-cov --workspace --lcov --output-path lcov.info
           cargo llvm-cov --workspace --text | tee coverage.txt
+          cargo llvm-cov --workspace --json --output-path coverage.json
           {
             echo "### Coverage"
             echo '```'
@@ -117,6 +122,87 @@ jobs:
             echo "$lib_coverage"
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload contract coverage artifact
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: contracts-lcov
+          path: onchain/lcov.info
+          if-no-files-found: warn
+      - name: Contract coverage baseline and PR change
+        if: github.event_name == 'pull_request'
+        shell: bash
+        run: |
+          git fetch --depth=1 origin "${{ github.base_ref }}"
+          git worktree add ../base-cov FETCH_HEAD
+          cd ../base-cov/onchain
+          cargo llvm-cov --workspace --json --output-path "${{ github.workspace }}/onchain/coverage-base.json" || true
+          cd "${{ github.workspace }}"
+          node -e '
+            const fs = require("fs");
+            function getTotals(file) {
+              if (!fs.existsSync(file)) return null;
+              try {
+                const j = JSON.parse(fs.readFileSync(file, "utf8"));
+                return j.data && j.data[0] && j.data[0].totals ? j.data[0].totals : null;
+              } catch (_) {
+                return null;
+              }
+            }
+            const pr = getTotals("onchain/coverage.json");
+            const base = getTotals("onchain/coverage-base.json");
+            let out = "### Contract Coverage Change\n\n";
+            if (!pr) {
+              out += "PR coverage data not available.\n";
+            } else if (!base) {
+              const linesPct = pr.lines ? pr.lines.percent.toFixed(2) + "%" : "n/a";
+              const fnPct = pr.functions ? pr.functions.percent.toFixed(2) + "%" : "n/a";
+              const brPct = pr.regions ? pr.regions.percent.toFixed(2) + "%" : "n/a";
+              out += "| Metric | PR |\n|---|---:|\n";
+              out += `| Lines | ${linesPct} |\n`;
+              out += `| Functions | ${fnPct} |\n`;
+              out += `| Regions | ${brPct} |\n`;
+            } else {
+              out += "| Metric | Base | PR | Change |\n|---|---:|---:|---:|\n";
+              for (const [key, label] of [["lines", "Lines"], ["functions", "Functions"], ["regions", "Regions"]]) {
+                const bVal = base[key] ? base[key].percent : null;
+                const pVal = pr[key] ? pr[key].percent : null;
+                const bStr = bVal !== null ? bVal.toFixed(2) + "%" : "n/a";
+                const pStr = pVal !== null ? pVal.toFixed(2) + "%" : "n/a";
+                let diffStr = "n/a";
+                if (bVal !== null && pVal !== null) {
+                  const diff = pVal - bVal;
+                  diffStr = (diff >= 0 ? "+" : "") + diff.toFixed(2) + "%" + (diff < 0 ? " ⚠️" : "");
+                }
+                out += `| ${label} | ${bStr} | ${pStr} | ${diffStr} |\n`;
+              }
+            }
+            fs.writeFileSync("onchain/coverage-summary.md", out);
+            process.stdout.write(out);
+          ' >> "$GITHUB_STEP_SUMMARY"
+      - name: Post coverage summary to PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            if (!fs.existsSync('onchain/coverage-summary.md')) return;
+            const summary = fs.readFileSync('onchain/coverage-summary.md', 'utf8');
+            const marker = '<!-- contract-coverage-summary -->';
+            const body = `${marker}\n${summary}`;
+            const { owner, repo } = context.repo;
+            const issue_number = context.issue.number;
+            try {
+              const comments = await github.paginate(github.rest.issues.listComments, { owner, repo, issue_number, per_page: 100 });
+              const existing = comments.find(c => c.body && c.body.includes(marker));
+              if (existing) {
+                await github.rest.issues.updateComment({ owner, repo, comment_id: existing.id, body });
+              } else {
+                await github.rest.issues.createComment({ owner, repo, issue_number, body });
+              }
+            } catch (err) {
+              core.warning(`Could not comment on PR (${err.message}); summary is available in job summary.`);
+            }
 
   audit:
     name: Dependency audit (LF-243)

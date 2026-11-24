@@ -15,6 +15,7 @@ import {
   PlayerProfileDto,
   PlayerRecentRoundDto,
 } from '../dto/player-profile.dto';
+import { ModerationService } from '../../anti-cheat/providers/moderation.service';
 
 // Short TTL: the leaderboard is meant to reflect the last few completed
 // rounds fairly promptly, and cache invalidation on 'round.completed'
@@ -43,6 +44,7 @@ export class LeaderboardService {
     @InjectRepository(LeaderboardRoundResult)
     private readonly roundResultRepository: Repository<LeaderboardRoundResult>,
     private readonly redisService: RedisService,
+    private readonly moderationService: ModerationService,
   ) {}
 
   // Retrieves a page of the leaderboard for a period/genre combination,
@@ -96,8 +98,16 @@ export class LeaderboardService {
     const rows = await qb.getRawMany();
     const total = rows.length;
     const offset = (page - 1) * limit;
-    const data: LeaderboardEntryDto[] = rows
-      .slice(offset, offset + limit)
+
+    // Fetch moderation status for every address in this page in parallel.
+    const pageRows = rows.slice(offset, offset + limit);
+    const flagStatuses = await Promise.all(
+      pageRows.map((row) =>
+        this.moderationService.getAddressStatus(row.address),
+      ),
+    );
+
+    const data: LeaderboardEntryDto[] = pageRows
       .map((row, index) => {
         const roundsPlayed = Number(row.roundsPlayed);
         const roundsWon = Number(row.roundsWon);
@@ -115,8 +125,14 @@ export class LeaderboardService {
           totalAnswers,
           accuracy: totalAnswers > 0 ? correctAnswers / totalAnswers : 0,
           bestRoundScore: Number(row.bestRoundScore),
+          flagStatus: flagStatuses[index],
         };
-      });
+      })
+      // Suppress hidden/banned entries from the public leaderboard.
+      .filter(
+        (entry) =>
+          entry.flagStatus !== 'hidden' && entry.flagStatus !== 'banned',
+      );
 
     const result: PaginatedLeaderboardDto = {
       data,

@@ -7,6 +7,8 @@ import { GENRE_VALUES, type Card, type Genre } from "@/lib/stellar/types";
 type NewCard = Omit<Card, "card_id">;
 type CardFields = Record<"genre" | "artist" | "title" | "year" | "difficulty" | "lyrics", string>;
 type CardErrors = Partial<Record<keyof CardFields, string>>;
+type ImportStatus = "pending" | "added" | "failed";
+type ImportRow = { fields: CardFields; errors: CardErrors; status: ImportStatus; failure?: string };
 
 // Mirrors `validate_card` and `MAX_CARDS_PER_BATCH` in `onchain/contracts/lyricsflip/src/lib.rs`.
 const MIN_CARD_YEAR = 1900;
@@ -21,16 +23,25 @@ const validateCard = (fields: CardFields): CardErrors => {
     const year = Number(fields.year);
     const difficulty = Number(fields.difficulty);
     if (!GENRE_VALUES.includes(fields.genre as Genre)) errors.genre = `Genre must be one of ${GENRE_VALUES.join(", ")}`;
-    if (!fields.artist.trim()) errors.artist = "Artist is required";
-    if (!fields.title.trim()) errors.title = "Title is required";
-    if (!fields.lyrics.trim()) errors.lyrics = "Lyrics are required";
-    else if (fields.lyrics.length > MAX_LYRICS_LEN) errors.lyrics = `Lyrics must be at most ${MAX_LYRICS_LEN} characters`;
+    if (!fields.artist) errors.artist = "Artist is required";
+    else if (!isCleanText(fields.artist)) errors.artist = "Artist contains control characters or surrounding whitespace";
+    if (!fields.title) errors.title = "Title is required";
+    else if (!isCleanText(fields.title)) errors.title = "Title contains control characters or surrounding whitespace";
+    if (!fields.lyrics) errors.lyrics = "Lyrics are required";
+    else if (new TextEncoder().encode(fields.lyrics).length > MAX_LYRICS_LEN) errors.lyrics = `Lyrics must be at most ${MAX_LYRICS_LEN} UTF-8 bytes`;
     if (!Number.isInteger(year) || year < MIN_CARD_YEAR || year > new Date().getFullYear()) {
         errors.year = `Year must be between ${MIN_CARD_YEAR} and ${new Date().getFullYear()}`;
     }
     if (![1, 2, 3].includes(difficulty)) errors.difficulty = "Difficulty must be 1, 2, or 3";
     return errors;
 };
+
+const isCleanText = (value: string): boolean =>
+    !/[\u0000-\u001f\u007f]/.test(value) &&
+    !/^[ \t\n\r]|[ \t\n\r]$/.test(value);
+
+const cardIdentity = (fields: Pick<CardFields, "title" | "artist">): string =>
+    `${fields.title.replace(/[A-Z]/g, (char) => char.toLowerCase())}\0${fields.artist.replace(/[A-Z]/g, (char) => char.toLowerCase())}`;
 
 const fromCard = (card: Card): CardFields => ({
     genre: card.genre,
@@ -43,8 +54,8 @@ const fromCard = (card: Card): CardFields => ({
 
 const toCard = (fields: CardFields): NewCard => ({
     genre: fields.genre as Genre,
-    artist: fields.artist.trim(),
-    title: fields.title.trim(),
+    artist: fields.artist,
+    title: fields.title,
     year: BigInt(fields.year),
     difficulty: Number(fields.difficulty),
     lyrics: fields.lyrics,
@@ -77,7 +88,9 @@ const parseImport = (fileName: string, text: string): CardFields[] => {
     let records: Record<string, unknown>[];
     if (fileName.toLowerCase().endsWith(".json")) {
         const parsed = JSON.parse(text);
-        if (!Array.isArray(parsed)) throw new Error("JSON must be an array of cards");
+        if (!Array.isArray(parsed) || parsed.some((row) => row === null || typeof row !== "object" || Array.isArray(row))) {
+            throw new Error("JSON must be an array of card objects");
+        }
         records = parsed;
     } else {
         const [header, ...rows] = parseCsv(text);
@@ -100,8 +113,9 @@ export const AdminCards = () => {
     const { systemCalls } = useStellar();
     const [fields, setFields] = useState<CardFields>(emptyFields);
     const [fieldErrors, setFieldErrors] = useState<CardErrors>({});
-    const [importRows, setImportRows] = useState<CardFields[]>([]);
+    const [importRows, setImportRows] = useState<ImportRow[]>([]);
     const [progress, setProgress] = useState<string | null>(null);
+    const [importReport, setImportReport] = useState<string | null>(null);
     const [catalogue, setCatalogue] = useState<Card[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -146,8 +160,12 @@ export const AdminCards = () => {
         loadCatalogue();
     }, [loadCatalogue]);
 
-    const importErrors = importRows.map(validateCard);
-    const importValid = importRows.length > 0 && importErrors.every((e) => Object.keys(e).length === 0);
+    const importValidRows = importRows.filter(
+        (row) => Object.keys(row.errors).length === 0 && row.status !== "added",
+    );
+    const importInvalidCount = importRows.filter(
+        (row) => Object.keys(row.errors).length > 0,
+    ).length;
 
     const handleAddCard = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -202,27 +220,91 @@ export const AdminCards = () => {
         e.target.value = "";
         if (!file) return;
         setError(null);
+        setImportReport(null);
+        setImportRows([]);
+        setIsLoading(true);
+        setProgress("Validating rows and checking on-chain duplicates...");
         try {
-            setImportRows(parseImport(file.name, await file.text()));
+            if (!systemCalls) throw new Error("Connect an admin wallet to validate imported cards.");
+            const parsedRows = parseImport(file.name, await file.text());
+            if (parsedRows.length === 0) throw new Error("No card rows found in the selected file.");
+            const onChainCards: Card[] = [];
+            for (let start = 0; ; start += 50) {
+                const page = await systemCalls.getCards(start, 50);
+                if (page.length === 0) break;
+                onChainCards.push(...page);
+            }
+
+            const fileCounts = new Map<string, number>();
+            for (const row of parsedRows) {
+                if (!row.title || !row.artist) continue;
+                const key = cardIdentity(row);
+                fileCounts.set(key, (fileCounts.get(key) ?? 0) + 1);
+            }
+            const onChainKeys = new Set(onChainCards.map(cardIdentity));
+            setImportRows(parsedRows.map((fields) => {
+                const errors = validateCard(fields);
+                const key = cardIdentity(fields);
+                let duplicateError: string | undefined;
+                if (fields.title && fields.artist && (fileCounts.get(key) ?? 0) > 1) {
+                    duplicateError = "Duplicate title and artist in this file";
+                } else if (fields.title && fields.artist && onChainKeys.has(key)) {
+                    duplicateError = "This title and artist already exist on-chain";
+                }
+                if (duplicateError) {
+                    errors.title = errors.title ? `${errors.title}; ${duplicateError}` : duplicateError;
+                }
+                return { fields, errors, status: "pending" as const };
+            }));
         } catch (err) {
+            setError(err instanceof Error ? err.message : "Failed to parse file");
+        } finally {
+            setProgress(null);
+            setIsLoading(false);
             setImportRows([]);
             setError(err instanceof Error ? err.message : t('failedParse'));
         }
     };
 
     const handleImport = async () => {
-        if (!importValid || !systemCalls) return;
-        const cards = importRows.map(toCard);
+        if (importValidRows.length === 0 || !systemCalls) return;
+        const rowsToAdd = importValidRows;
         setIsLoading(true);
         setError(null);
+        setImportReport(null);
+        const addedBefore = importRows.filter((row) => row.status === "added").length;
+        const invalid = importInvalidCount;
+        let added = addedBefore;
         try {
+            const batches = Math.ceil(rowsToAdd.length / MAX_CARDS_PER_BATCH);
+            for (let i = 0; i < rowsToAdd.length; i += MAX_CARDS_PER_BATCH) {
+                const batch = rowsToAdd.slice(i, i + MAX_CARDS_PER_BATCH);
+                setProgress(`Submitting batch ${Math.floor(i / MAX_CARDS_PER_BATCH) + 1} of ${batches}...`);
+                try {
+                    await systemCalls.addCards(batch.map((row) => toCard(row.fields)));
+                    const addedIds = new Set(batch);
+                    setImportRows((rows) => rows.map((row) =>
+                        addedIds.has(row) ? { ...row, status: "added" as const, failure: undefined } : row,
+                    ));
+                    added += batch.length;
+                } catch (err) {
+                    const message = err instanceof Error ? err.message : "Batch submission failed";
+                    const failedIds = new Set(batch);
+                    setImportRows((rows) => rows.map((row) =>
+                        failedIds.has(row) ? { ...row, status: "failed" as const, failure: message } : row,
+                    ));
+                    throw err;
+                }
             for (let i = 0; i < cards.length; i += MAX_CARDS_PER_BATCH) {
                 setProgress(t('submitting', { from: i + 1, to: Math.min(i + MAX_CARDS_PER_BATCH, cards.length), total: cards.length }));
                 await systemCalls.addCards(cards.slice(i, i + MAX_CARDS_PER_BATCH));
             }
-            setImportRows([]);
             await loadCatalogue();
+            setImportReport(`Added ${added} card${added === 1 ? "" : "s"} total. ${invalid} row${invalid === 1 ? "" : "s"} skipped for validation.`);
         } catch (err) {
+            setError(err instanceof Error ? err.message : "Failed to import cards");
+            const remaining = rowsToAdd.length - (added - addedBefore);
+            setImportReport(`Import paused: ${added} card${added === 1 ? "" : "s"} added, ${invalid} invalid row${invalid === 1 ? "" : "s"} skipped, ${remaining} valid row${remaining === 1 ? "" : "s"} remaining.`);
             setError(err instanceof Error ? err.message : t('failedImport'));
         } finally {
             setProgress(null);
@@ -283,6 +365,10 @@ export const AdminCards = () => {
                 <input type="file" accept=".csv,.json" onChange={handleFile} disabled={isLoading} />
                 {importRows.length > 0 && (
                     <div className="mt-4 overflow-x-auto">
+                        <p role="status" className="mb-3 text-sm text-gray-600">
+                            {importValidRows.length} valid row{importValidRows.length === 1 ? "" : "s"} ready to import;{" "}
+                            {importInvalidCount} invalid row{importInvalidCount === 1 ? "" : "s"} skipped.
+                        </p>
                         <table className="w-full text-sm border">
                             <thead>
                                 <tr className="bg-gray-100 text-left">
@@ -291,22 +377,27 @@ export const AdminCards = () => {
                                 </tr>
                             </thead>
                             <tbody>
-                                {importRows.map((row, i) => (
-                                    <tr key={i} className={Object.keys(importErrors[i]).length ? "bg-red-50" : ""}>
+                                {importRows.map(({ fields: row, errors: rowErrors, status, failure }, i) => (
+                                    <tr key={i} className={Object.keys(rowErrors).length ? "bg-red-50" : status === "added" ? "bg-green-50" : ""}>
                                         <td className="p-2">{i + 1}</td><td className="p-2">{row.genre}</td><td className="p-2">{row.artist}</td>
                                         <td className="p-2">{row.title}</td><td className="p-2">{row.year}</td><td className="p-2">{row.difficulty}</td>
                                         <td className="p-2 truncate max-w-xs">{row.lyrics}</td>
-                                        <td className="p-2 text-red-500">{Object.values(importErrors[i]).join("; ")}</td>
+                                        <td className="p-2 text-red-500">
+                                            {Object.values(rowErrors).join("; ") || failure || (status === "added" ? "Added" : "")}
+                                        </td>
                                     </tr>
                                 ))}
                             </tbody>
                         </table>
+                        <Button onClick={handleImport} disabled={isLoading || importValidRows.length === 0} className="mt-4">
+                            {importRows.some((row) => row.status === "failed") ? "Retry remaining valid cards" : `Import ${importValidRows.length} valid cards`}
                         <Button onClick={handleImport} disabled={isLoading || !importValid} className="mt-4">
                             {t('importCards', { count: importRows.length })}
                         </Button>
                     </div>
                 )}
                 {progress && <p className="text-sm text-gray-600 mt-2">{progress}</p>}
+                {importReport && <p role="status" className="text-sm text-gray-600 mt-2">{importReport}</p>}
             </section>
 
             {error && <p className="text-red-500">{error}</p>}

@@ -2,6 +2,7 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import Image from 'next/image'
+import { env } from '@/env'
 import { useTranslations } from 'next-intl'
 
 type NotificationCategory = 'all' | 'mentions' | 'system'
@@ -29,7 +30,7 @@ interface ApiNotification {
   icon?: string
 }
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? ''
+const API_BASE = env.NEXT_PUBLIC_API_URL
 
 function formatTimeAgo(iso?: string): string {
   if (!iso) return ''
@@ -262,5 +263,4 @@ export default function NotificationsPage() {
     </main>
   )
 }
-
 

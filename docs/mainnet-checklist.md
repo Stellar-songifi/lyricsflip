@@ -53,6 +53,11 @@ This document defines what "ready for mainnet" means for LyricsFlip. Every item 
 - [ ] Licensing for all bundled lyrics is confirmed per [`docs/content-policy.md`](./content-policy.md).
 - [ ] Any unlicensed content is removed or replaced.
 
+### 9. Threat model open items
+- [ ] Socket spoofing (LF-339): derive the realtime `playerId` from the authenticated session, not the handshake ([threat model 3.10](./security/threat-model.md)).
+- [ ] Keeper key (LF-335): rotate without a redeploy and document the runbook ([threat model 3.8](./security/threat-model.md)).
+- [ ] Link LF-257 to LF-263, LF-264, LF-268 and LF-278 to their issues in `ISSUES.md` or the tracker.
+
 ## Related documents
 
 - [Incident runbook](./incident-runbook.md)

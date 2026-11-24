@@ -136,6 +136,60 @@ absent), leaving escrow stuck.
 - **RPC censorship/reordering:** clients must confirm finality; keeper retries
   with idempotent operations.
 
+
+### 3.7 Escrow funds (LF-256 to LF-263)
+**Threat:** Entry fees and prize pools are lost or released to the wrong party.
+
+**Mitigations (in code):**
+- Escrowed rounds move through a fixed lifecycle: `Open → Locked → Settled`, or
+  `Open|Locked → Cancelled`
+  ([`lyricsflip-escrow/src/lib.rs`](../../onchain/contracts/lyricsflip-escrow/src/lib.rs)).
+- The protocol fee is bounded: `fee_bps` must be between 0 and 10 000 (100%), enforced in
+  the constructor and `set_fee`.
+
+**Open:** the per-issue links for LF-257 to LF-263 are not recorded in `ISSUES.md`, so the
+mitigations above are not yet linked to them. Add the issue numbers before mainnet.
+
+### 3.7a Answer side channels (LF-278)
+**Threat:** A public view, event or lookup maps a live card to its answer, letting a player
+read the answer before answering.
+
+**Mitigations (in code):**
+- `got_question` returns only the lyric and options for the caller's current card
+  ([ADR LF-248](../../onchain/docs/adr/LF-248-answer-privacy.md)).
+- `get_card` redacts live cards; `get_cards_of_genre`, `get_cards_of_artist` and
+  `get_cards_of_a_year` no longer return answers during an active round
+  ([`cards.rs`](../../onchain/contracts/lyricsflip/src/cards.rs),
+  [`events.rs`](../../onchain/contracts/lyricsflip/src/events.rs)).
+- Tests: [`test/privacy.rs`](../../onchain/contracts/lyricsflip/src/test/privacy.rs).
+
+**Residual risk:** the answer is still in contract storage, so a direct ledger inspection can
+read it. This is a known trade-off recorded in ADR LF-248.
+
+### 3.8 Keeper key compromise (LF-335)
+**Status: not verified in code.** The keeper key is read from configuration
+([`backend/src/config/configuration.ts`](../../backend/src/config/configuration.ts)). The
+rotation and least-privilege statements in section 3.5 describe the intended design and are
+not yet backed by a runbook. Open until the keeper key is rotated without a redeploy and the
+runbook is written.
+
+### 3.9 Wallet-auth replay (LF-337)
+**Threat:** A captured signed challenge is replayed to obtain a session.
+
+**Mitigations (in code):**
+- Each challenge carries a random 32-byte nonce with a TTL, stored under the address.
+- The nonce is deleted before the signature is checked, so it can be used once, even when the
+  replayed request carries a valid signature
+  ([`wallet-auth.provider.ts`](../../backend/src/auth/providers/wallet-auth.provider.ts)).
+
+### 3.10 Socket spoofing (LF-339)
+**Status: OPEN.** The real-time gateway
+([`room.gateway.ts`](../../backend/src/room/room.gateway.ts)) associates a socket with a
+`playerId` taken from the client-supplied handshake `query` or `auth` payload, then joins it to
+the `player:<id>` room. Nothing verifies that the socket owns that player. A client can therefore
+claim another player's identity and receive that player's events. Fix by deriving `playerId`
+from the authenticated session, not from the handshake, before mainnet.
+
 ---
 
 ## 4. Invariants

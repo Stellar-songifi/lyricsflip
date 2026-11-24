@@ -166,9 +166,9 @@ describe('validationSchema', () => {
       const { error } = validate({ ...productionEnv, CORS_ORIGINS: '*' });
 
       expect(error).toBeDefined();
-      expect(
-        error.details.some((d) => d.path.includes('CORS_ORIGINS')),
-      ).toBe(true);
+      expect(error.details.some((d) => d.path.includes('CORS_ORIGINS'))).toBe(
+        true,
+      );
     });
 
     it('accepts CORS_ORIGINS="*" outside production', () => {
@@ -188,6 +188,26 @@ describe('validationSchema', () => {
       });
 
       expect(error).toBeUndefined();
+    });
+
+    it('rejects empty CORS_ORIGINS in production', () => {
+      const { error } = validate({ ...productionEnv, CORS_ORIGINS: ' , ' });
+
+      expect(error).toBeDefined();
+      expect(error.details.some((d) => d.path.includes('CORS_ORIGINS'))).toBe(
+        true,
+      );
+    });
+
+    it('requires CORS_ORIGINS in production', () => {
+      const env: Record<string, unknown> = { ...productionEnv };
+      delete env.CORS_ORIGINS;
+      const { error } = validate(env);
+
+      expect(error).toBeDefined();
+      expect(error.details.some((d) => d.path.includes('CORS_ORIGINS'))).toBe(
+        true,
+      );
     });
   });
 

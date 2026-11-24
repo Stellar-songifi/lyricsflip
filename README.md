@@ -304,11 +304,14 @@ lyricsflip/
 
 | Tool | Version | For |
 |---|---|---|
-| Rust | 1.98.1 (see `.tool-versions`) + `wasm32v1-none` target | Contracts |
+| Docker + Docker Compose | current | `make dev`: local Stellar quickstart, PostgreSQL, Redis, Mailpit |
+| Rust | 1.98.1 (see `.tool-versions`) + `wasm32v1-none` target | `make contracts`, `make deploy-local` (`make dev` installs the target) |
 | [Stellar CLI](https://developers.stellar.org/docs/tools/stellar-cli) | latest | Deploying and invoking contracts |
-| Node.js | 20 LTS recommended | Frontend and backend |
-| PostgreSQL / Redis | 14+ / 6+ | Backend |
-| A Stellar wallet | Freighter recommended, set to **Testnet** | Playing |
+| Node.js | 20 LTS recommended (see `.nvmrc`) | Frontend and backend |
+| `jq` | any recent version | `make seed-local` |
+| A Stellar wallet | Freighter recommended, set to **Standalone Network ; February 2017** for local play | Playing |
+
+The root `Makefile` wraps the commands for every package. All commands below run from the repository root; `make help` prints the full target list.
 
 ### 1. Clone
 
@@ -317,48 +320,39 @@ git clone https://github.com/Stellar-songifi/lyricsflip.git
 cd lyricsflip
 ```
 
-### 2. Build, test, and deploy the contracts
+### 2. Start the local stack
 
 ```bash
-cd onchain
-rustup target add wasm32v1-none
-cargo test                                    # unit tests
-cargo build --target wasm32v1-none --release  # → target/wasm32v1-none/release/*.wasm
+make dev
 ```
 
-Deploy to testnet (create and fund an identity first with `stellar keys generate --global me --network testnet --fund`):
+This installs the workspace npm dependencies and the Rust WASM target, starts `stellar/quickstart` (RPC at http://localhost:8000/soroban/rpc) together with Postgres, Redis and Mailpit, waits for the RPC to become healthy, and creates/funds the `me` identity used by the deploy scripts. It is safe to re-run.
+
+### 3. Deploy and seed the contracts
 
 ```bash
-# Game contract
-stellar contract deploy \
-  --wasm target/wasm32v1-none/release/lyricsflip.wasm \
-  --source me --network testnet \
-  -- --owner $(stellar keys address me)
-
-# NFT contract (minter = game contract ID from the previous step)
-stellar contract deploy \
-  --wasm target/wasm32v1-none/release/lyricsflip_nft.wasm \
-  --source me --network testnet \
-  -- --owner $(stellar keys address me) --minter <LYRICSFLIP_CONTRACT_ID> \
-     --token_name "LyricsFlip" --token_symbol "LFLIP" --base_uri "https://example.com/nft/"
+make deploy-local   # build WASM, deploy both contracts, write frontend/.env.local
+make seed-local     # add the cards from seed/songs.json
 ```
 
-Configure the game and add some cards:
+For a testnet deployment instead, see [Deploy to testnet](#deploy-to-testnet) below.
+
+> `build_question_card` needs **at least 4 distinct titles** (3 wrong options plus the right one); `create_round` needs at least `cards_per_round` cards. `seed/songs.json` provides both.
+
+### 4. Run the app
 
 ```bash
-stellar contract invoke --id <LYRICSFLIP_CONTRACT_ID> --source me --network testnet \
-  -- set_cards_per_round --caller $(stellar keys address me) --value 5
-
-stellar contract invoke --id <LYRICSFLIP_CONTRACT_ID> --source me --network testnet \
-  -- add_card --caller $(stellar keys address me) \
-  --card '{"card_id":0,"genre":1,"artist":"Demo Artist","title":"Demo Song","year":1999,"lyrics":"Demo lyric line"}'
+make frontend       # http://localhost:3000
 ```
 
-> `build_question_card` needs **at least 4 distinct titles** (3 wrong options plus the right one); `create_round` needs at least `cards_per_round` cards.
+Connect a wallet configured for the local network (passphrase `Standalone Network ; February 2017`) and play. In another terminal, `make backend` starts the NestJS API at http://localhost:4000 (Swagger at `/api/docs`) for profiles, leaderboards and multiplayer relay; it is not required for the core on-chain game.
 
-### 3. Run the frontend
+### 5. Checks
 
 ```bash
+make contracts      # cargo fmt --check, cargo test, WASM build
+make test           # contract + frontend + backend unit tests
+make lint           # Rust fmt/clippy + frontend/backend lint
 cd frontend
 npm install
 cat > .env.local <<'ENV'
@@ -372,16 +366,20 @@ ENV
 npm run dev        # http://localhost:3000
 ```
 
-### 4. Run the backend
+### Deploy to testnet
+
+Create and fund an identity, then run the same helper scripts directly:
 
 ```bash
-cd backend
-npm install
-cp .env.example .env.development   # fill in the values (see variables below); use a port other than 3000 so it doesn't clash with Next.js
-npm run start:dev  # Swagger at http://localhost:<PORT>/api/docs
+stellar keys generate --global me --network testnet --fund
+cd onchain
+./scripts/deploy.sh testnet
+./scripts/seed-cards.sh testnet
+cd ..
+make frontend
 ```
 
-> The backend doesn't build yet. See [Project status](#project-status--known-limitations).
+`deploy.sh` writes the contract IDs to `frontend/.env.local`. If that file previously pointed at the local network, also set `NEXT_PUBLIC_STELLAR_RPC_URL=https://soroban-testnet.stellar.org` and `NEXT_PUBLIC_STELLAR_NETWORK_PASSPHRASE=Test SDF Network ; September 2015`. See [`onchain/README.md`](onchain/README.md) for manual deploy commands and contract details.
 
 ---
 

@@ -19,6 +19,7 @@
     "build-storybook": "storybook build",
     "analyze": "ANALYZE=true next build",
     "check:bundle-size": "node scripts/check-bundle-size.mjs",
+    "env:testnet": "node scripts/setup-testnet-env.mjs",
     "generate:bindings": "bash ../onchain/scripts/generate-bindings.sh",
     "check:bindings": "bash ../onchain/scripts/check-bindings-fresh.sh",
     "generate:api": "openapi-typescript ../backend/openapi.json -o src/services/generated/api.ts",

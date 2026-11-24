@@ -53,3 +53,5 @@ If you cannot use GitHub Security Advisories, email ejiro@gmail.com with the sub
 | Fix for medium or low severity      | Next planned release              |
 
 We will keep you updated through the advisory thread, credit you in the published advisory unless you prefer to stay anonymous, and coordinate a disclosure date with you once a fix is available.
+
+The current threat model, including open items, is in [docs/security/threat-model.md](docs/security/threat-model.md).

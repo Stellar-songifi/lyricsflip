@@ -1,17 +1,21 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import Welcome from '@/components/atoms/welcome';
 import { GameModal } from '@/components/organisms/game-modal';
 import { GameOptions } from '@/components/organisms/game-mode-selection';
 import { WagerModal } from '@/components/organisms/wager-modal';
 import { OnboardingStepper } from '@/components/organisms/onboarding-stepper';
+import { PracticeModal } from '@/components/organisms/practice-modal';
 import { useModalStore } from '@/store/modal-store';
-import { useStellar, type UseStellarResult } from '@/lib/stellar/hooks/use-stellar';
+import { useStellar } from '@/lib/stellar/hooks/use-stellar';
 import { useTranslations } from 'next-intl';
+import Link from 'next/link';
 
 export default function Home() {
+  const t = useTranslations('home');
   const { openModal } = useModalStore();
-  const { systemCalls, account, isLoading, error } = useStellar();
+  const { isLoading, error } = useStellar();
   const t = useTranslations('Home');
 
   const handleGameSelect = (gameId: string) => {
@@ -19,10 +23,11 @@ export default function Home() {
       openModal('game');
     } else if (gameId === 'single-player') {
       openModal('wager');
+    } else if (gameId === 'practice') {
+      openModal('practice');
     }
     // Add handlers for other game types as needed
   };
-
 
   // Show loading state while Stellar is initializing
   if (isLoading) {
@@ -53,10 +58,16 @@ export default function Home() {
       <Welcome />
       <OnboardingStepper onPlayTutorial={() => openModal('game')} />
       <GameOptions onSelectGame={handleGameSelect} />
+      <div className="mt-6 text-center">
+        <Link href="/how-to-play" className="underline">
+          How to play
+        </Link>
+      </div>
 
       {/* Modals */}
       <GameModal />
       <WagerModal />
+      <PracticeModal />
     </main>
   );
 }

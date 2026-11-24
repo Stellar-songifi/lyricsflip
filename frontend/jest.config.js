@@ -13,7 +13,7 @@ const customJestConfig = {
   transformIgnorePatterns: [
     '/node_modules/(?!(@stellar|@creit\\.tech)/)'
   ],
-  moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx'],
+  moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json'],
   testPathIgnorePatterns: ['/node_modules/', '/.next/', '/__tests__/fixtures/'],
   transform: {
     '^.+\\.(ts|tsx)$': ['ts-jest', {

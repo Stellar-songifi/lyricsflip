@@ -64,7 +64,7 @@ export const DOMAIN_MAP: readonly DomainOwnership[] = [
     module: 'RealtimeModule',
     prefixes: ['notifications'],
     legacyPrefixes: [],
-    tables: ['notifications', 'chat_rooms'],
+    tables: ['notifications', 'notification_preferences', 'chat_rooms'],
     folders: ['notification', 'realtime'],
   },
   {

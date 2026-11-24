@@ -3,7 +3,11 @@ import { ConfigService } from '@nestjs/config';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { DataSource } from 'typeorm';
+import { scValToNative } from '@stellar/stellar-sdk';
 import { LeaderboardService } from '../../leaderboard/providers/leaderboard.service';
+// LF-340: the indexer derives Wager rows from escrow contract events.
+import { WagerService } from '../../wager/provider/wager.service';
+import { WagerStatus } from '../../wager/entities/wager.entity';
 
 /**
  * Metrics exposed by the indexer for the /health endpoint (LF-232).
@@ -30,6 +34,21 @@ export const IndexerDomainEvents = {
   REWARD_CLAIMABLE: 'reward.claimable',
   NFT_MINTED: 'nft.minted',
   ROUND_CANCELLED: 'round.cancelled',
+} as const;
+
+/**
+ * LF-340: escrow contract event names (decoded from `topic[0]`). These are
+ * the sole source of truth for wager records — the indexer derives all
+ * Wager rows from them, never from client-reported data.
+ */
+export const EscrowEventNames = {
+  DEPOSITED: 'deposited',
+  REFUNDED: 'refunded',
+  SETTLED: 'settled',
+  CLAIMED: 'claimed',
+  CANCELLED: 'cancelled',
+  LOCKED: 'locked',
+  SWEPT: 'swept',
 } as const;
 
 export interface RoundJoinedEvent {
@@ -115,6 +134,8 @@ export class IndexerService implements OnModuleInit {
     private eventEmitter: EventEmitter2,
     private dataSource: DataSource,
     private leaderboardService: LeaderboardService,
+    // LF-340: used to upsert wager rows from escrow contract events.
+    private wagerService: WagerService,
   ) {}
 
   async onModuleInit() {
@@ -233,6 +254,15 @@ export class IndexerService implements OnModuleInit {
       // Check if already processed (idempotency)
       // const existing = await this.eventRepository.findOne({ where: { eventKey } });
       // if (existing) return;
+
+      // LF-340: route escrow contract events to the wager projection.
+      const escrowContractId = this.configService.get<string>(
+        'soroban.escrowContractId',
+      );
+      if (escrowContractId && contractId === escrowContractId) {
+        await this.processEscrowEvent(event, transactionHash);
+        return;
+      }
 
       switch (eventType) {
         case 'RoundCreated':
@@ -383,6 +413,121 @@ export class IndexerService implements OnModuleInit {
       reason: event.data.reason,
     };
     this.eventEmitter.emit(IndexerDomainEvents.ROUND_CANCELLED, payload);
+  }
+
+  // -------------------------------------------------------------------------
+  // LF-340: Escrow contract event handlers.
+  //
+  // The escrow contract emits Deposited, Refunded, Settled, and Claimed
+  // events. The indexer decodes these and upserts Wager rows via
+  // WagerService.upsertFromChainEvent — this is the only write path into
+  // the wagers table. No client request can create or change a wager.
+  //
+  // Event topic layout (Soroban #[contractevent]):
+  //   topic[0] = event name (symbol, e.g. "deposited")
+  //   topic[1] = round_id (u64) — #[topic]
+  //   topic[2] = player (Address) — #[topic] (per-player events only)
+  //   value    = amount (i128) or a map (Settled)
+  // -------------------------------------------------------------------------
+
+  private async processEscrowEvent(event: any, txHash: string): Promise<void> {
+    // The event name lives in topic[0] as a base64-encoded ScVal symbol.
+    const eventName = scValToNative(event.topic?.[0]) as string;
+    switch (eventName) {
+      case EscrowEventNames.DEPOSITED:
+        await this.handleEscrowDeposited(event, txHash);
+        break;
+      case EscrowEventNames.REFUNDED:
+        await this.handleEscrowRefunded(event, txHash);
+        break;
+      case EscrowEventNames.SETTLED:
+        await this.handleEscrowSettled(event, txHash);
+        break;
+      case EscrowEventNames.CLAIMED:
+        await this.handleEscrowClaimed(event, txHash);
+        break;
+      default:
+        // Locked, Cancelled, Swept, and admin events are not wager-relevant.
+        this.logger.debug(`Ignoring non-wager escrow event: ${eventName}`);
+    }
+  }
+
+  // Deposited { round_id, player, amount } — funds entered escrow.
+  private async handleEscrowDeposited(event: any, txHash: string): Promise<void> {
+    const roundId = String(scValToNative(event.topic?.[1]));
+    const player = String(scValToNative(event.topic?.[2]));
+    const amount = String(scValToNative(event.value));
+
+    await this.wagerService.upsertFromChainEvent({
+      roundId,
+      player,
+      amount,
+      status: WagerStatus.ESCROWED,
+      txHash,
+    });
+    this.logger.debug(`Escrow Deposited: round=${roundId} player=${player} amount=${amount}`);
+  }
+
+  // Refunded { round_id, player, amount } — wager returned (cancel/leave).
+  private async handleEscrowRefunded(event: any, txHash: string): Promise<void> {
+    const roundId = String(scValToNative(event.topic?.[1]));
+    const player = String(scValToNative(event.topic?.[2]));
+    const amount = String(scValToNative(event.value));
+
+    await this.wagerService.upsertFromChainEvent({
+      roundId,
+      player,
+      amount,
+      status: WagerStatus.REFUNDED,
+      txHash,
+    });
+    this.logger.debug(`Escrow Refunded: round=${roundId} player=${player} amount=${amount}`);
+  }
+
+  // Settled { round_id, winners, fee, claim_deadline } — round resolved.
+  // Winners are marked WON; every other escrowed depositor is marked LOST.
+  private async handleEscrowSettled(event: any, txHash: string): Promise<void> {
+    const roundId = String(scValToNative(event.topic?.[1]));
+    const value = scValToNative(event.value) as {
+      winners?: string[];
+      fee?: string | bigint;
+      claim_deadline?: string | bigint;
+    };
+    const winners: string[] = (value?.winners ?? []).map(String);
+    const winnerSet = new Set(winners);
+
+    // Look up all wagers currently escrowed for this round and resolve them.
+    const wagers = await this.wagerService.findByRound(roundId);
+    for (const wager of wagers) {
+      if (wager.status !== WagerStatus.ESCROWED) continue;
+      const isWinner = winnerSet.has(wager.player);
+      await this.wagerService.upsertFromChainEvent({
+        roundId,
+        player: wager.player,
+        amount: wager.amount,
+        status: isWinner ? WagerStatus.WON : WagerStatus.LOST,
+        txHash,
+      });
+    }
+    this.logger.debug(
+      `Escrow Settled: round=${roundId} winners=${winners.length} resolved=${wagers.length}`,
+    );
+  }
+
+  // Claimed { round_id, player, amount } — winner withdrew their share.
+  private async handleEscrowClaimed(event: any, txHash: string): Promise<void> {
+    const roundId = String(scValToNative(event.topic?.[1]));
+    const player = String(scValToNative(event.topic?.[2]));
+    const amount = String(scValToNative(event.value));
+
+    await this.wagerService.upsertFromChainEvent({
+      roundId,
+      player,
+      amount,
+      status: WagerStatus.CLAIMED,
+      txHash,
+    });
+    this.logger.debug(`Escrow Claimed: round=${roundId} player=${player} amount=${amount}`);
   }
 
   private loadCursorFromStorage(): void {

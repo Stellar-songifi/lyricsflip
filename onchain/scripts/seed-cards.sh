@@ -18,10 +18,16 @@
 # Usage:
 #   ./scripts/seed-cards.sh [network]   (default: testnet)
 #
+# Environment:
+#   STELLAR_IDENTITY  funded Stellar CLI identity to sign with (default: me)
+#
 # Prerequisites:
 #   • deploy.sh has already been run (LYRICSFLIP_CONTRACT_ID must be set
 #     in the environment or frontend/.env.local).
 #   • Stellar CLI installed.
+#   • jq installed (https://stedolan.github.io/jq/).
+#   • A funded identity called "me" on the target network (or the identity
+#     named by STELLAR_IDENTITY).
 #   • For the unified path: Node.js + backend npm dependencies installed.
 #   • A funded identity called "me" on the target network.
 
@@ -35,7 +41,7 @@ BACKEND_DIR="${REPO_ROOT}/backend"
 FRONTEND_ENV="${REPO_ROOT}/frontend/.env.local"
 CARDS_JSON="${REPO_ROOT}/seed/songs.json"
 
-IDENTITY="me"
+IDENTITY="${STELLAR_IDENTITY:-me}"
 
 # ---------------------------------------------------------------------------
 # Resolve contract ID
@@ -132,8 +138,11 @@ while IFS= read -r CARD_JSON; do
   YEAR="$(echo "${CARD_JSON}" | jq -r '.year')"
   LYRICS="$(echo "${CARD_JSON}" | jq -r '.lyrics')"
 
-  # Build the Soroban-XDR card struct.  card_id is assigned by the contract.
-  CARD_STRUCT="{\"card_id\":0,\"genre\":${GENRE},\"artist\":\"${ARTIST}\",\"title\":\"${TITLE}\",\"year\":${YEAR},\"lyrics\":\"${LYRICS}\"}"
+  # Build the Soroban-XDR card struct. card_id is assigned by the contract;
+  # difficulty is part of the current Card type (default to the test fixture
+  # value when the seed file does not specify one).
+  DIFFICULTY="$(echo "${CARD_JSON}" | jq -r '.difficulty // 2')"
+  CARD_STRUCT="{\"card_id\":0,\"genre\":${GENRE},\"artist\":\"${ARTIST}\",\"title\":\"${TITLE}\",\"year\":${YEAR},\"difficulty\":${DIFFICULTY},\"lyrics\":\"${LYRICS}\"}"
 
   log "  [${INDEX}/${CARD_COUNT}] Adding: ${TITLE} — ${ARTIST} (${YEAR})"
   stellar contract invoke \

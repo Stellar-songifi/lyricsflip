@@ -3,6 +3,11 @@
 # by hand or by release-please, LF-244), then commit the IDs and WASM hashes to
 # deployments/<network>.json so the frontend picks them up as defaults.
 #
+# LF-365: the same job also runs on a schedule. It checks the recorded testnet
+# contract instances with getLedgerEntries; when a testnet reset has removed
+# them it deploys fresh contracts, wires and seeds them, and commits the new
+# IDs so the next preview build is healthy without manual intervention.
+#
 # Required secrets:
 #   STELLAR_TESTNET_SECRET_KEY  secret key (S...) of the funded owner identity
 #   STELLAR_MAINNET_SECRET_KEY  secret key (S...) of the funded owner identity
@@ -17,12 +22,18 @@ on:
       - 'contracts-v*'
       - 'onchain-v*'
   workflow_dispatch:
+  schedule:
+    # Testnet resets are announced with little notice; four checks a day keep
+    # recovery comfortably inside the 24h acceptance window (LF-365).
+    - cron: '0 */6 * * *'
 
 permissions:
   contents: write
 
 concurrency:
-  group: contracts-deploy-${{ github.ref }}
+  # One group for every trigger so a scheduled recovery cannot race a tagged
+  # deploy while both try to commit deployments/testnet.json (LF-365).
+  group: contracts-deploy
   cancel-in-progress: false
 
 jobs:
@@ -42,24 +53,38 @@ jobs:
       - name: Check out the tagged commit
         if: startsWith(github.ref, 'refs/tags/')
         run: git checkout "${{ github.sha }}" -- onchain
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - name: Check recorded testnet contracts (LF-365)
+        id: contracts
+        env:
+          DEPLOYMENT_FILE: ${{ env.DEPLOYMENT_FILE }}
+        run: bash .github/scripts/check-recorded-contracts.sh
       - uses: dtolnay/rust-toolchain@stable
+        if: github.event_name != 'schedule' || steps.contracts.outputs.needs_deploy == 'true'
         with:
           targets: wasm32v1-none
       - uses: Swatinem/rust-cache@v2
+        if: github.event_name != 'schedule' || steps.contracts.outputs.needs_deploy == 'true'
         with:
           workspaces: onchain
       - name: Install Stellar CLI
+        if: github.event_name != 'schedule' || steps.contracts.outputs.needs_deploy == 'true'
         run: cargo install stellar-cli --locked
       - name: Import deployer identity
+        if: github.event_name != 'schedule' || steps.contracts.outputs.needs_deploy == 'true'
         env:
           STELLAR_SECRET_KEY: ${{ secrets.STELLAR_TESTNET_SECRET_KEY }}
         run: |
           echo "$STELLAR_SECRET_KEY" | stellar keys add deployer --secret-key
           echo "OWNER=$(stellar keys address deployer)" >> "$GITHUB_ENV"
       - name: Build contracts
+        if: github.event_name != 'schedule' || steps.contracts.outputs.needs_deploy == 'true'
         working-directory: onchain
         run: cargo build --target wasm32v1-none --release
       - name: Record WASM SHA-256 hashes
+        if: github.event_name != 'schedule' || steps.contracts.outputs.needs_deploy == 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -77,6 +102,9 @@ jobs:
           echo "ESCROW_SHA=$ESCROW_SHA" >> "$GITHUB_ENV"
           echo "NFT_SHA=$NFT_SHA" >> "$GITHUB_ENV"
       - name: Deploy or upgrade
+        if: github.event_name != 'schedule' || steps.contracts.outputs.needs_deploy == 'true'
+        env:
+          RESET_RECOVERY: ${{ steps.contracts.outputs.missing }}
         shell: bash
         run: |
           set -euo pipefail
@@ -85,8 +113,20 @@ jobs:
           NFT_ID=$(jq -r '.lyricsflipNft // ""' "$DEPLOYMENT_FILE")
           ESCROW_ID=$(jq -r '.lyricsflipEscrow // ""' "$DEPLOYMENT_FILE")
 
+          # A reset wipes the instances behind the recorded IDs. Reuse neither
+          # ID: upgrade would fail with "contract not found" (LF-365).
+          if [[ "${RESET_RECOVERY:-false}" == "true" ]]; then
+            echo "::warning::Recorded testnet contract instances are gone; recovering from a testnet reset."
+            GAME_ID=""
+            NFT_ID=""
+          fi
+
           if [[ -z "$GAME_ID" || -z "$NFT_ID" ]]; then
-            echo "No existing deployment; deploying fresh contracts"
+            if [[ "${RESET_RECOVERY:-false}" == "true" ]]; then
+              echo "Testnet reset recovery: deploying and reseeding fresh contracts"
+            else
+              echo "No existing deployment; deploying fresh contracts"
+            fi
             GAME_ID=$(stellar contract deploy --wasm "$WASM_DIR/lyricsflip.wasm" \
               --source deployer --network "$NETWORK" -- --owner "$OWNER")
             NFT_ID=$(stellar contract deploy --wasm "$WASM_DIR/lyricsflip_nft.wasm" \
@@ -96,6 +136,10 @@ jobs:
               --base_uri "https://lyricsflip.xyz/nft/")
             stellar contract invoke --id "$GAME_ID" --source deployer --network "$NETWORK" \
               -- set_cards_per_round --caller "$OWNER" --value 5
+            # LF-365: a fresh instance has an empty card catalogue. Seed it so
+            # previews are playable again with no manual steps after a reset.
+            NEXT_PUBLIC_LYRICSFLIP_CONTRACT_ID="$GAME_ID" STELLAR_IDENTITY=deployer \
+              bash onchain/scripts/seed-cards.sh testnet
           else
             echo "Upgrading existing contracts in place (LF-021)"
             for pair in "lyricsflip:$GAME_ID" "lyricsflip_nft:$NFT_ID"; do
@@ -148,11 +192,15 @@ jobs:
 
           {
             echo "### Testnet deployment"
+            if [[ "${RESET_RECOVERY:-false}" == "true" ]]; then
+              echo "- Recovery: testnet reset detected; contracts were redeployed and reseeded (LF-365)"
+            fi
             echo "- lyricsflip: \`$GAME_ID\` (sha256 \`$GAME_SHA\`)"
             echo "- lyricsflip-escrow: \`$ESCROW_ID\` (sha256 \`$ESCROW_SHA\`)"
             echo "- lyricsflip-nft: \`$NFT_ID\` (sha256 \`$NFT_SHA\`)"
           } >> "$GITHUB_STEP_SUMMARY"
       - name: Smoke test
+        if: github.event_name != 'schedule' || steps.contracts.outputs.needs_deploy == 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -194,6 +242,7 @@ jobs:
             wasm-artifacts/lyricsflip_nft.wasm \
             wasm-artifacts/SHA256SUMS --clobber
       - name: Commit deployment record
+        if: github.event_name != 'schedule' || steps.contracts.outputs.needs_deploy == 'true'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898299+github-actions[bot]@users.noreply.github.com"

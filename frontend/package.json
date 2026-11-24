@@ -20,6 +20,7 @@
     "test-storybook": "test-storybook",
     "analyze": "ANALYZE=true next build",
     "check:bundle-size": "node scripts/check-bundle-size.mjs",
+    "env:testnet": "node scripts/setup-testnet-env.mjs",
     "generate:bindings": "bash ../onchain/scripts/generate-bindings.sh",
     "check:bindings": "bash ../onchain/scripts/check-bindings-fresh.sh",
     "check:i18n": "node scripts/check-i18n-keys.mjs",

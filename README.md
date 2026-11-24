@@ -347,6 +347,11 @@ make frontend       # http://localhost:3000
 
 Connect a wallet configured for the local network (passphrase `Standalone Network ; February 2017`) and play. In another terminal, `make backend` starts the NestJS API at http://localhost:4000 (Swagger at `/api/docs`) for profiles, leaderboards and multiplayer relay; it is not required for the core on-chain game.
 
+### 3. Run the frontend against shared testnet contracts
+
+The repository includes a shared testnet deployment record in
+[`deployments/testnet.json`](deployments/testnet.json). New contributors do not
+need to deploy contracts to run the frontend.
 ### 5. Checks
 
 ```bash
@@ -355,6 +360,19 @@ make test           # contract + frontend + backend unit tests
 make lint           # Rust fmt/clippy + frontend/backend lint
 cd frontend
 npm install
+npm run env:testnet   # writes frontend/.env.local from deployments/testnet.json
+npm run dev           # http://localhost:3000
+```
+
+Shared testnet IDs from `deployments/testnet.json`:
+
+- `lyricsflip`: `CBNLE2RKKSFYPI7NPPTQL6OW6K42C46LBDW5TXZKK2OR5LJLUJ32CNGX`
+- `lyricsflip-nft`: `CCUREEL7CHI5MHE6H4KHEZYXROG4RKAZYGWQAGPOJZPSDCSII5PNEXNT`
+
+If you need your own deployment instead of the shared one, follow the contract
+deployment steps above and replace the IDs in `frontend/.env.local`.
+
+### 4. Run the backend
 cat > .env.local <<'ENV'
 NEXT_PUBLIC_STELLAR_RPC_URL=https://soroban-testnet.stellar.org
 NEXT_PUBLIC_STELLAR_NETWORK_PASSPHRASE=Test SDF Network ; September 2015

@@ -83,6 +83,19 @@ pub enum Genre {
     Folk = 12,
 }
 
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct RoundView {
+    pub round: Round,
+    pub players: Vec<Address>,
+    pub ready: Vec<bool>,
+    pub scores: Map<Address, u64>,
+    pub my_card_index: u32,
+    pub my_answered_current: bool,
+    pub finalized: bool,
+    pub expires_at: u64,
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct RoundFilter {
     pub genre: Option<Genre>,

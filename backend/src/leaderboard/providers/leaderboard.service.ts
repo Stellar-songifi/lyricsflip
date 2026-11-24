@@ -10,6 +10,7 @@ import {
   PlayerProfileDto,
   PlayerRecentRoundDto,
 } from '../dto/player-profile.dto';
+import { ModerationService } from '../../anti-cheat/providers/moderation.service';
 
 // Short TTL: the leaderboard is meant to reflect the last few completed
 // rounds fairly promptly, and cache invalidation on 'round.completed'
@@ -39,6 +40,124 @@ export class LeaderboardService {
     private readonly redisService: RedisService,
     private readonly boardService: LeaderboardBoardService,
   ) {}
+
+    private readonly moderationService: ModerationService,
+  ) {}
+
+  // Retrieves a page of the leaderboard for a period/genre combination,
+  // ranked by total points with rounds won and accuracy as tie-breakers.
+  // Backed by an aggregation over the indexed chain tables
+  // (chain_round_results joined with chain_rounds for the genre) rather than
+  // a running total, so any period/genre combination can be served without a
+  // separate job per bucket.
+  async getLeaderboard(
+    query: LeaderboardQueryDto,
+  ): Promise<PaginatedLeaderboardDto> {
+    const period = query.period ?? 'all';
+    const genre = query.genre;
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 20;
+
+    const cacheKey = this.cacheKey(period, genre, page, limit);
+    const cached = await this.redisService.get(cacheKey);
+    if (cached) return JSON.parse(cached);
+
+    const qb = this.roundResultRepository
+      .createQueryBuilder('r')
+      .innerJoin('chain_rounds', 'round', 'round.id = r.roundId')
+      .select('r.playerAddress', 'address')
+      .addSelect('MAX(r.username)', 'username')
+      .addSelect('COUNT(*)', 'roundsPlayed')
+      .addSelect('SUM(CASE WHEN r.won THEN 1 ELSE 0 END)', 'roundsWon')
+      .addSelect('MAX(r.streakAfter)', 'maxStreak')
+      .addSelect('COALESCE(SUM(r.points), 0)', 'totalPoints')
+      .addSelect('COALESCE(SUM(r.correctAnswers), 0)', 'correctAnswers')
+      .addSelect('COALESCE(SUM(r.totalAnswers), 0)', 'totalAnswers')
+      .addSelect('COALESCE(MAX(r.points), 0)', 'bestRoundScore')
+      .groupBy('r.playerAddress')
+      .orderBy('"totalPoints"', 'DESC')
+      .addOrderBy('"roundsWon"', 'DESC')
+      .addOrderBy(
+        'CASE WHEN COALESCE(SUM(r.totalAnswers), 0) > 0 ' +
+          'THEN SUM(r.correctAnswers)::float / SUM(r.totalAnswers) ELSE 0 END',
+        'DESC',
+      )
+      .addOrderBy('MAX(r.username)', 'ASC');
+
+    if (genre) {
+      qb.andWhere('round.genre = :genre', { genre });
+    }
+    const periodStart = this.periodStart(period);
+    if (periodStart) {
+      qb.andWhere('r.playedAt >= :periodStart', { periodStart });
+    }
+
+    const rows = await qb.getRawMany();
+    const total = rows.length;
+    const offset = (page - 1) * limit;
+
+    // Fetch moderation status for every address in this page in parallel.
+    const pageRows = rows.slice(offset, offset + limit);
+    const flagStatuses = await Promise.all(
+      pageRows.map((row) =>
+        this.moderationService.getAddressStatus(row.address),
+      ),
+    );
+
+    const data: LeaderboardEntryDto[] = pageRows
+      .map((row, index) => {
+        const roundsPlayed = Number(row.roundsPlayed);
+        const roundsWon = Number(row.roundsWon);
+        const correctAnswers = Number(row.correctAnswers);
+        const totalAnswers = Number(row.totalAnswers);
+        return {
+          rank: offset + index + 1,
+          address: row.address,
+          username: row.username,
+          roundsWon,
+          winRate: roundsPlayed > 0 ? roundsWon / roundsPlayed : 0,
+          maxStreak: Number(row.maxStreak),
+          totalPoints: Number(row.totalPoints),
+          correctAnswers,
+          totalAnswers,
+          accuracy: totalAnswers > 0 ? correctAnswers / totalAnswers : 0,
+          bestRoundScore: Number(row.bestRoundScore),
+          flagStatus: flagStatuses[index],
+        };
+      })
+      // Suppress hidden/banned entries from the public leaderboard.
+      .filter(
+        (entry) =>
+          entry.flagStatus !== 'hidden' && entry.flagStatus !== 'banned',
+      );
+
+    const result: PaginatedLeaderboardDto = {
+      data,
+      page,
+      limit,
+      total,
+      totalPages: limit > 0 ? Math.ceil(total / limit) : 0,
+    };
+    await this.redisService.set(
+      cacheKey,
+      JSON.stringify(result),
+      CACHE_TTL_SECONDS,
+    );
+    return result;
+  }
+
+  // Rank of a single player on the all-time, all-genre leaderboard.
+  async getPlayerRank(
+    playerId: string,
+  ): Promise<{ playerId: string; rank: number } | null> {
+    const leaderboard = await this.getLeaderboard({
+      period: 'all',
+      page: 1,
+      limit: 10000,
+    });
+    const entry = leaderboard.data.find((e) => e.address === playerId);
+    return entry ? { playerId, rank: entry.rank } : null;
+  }
 
   // Profile page payload for a single address: aggregate stats, recent
   // rounds, badges (from chain_nfts) and unclaimed winnings, all computed

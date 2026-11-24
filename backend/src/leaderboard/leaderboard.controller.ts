@@ -15,6 +15,10 @@ import {
   PlayerRankDto,
 } from './dto/leaderboard.dto';
 import { PlayerProfileDto } from './dto/player-profile.dto';
+import {
+  LeaderboardThrottle,
+  PlayerProfileThrottle,
+} from '../common/throttler/throttle-limits';
 
 // Controller for managing leaderboard operations.
 @ApiTags('leaderboard')
@@ -24,6 +28,7 @@ export class LeaderboardController {
 
   // Retrieve a page of a leaderboard for a window and metric.
   @Get()
+  @LeaderboardThrottle()
   @ApiOperation({
     summary: 'Get leaderboard',
     description:
@@ -41,6 +46,8 @@ export class LeaderboardController {
 
   // Retrieve the rank of a specific player.
   @Get('rank/:address')
+  @Get('rank/:playerId')
+  @LeaderboardThrottle()
   @ApiOperation({
     summary: 'Get player rank',
     description:
@@ -81,6 +88,7 @@ export class PlayersController {
 
   // Retrieve the profile of a specific player by address.
   @Get(':address')
+  @PlayerProfileThrottle()
   @ApiOperation({
     summary: 'Get player profile',
     description:

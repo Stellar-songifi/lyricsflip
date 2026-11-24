@@ -20,6 +20,13 @@ describe('WagerService', () => {
             findAndCount: jest.fn(),
             create: jest.fn(),
             save: jest.fn(),
+            createQueryBuilder: jest.fn(() => ({
+              select: jest.fn().mockReturnThis(),
+              addSelect: jest.fn().mockReturnThis(),
+              where: jest.fn().mockReturnThis(),
+              groupBy: jest.fn().mockReturnThis(),
+              getRawMany: jest.fn(),
+            })),
           },
         },
       ],
@@ -132,6 +139,56 @@ describe('WagerService', () => {
       expect(repository.create).not.toHaveBeenCalled();
       expect(result.status).toBe(WagerStatus.WON);
       expect(result.txHash).toBe('0xabc');
+    });
+  });
+
+  describe('sumEscrowedAmounts', () => {
+    it('sums escrowed wager amounts grouped by asset', async () => {
+      const qb = (repository.createQueryBuilder as jest.Mock)();
+      (qb.getRawMany as jest.Mock).mockResolvedValue([
+      const qb = repository.createQueryBuilder();
+      qb.getRawMany.mockResolvedValue([
+        { asset: 'native', total: '1500000000' },
+        { asset: 'USDC', total: '5000000' },
+      ]);
+
+      const result = await service.sumEscrowedAmounts();
+
+      expect(qb.select).toHaveBeenCalledWith('wager.asset', 'asset');
+      expect(qb.addSelect).toHaveBeenCalledWith(
+        'COALESCE(SUM(wager.amount), 0)',
+        'total',
+      );
+      expect(qb.where).toHaveBeenCalledWith('wager.status = :status', {
+        status: WagerStatus.ESCROWED,
+      });
+      expect(qb.groupBy).toHaveBeenCalledWith('wager.asset');
+      expect(result).toEqual({
+        native: '1500000000',
+        USDC: '5000000',
+      });
+    });
+
+    it('returns an empty object when no escrowed wagers exist', async () => {
+      const qb = (repository.createQueryBuilder as jest.Mock)();
+      (qb.getRawMany as jest.Mock).mockResolvedValue([]);
+      const qb = repository.createQueryBuilder();
+      qb.getRawMany.mockResolvedValue([]);
+
+      const result = await service.sumEscrowedAmounts();
+
+      expect(result).toEqual({});
+    });
+
+    it('handles a single asset correctly', async () => {
+      const qb = (repository.createQueryBuilder as jest.Mock)();
+      (qb.getRawMany as jest.Mock).mockResolvedValue([
+        { asset: 'native', total: '42000' },
+      ]);
+
+      const result = await service.sumEscrowedAmounts();
+
+      expect(result).toEqual({ native: '42000' });
     });
   });
 });

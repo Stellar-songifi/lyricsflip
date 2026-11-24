@@ -72,6 +72,48 @@ export class LeaderboardEntryDto {
 
   @ApiProperty({ description: 'Value of the requested metric' })
   score: number;
+  @ApiProperty()
+  username: string;
+
+  @ApiProperty({ description: 'Total points accumulated in the period' })
+  totalPoints: number;
+
+  @ApiProperty()
+  roundsWon: number;
+
+  @ApiProperty()
+  roundsPlayed: number;
+
+  @ApiProperty({ description: 'roundsWon / roundsPlayed, in [0, 1]' })
+  winRate: number;
+
+  @ApiProperty({
+    description: 'Correct answers / total answers, in [0, 1]',
+  })
+  accuracy: number;
+
+  @ApiProperty({ description: 'Highest single-round score in the period' })
+  bestRoundScore: number;
+
+  @ApiProperty()
+  maxStreak: number;
+
+  /**
+   * Moderation status of the address.
+   *
+   * Null means no flags exist. 'hidden' or 'banned' means an admin has
+   * suppressed this entry; public leaderboard responses omit those entries
+   * entirely, but admin-facing responses include them with this field set.
+   *
+   * Possible values: 'pending' | 'reviewed' | 'hidden' | 'banned' | null
+   */
+  @ApiPropertyOptional({
+    nullable: true,
+    description:
+      'Anti-cheat moderation status. Null = no flags. ' +
+      "'hidden'/'banned' entries are suppressed on public leaderboards.",
+  })
+  flagStatus: string | null;
 }
 
 export class PaginatedLeaderboardDto {

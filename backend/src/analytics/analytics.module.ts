@@ -1,6 +1,7 @@
 import { Module, CacheModule } from "@nestjs/common"
 import { TypeOrmModule } from "@nestjs/typeorm"
 import { AnalyticsController } from "./controllers/analytics.controller"
+import { OnboardingFunnelController } from "./controllers/onboarding-funnel.controller"
 import { PlayerEngagementService } from "../player-engagement/player-engagement.service"
 import { SongAnalyticsService } from "./services/song-analytics.service"
 import { TokenAnalyticsService } from "./services/token-analytics.service"
@@ -10,7 +11,9 @@ import { PlayerEngagementMetric } from "./entities/player-engagement.entity"
 import { SongCategoryMetric } from "./entities/song-category.entity"
 import { TokenMetric } from "./entities/token.entity"
 import { UserProgressionMetric } from "./entities/user-progression.entity"
+import { OnboardingFunnelMetric } from "./entities/onboarding-funnel-metric.entity"
 import { AnalyticsRepository } from "./repositories/analytics.repository"
+import { OnboardingFunnelService } from "./services/onboarding-funnel.service"
 import { AnalyticsAuthGuard } from "./guards/analytics-auth.guard"
 import { AnalyticsRolesGuard } from "./guards/analytics-roles.guard"
 
@@ -19,15 +22,16 @@ import { AnalyticsRolesGuard } from "./guards/analytics-roles.guard"
     CacheModule.register({
       ttl: 300, // 5 minutes cache
     }),
-    TypeOrmModule.forFeature([PlayerEngagementMetric, SongCategoryMetric, TokenMetric, UserProgressionMetric]),
+    TypeOrmModule.forFeature([PlayerEngagementMetric, SongCategoryMetric, TokenMetric, UserProgressionMetric, OnboardingFunnelMetric]),
   ],
-  controllers: [AnalyticsController],
+  controllers: [AnalyticsController, OnboardingFunnelController],
   providers: [
     PlayerEngagementService,
     SongAnalyticsService,
     TokenAnalyticsService,
     UserProgressionService,
     AnalyticsAggregatorService,
+    OnboardingFunnelService,
     AnalyticsRepository,
     AnalyticsAuthGuard,
     AnalyticsRolesGuard,
@@ -41,4 +45,3 @@ import { AnalyticsRolesGuard } from "./guards/analytics-roles.guard"
   ],
 })
 export class AnalyticsModule {}
-

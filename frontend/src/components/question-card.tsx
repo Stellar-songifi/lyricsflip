@@ -38,7 +38,7 @@ export interface QuestionCardProps {
   disabled?: boolean;
 }
 
-export const QuestionCard: React.FC <QuestionCardProps> = ({
+export const QuestionCard: React.FC<QuestionCardProps> = ({
   card,
   onSubmit,
   onReveal,

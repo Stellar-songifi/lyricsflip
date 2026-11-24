@@ -3,6 +3,7 @@
 import * as React from "react"
 import * as DialogPrimitive from "@radix-ui/react-dialog"
 import { XIcon } from "lucide-react"
+import { useTranslations } from "next-intl"
 
 import { cn } from "@/lib/utils"
 
@@ -51,6 +52,7 @@ function DialogContent({
   children,
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Content>) {
+  const t = useTranslations('atoms');
   return (
     <DialogPortal>
       <DialogOverlay />
@@ -68,7 +70,7 @@ function DialogContent({
           data-slot="dialog-close"
         >
           <XIcon className="h-4 w-4" />
-          <span className="sr-only">Close</span>
+          <span className="sr-only">{t('close')}</span>
         </DialogPrimitive.Close>
       </DialogPrimitive.Content>
     </DialogPortal>

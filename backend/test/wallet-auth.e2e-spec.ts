@@ -17,6 +17,9 @@ import { JwtModule } from '@nestjs/jwt';
 import { Reflector } from '@nestjs/core';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import * as request from 'supertest';
+import { createHash } from 'crypto';
+import { readFileSync } from 'fs';
+import { join } from 'path';
 import { Keypair } from '@stellar/stellar-sdk';
 import { AuthModule } from '../src/auth/auth.module';
 import { User } from '../src/user/user.entity';
@@ -77,11 +80,34 @@ class InMemoryRedisService {
   async del(key: string): Promise<void> {
     this.store.delete(key);
   }
+
+  async incrWithTtl(key: string, ttl: number): Promise<number> {
+    const current = Number((await this.get(key)) ?? 0) + 1;
+    const existing = this.store.get(key);
+    this.store.set(key, {
+      value: String(current),
+      expiresAt: existing?.expiresAt ?? Date.now() + ttl * 1000,
+    });
+    return current;
+  }
 }
 
 /** `Keypair.sign` returns a `Uint8Array`; wrap it to get `.toString('base64')`. */
 const signBase64 = (keypair: Keypair, message: string): string =>
   Buffer.from(keypair.sign(Buffer.from(message, 'utf8'))).toString('base64');
+
+/** SEP-53: sign SHA-256("Stellar Signed Message:
+" + message). */
+const signSep53Base64 = (keypair: Keypair, message: string): string =>
+  Buffer.from(
+    keypair.sign(
+      createHash('sha256')
+        .update('Stellar Signed Message:
+', 'utf8')
+        .update(message, 'utf8')
+        .digest(),
+    ),
+  ).toString('base64');
 
 // A minimal protected route to exercise the "calls a protected endpoint"
 // part of the acceptance criteria, guarded the same way real routes are.
@@ -239,5 +265,87 @@ describe('Wallet auth (e2e)', () => {
       .post('/auth/challenge')
       .send({ address: 'not-a-stellar-address' })
       .expect(400); // class-validator rejects it before it reaches the provider.
+  });
+
+  it('puts domain, network, nonce, issued-at and expiry in the challenge, and accepts a SEP-53 signature', async () => {
+    const keypair = Keypair.random();
+    const { body } = await request(app.getHttpServer())
+      .post('/auth/challenge')
+      .send({ address: keypair.publicKey() })
+      .expect(201);
+
+    for (const field of ['domain', 'network', 'nonce', 'issuedAt', 'expiresAt']) {
+      expect(body.challenge).toContain(`${field}: `);
+    }
+
+    await request(app.getHttpServer())
+      .post('/auth/verify')
+      .send({
+        address: keypair.publicKey(),
+        signedChallenge: signSep53Base64(keypair, body.challenge),
+      })
+      .expect(201);
+  });
+
+  it.each([
+    ['domain', /^domain: .*$/m, 'domain: https://evil.example'],
+    ['network', /^network: .*$/m, 'network: Public Global Stellar Network ; September 2015'],
+  ])('rejects a signature made for another %s', async (_name, pattern, replacement) => {
+    const keypair = Keypair.random();
+    const { body } = await request(app.getHttpServer())
+      .post('/auth/challenge')
+      .send({ address: keypair.publicKey() })
+      .expect(201);
+
+    const forged = (body.challenge as string).replace(pattern, replacement);
+    expect(forged).not.toBe(body.challenge);
+
+    await request(app.getHttpServer())
+      .post('/auth/verify')
+      .send({
+        address: keypair.publicKey(),
+        signedChallenge: signSep53Base64(keypair, forged),
+      })
+      .expect(401);
+  });
+
+  it('only accepts raw-byte signatures under NODE_ENV=test', async () => {
+    // Jest sets NODE_ENV=test, so the raw fallback works here...
+    expect(process.env.NODE_ENV).toBe('test');
+
+    // ...and there is no env flag that can enable it elsewhere.
+    const source = readFileSync(
+      join(__dirname, '../src/auth/providers/wallet-auth.provider.ts'),
+      'utf8',
+    );
+    expect(source).not.toContain('WALLET_AUTH_ALLOW_RAW_SIGNATURES');
+    expect(source).toContain("'NODE_ENV') === 'test'");
+  });
+
+  it('rate-limits challenge issuance per address', async () => {
+    const keypair = Keypair.random();
+    for (let i = 0; i < 5; i++) {
+      await request(app.getHttpServer())
+        .post('/auth/challenge')
+        .send({ address: keypair.publicKey() })
+        .expect(201);
+    }
+    await request(app.getHttpServer())
+      .post('/auth/challenge')
+      .send({ address: keypair.publicKey() })
+      .expect(429);
+
+    // A different address is unaffected.
+    await request(app.getHttpServer())
+      .post('/auth/challenge')
+      .send({ address: Keypair.random().publicKey() })
+      .expect(201);
+  });
+
+  it('rejects contract (C...) accounts, which need SEP-45', async () => {
+    await request(app.getHttpServer())
+      .post('/auth/challenge')
+      .send({ address: 'C' + 'A'.repeat(55) })
+      .expect(400);
   });
 });

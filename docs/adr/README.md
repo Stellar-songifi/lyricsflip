@@ -1,39 +1,38 @@
 # Architecture Decision Records (ADRs)
 
-This directory contains the Architecture Decision Records for LyricsFlip. ADRs capture the important architectural decisions made on this project, the context in which they were made, and their consequences. They exist so that decisions are documented once and referenced, rather than re-argued in every pull request.
+This directory contains the Architecture Decision Records for LyricsFlip. ADRs capture the important architectural decisions made on this project, the context in which they were made, alternatives considered, and their consequences. They exist so that decisions are documented once and referenced, rather than re-argued in every pull request.
 
-## What is an ADR?
+## Canonical ADR Location
 
-An Architecture Decision Record is a short, immutable document that records a single significant decision. Once an ADR is accepted it is not edited to reflect new thinking — instead a new ADR is written that supersedes it. This keeps a durable history of *why* the system looks the way it does.
+`docs/adr/` is the single canonical home for all Architecture Decision Records across the LyricsFlip project, covering smart contracts, frontend, backend, protocols, and security.
 
-We follow the [MADR](https://adr.github.io/madr/) (Markdown Any Decision Records) format, simplified for this project.
+We follow the [MADR](https://adr.github.io/madr/) (Markdown Any Decision Records) format, using the template in [`template.md`](template.md).
 
 ## Statuses
 
 | Status | Meaning |
 | --- | --- |
 | **Proposed** | Drafted and open for discussion. Not yet binding. |
-| **Accepted** | Approved by a maintainer. Binding for new work. |
+| **Accepted** | Approved by maintainers. Binding for new work. |
 | **Rejected** | Considered and declined. Kept for the record. |
 | **Superseded** | Replaced by a later ADR (which should be linked). |
 | **Deprecated** | No longer relevant, but not replaced. |
-
-All ADRs in this directory start as **Proposed** and remain so until a maintainer accepts them.
 
 ## Index
 
 | ADR | Title | Tracking issue | Status |
 | --- | --- | --- | --- |
-| [ADR-0001](0001-answer-privacy.md) | Answer privacy | LF-142 | **Proposed** |
-| [ADR-0002](0002-randomness-source.md) | Randomness source | LF-143 | **Proposed** |
-| [ADR-0003](0003-escrow-design.md) | Escrow design | LF-135 | **Proposed** |
-| [ADR-0004](0004-nft-transferability.md) | NFT transferability | LF-169 | **Proposed** |
-| [ADR-0005](0005-backend-scope.md) | Backend scope | LF-226 | **Proposed** |
-| [ADR-0006](0006-realtime-state-source-of-truth.md) | Source of truth for real-time state | LF-225 | **Proposed** |
+| [ADR-0001](0001-answer-privacy.md) | Answer privacy on the ledger | LF-142, LF-248 | **Accepted** |
+| [ADR-0002](0002-randomness-source.md) | Randomness source for card selection and shuffling | LF-143, LF-009, LF-298 | **Accepted** |
+| [ADR-0003](0003-escrow-design.md) | Escrow architecture and pull-payment claims | LF-135, LF-259, LF-260 | **Accepted** |
+| [ADR-0004](0004-nft-transferability.md) | Soulbound NFT badges and transferability | LF-169 | **Accepted** |
+| [ADR-0005](0005-backend-scope.md) | Backend architecture and off-chain scope | LF-226 | **Accepted** |
+| [ADR-0006](0006-realtime-source-of-truth.md) | Source of truth for real-time multiplayer state | LF-225, LF-197 | **Accepted** |
+| [ADR-0007](0007-solo-round-entry-points.md) | Solo and combined round entry points | LF-163, LF-164, LF-297 | **Accepted** |
 
 ## Template
 
-Copy the block below into a new file named `NNNN-short-title.md` (zero-padded, sequential number) and fill it in. Keep the section headings exactly as shown so tooling and reviewers can rely on them.
+The project template is maintained in [`template.md`](template.md):
 
 ```markdown
 # ADR-NNNN: <Short title of the decision>
@@ -64,8 +63,7 @@ as a result. Note any risks and how they will be mitigated.
 
 ## Alternatives considered
 
-Briefly list the options that were rejected and why. (Optional but
-encouraged.)
+Briefly list the options that were rejected and why.
 
 ## Status history
 
@@ -75,15 +73,8 @@ encouraged.)
 ## Process
 
 1. Open an issue (or use the existing tracking issue) describing the decision to be made.
-2. Add a new ADR file using the template above, numbered sequentially, with status **Proposed**.
+2. Add a new ADR file using `template.md`, numbered sequentially, with status **Proposed**.
 3. Add a row to the index table in this README.
 4. Link the ADR from [`docs/architecture.md`](../architecture.md) and from any issue that depends on it.
-5. Discuss in the PR. When a maintainer approves, change the status to **Accepted** and record the date in the status history.
+5. Discuss in the PR. When maintainers approve, change the status to **Accepted** and record the date in the status history.
 6. If a later decision changes course, write a new ADR and mark the old one **Superseded** with a link to its replacement.
-
-## Conventions
-
-- File names: `NNNN-kebab-case-title.md`.
-- One decision per ADR.
-- ADRs are append-only: never rewrite an accepted ADR's decision — supersede it instead.
-- Every ADR must reference its tracking issue and be linked from `docs/architecture.md`.

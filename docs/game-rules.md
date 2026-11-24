@@ -3,24 +3,26 @@
 This document is the single source of truth for LyricsFlip game rules. Every rule below is
 backed by a named function or constant in the contract. Source files:
 
-- [`contracts/game/src/lib.rs`](../contracts/game/src/lib.rs) — entry points and constants
-- [`contracts/game/src/types.rs`](../contracts/game/src/types.rs) — data structures
-- [`contracts/game/src/events.rs`](../contracts/game/src/events.rs) — emitted events
+- [`onchain/contracts/lyricsflip/src/lib.rs`](../onchain/contracts/lyricsflip/src/lib.rs) — entry points and constants
+- [`onchain/contracts/lyricsflip/src/types.rs`](../onchain/contracts/lyricsflip/src/types.rs) — data structures
+- [`onchain/contracts/lyricsflip/src/events.rs`](../onchain/contracts/lyricsflip/src/events.rs) — emitted events
+- [`onchain/contracts/lyricsflip-escrow/src/lib.rs`](../onchain/contracts/lyricsflip-escrow/src/lib.rs): escrow and fees
+
+`scripts/check-game-rules.mjs` compares the constants in the tables below with `lib.rs`
+and fails when they differ.
 
 If this document and the contract disagree, the contract wins — please open an issue.
 
 Related issues: LF-005 (`rounds_won` tracking), LF-013 (scoring), LF-014 (payouts),
-LF-259–LF-262 (escrow lifecycle), LF-177 (card difficulty — **planned**),
+LF-259–LF-262 (escrow lifecycle), LF-177 (card difficulty, live),
 LF-246 (this rewrite).
 
 ## Rounds
 
 There are no fixed game modes. A round is a generic container for **1 to 8 players**.
 
-- `get_max_players()` returns the current maximum number of players per round
-  (default **8**).
-- `set_max_players(admin, n)` updates the maximum. The contract rejects values below
-  **2** (`MIN_PLAYERS`) or above the hard cap of **8** (`MAX_PLAYERS`).
+- `DEFAULT_MAX_PLAYERS` is **8**, and `get_max_players()` returns the current maximum.
+  The hard cap is `MAX_ROUND_PLAYERS` = **8**.
 - A round with a single player is a solo practice round; any number of players from 2 to
   `get_max_players()` compete in the same round.
 
@@ -54,49 +56,50 @@ automatically — no manual database edits are required.
    involved) scores the answers, selects winners, updates `PlayerStats`, and emits
    `RoundCompleted { round_id, winners, scores }`.
 
-`ROUND_DURATION_SECONDS` is **300** (5 minutes) — see
-[`lib.rs`](../contracts/game/src/lib.rs).
+`DEFAULT_ROUND_DURATION_SECONDS` is **300** (5 minutes). The duration is configurable
+between `MIN_ROUND_DURATION_SECONDS` (**10**) and `MAX_ROUND_DURATION_SECONDS` (**86 400**).
+See [`lib.rs`](../onchain/contracts/lyricsflip/src/lib.rs).
 
 ## Card Timer
 
-- Each card has an answer window of `CARD_ANSWER_WINDOW_SECONDS` = **15** seconds,
-  measured from the moment the card is presented to the player.
+- Each card has an answer window of `CARD_ANSWER_WINDOW_SECONDS` = **15** seconds by default,
+  measured from the moment the card is presented to the player. The window is configurable
+  between `MIN_ANSWER_WINDOW_SECONDS` (**5**) and `MAX_ANSWER_WINDOW_SECONDS` (**180**).
 - An answer submitted **after** the window is still **accepted** and recorded, but it is
   **scored as wrong** (zero points). It is never rejected outright.
 - A player who never submits an answer for a card scores zero for that card.
 
 ## Scoring
 
-Points depend only on **how quickly** a correct answer arrives. Cards have no difficulty
-(see *Planned* below).
+Points depend on **how quickly** a correct answer arrives and on the card's **difficulty**.
 
 | Constant | Value | Meaning |
 | --- | --- | --- |
 | `FIRST_LEDGER_GRACE_SECONDS` | **6** | Answers within this many seconds earn full points. |
 | `MAX_CORRECT_POINTS` | **100** | Points for a correct answer inside the grace window. |
 | `POINTS_DECAY_PER_SECOND` | **5** | Points lost for each second beyond the grace window. |
-| `MIN_CORRECT_POINTS` | **10** | Floor — a correct answer never scores less than this. |
+| `MIN_CORRECT_POINTS` | **10** | Floor for the time-based points, before difficulty is applied. |
 | `CARD_ANSWER_WINDOW_SECONDS` | **15** | Answers after this are scored as wrong. |
 
-All constants are defined in [`lib.rs`](../contracts/game/src/lib.rs).
+All constants are defined in [`lib.rs`](../onchain/contracts/lyricsflip/src/lib.rs).
 
 The score for one correct answer is:
 
 ```
 elapsed = answer_time - card_presented_time
-if elapsed <= FIRST_LEDGER_GRACE_SECONDS:
-    points = MAX_CORRECT_POINTS
-else:
-    points = max(MAX_CORRECT_POINTS - (elapsed - FIRST_LEDGER_GRACE_SECONDS) * POINTS_DECAY_PER_SECOND,
-                 MIN_CORRECT_POINTS)
+base    = max(MAX_CORRECT_POINTS - max(elapsed - FIRST_LEDGER_GRACE_SECONDS, 0) * POINTS_DECAY_PER_SECOND,
+              MIN_CORRECT_POINTS)
+points  = base * card.difficulty
 ```
 
-- Incorrect answers, missing answers, and answers after `CARD_ANSWER_WINDOW_SECONDS`
-  award **zero** points for that card.
+- **Difficulty** is a per-card value from **1** to **3** (`cards.rs`). New cards default to
+  **2** (`types.rs`). The multiplier is applied after the time decay, so a difficulty-3 card
+  can score up to **300** points.
+
+- Incorrect answers, missing answers, and answers after the card's answer window award
+  **zero** points for that card.
 - The round score is the sum of points across all cards in the round.
 
-> **Planned:** card difficulty (easy/medium/hard multipliers) is not implemented.
-> Tracked in LF-177.
 
 ## Streaks
 
@@ -122,7 +125,7 @@ Shared co-winners **each** receive the increment — a tie does not divide the w
 
 The table below is the normative specification for `determine_round_winners` and
 `finalize_round`. Every row has a corresponding test in
-[`contracts/game/src/lib.rs`](../contracts/game/src/lib.rs).
+[`onchain/contracts/lyricsflip/src/lib.rs`](../onchain/contracts/lyricsflip/src/lib.rs).
 
 | # | Scenario | Winner selection | `rounds_won` | Pot payout |
 | --- | --- | --- | --- | --- |
@@ -147,18 +150,16 @@ Notes:
   (row 5) and can still win a round in which everyone scores zero only if row 4 did not
   apply — it always does, so they never win a zero-score round.
 
+## Lobby
+
+- A round that has not started is cancellable by anyone once `LOBBY_TIMEOUT_SECONDS`
+  (**600**) has passed since creation. The configurable range is `MIN_LOBBY_TIMEOUT_SECONDS`
+  (**30**) to `MAX_LOBBY_TIMEOUT_SECONDS` (**86 400**).
+- An address may keep at most `MAX_OPEN_ROUNDS_PER_ADDRESS` (**3**) public lobby rounds open.
+
 ## Fees & Payouts
 
-- `settle_round(...)` splits the round pool into a **payout** and a **protocol fee**.
-- The fee is transferred to the treasury at settlement, never on the first claim.
-- Winners have a configurable claim deadline (90 days by default). After the deadline,
-  `sweep_unclaimed(...)` sends all remaining winner shares to the treasury.
-- The fee rate is read and charged when the round is settled; later fee changes do not
-  affect a round after settlement.
-- `MAX_FEE_BPS` = **1000** basis points (**10%**). `set_fee_bps(admin, bps)` rejects
-  values above this cap.
-- The fee is sent to the configured treasury address at settlement.
-- Admin changes emit `FeeUpdated` and `TreasuryUpdated` events.
-
-Escrow lifecycle is implemented by `onchain/contracts/lyricsflip-escrow`: rounds move
-`Open → Locked → Settled`, or `Open|Locked → Cancelled`.
+- Fees and payouts are handled by the escrow contract, `onchain/contracts/lyricsflip-escrow`.
+- The protocol fee is set in basis points by `fee_bps`, which must be between **0** and
+  **10 000** (100%). The constructor and `set_fee` reject larger values.
+- Escrow rounds move `Open → Locked → Settled`, or `Open|Locked → Cancelled`.

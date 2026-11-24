@@ -15,6 +15,8 @@ import {
 } from '@nestjs/swagger';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { WagerService } from './provider/wager.service';
+import { WagerReconciliationService } from './services/wager-reconciliation.service';
+import { ReconciliationResultDto } from './dto/reconciliation-result.dto';
 
 // Wager history, as read from indexed on-chain state. Placing a wager and
 // claiming winnings both happen in the user's wallet by calling the
@@ -22,7 +24,10 @@ import { WagerService } from './provider/wager.service';
 @ApiTags('wager')
 @Controller('wagers')
 export class WagerController {
-  constructor(private readonly wagerService: WagerService) {}
+  constructor(
+    private readonly wagerService: WagerService,
+    private readonly reconciliationService: WagerReconciliationService,
+  ) {}
 
   @Get('me')
   @ApiOperation({
@@ -41,6 +46,26 @@ export class WagerController {
     @Query('limit', new DefaultValuePipe(20), ParseIntPipe) limit: number,
   ) {
     return this.wagerService.findByPlayer(userId, { page, limit });
+  }
+
+  /**
+   * LF-340: Monitoring panel endpoint. Returns the result of the most recent
+   * nightly wager reconciliation (DB open-pot sum vs escrow contract balance).
+   * Read-only — this endpoint cannot create or modify any wager record.
+   */
+  @Get('reconciliation-status')
+  @ApiOperation({
+    summary: 'Get the latest wager reconciliation status',
+    description:
+      'LF-340: Returns the most recent nightly reconciliation result comparing the database open-pot sum with the escrow contract on-chain balance. Returns 404 when no reconciliation has run yet.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Last reconciliation result',
+    type: ReconciliationResultDto,
+  })
+  getReconciliationStatus(): ReconciliationResultDto | null {
+    return this.reconciliationService.getLastResult();
   }
 }
 

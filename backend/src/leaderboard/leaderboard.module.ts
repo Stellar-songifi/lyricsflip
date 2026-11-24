@@ -8,6 +8,7 @@ import {
 } from './leaderboard.controller';
 import { LeaderboardRoundResult } from './entities/leaderboard-round-result.entity';
 import { LeaderboardService } from './providers/leaderboard.service';
+import { LeaderboardBoardService } from './providers/leaderboard-board.service';
 import { AntiCheatModule } from '../anti-cheat/anti-cheat.module';
 
 @Module({
@@ -18,7 +19,7 @@ import { AntiCheatModule } from '../anti-cheat/anti-cheat.module';
     RedisModule,
   ],
   controllers: [LeaderboardController, PlayersController],
-  providers: [LeaderboardService],
-  exports: [LeaderboardService],
+  providers: [LeaderboardService, LeaderboardBoardService],
+  exports: [LeaderboardService, LeaderboardBoardService],
 })
 export class LeaderboardModule {}

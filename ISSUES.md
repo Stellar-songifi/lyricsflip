@@ -1,8 +1,6 @@
-# LyricsFlip Issue Backlog
+# LyricsFlip Completed Issues
 
-This file tracks known issues, features, and improvements for the LyricsFlip project. Each entry has a unique `LF-NNN` identifier, an area tag, a priority, a task list, and acceptance criteria.
-
-For the full list of all 125+ tracked issues, see the [GitHub Issues](https://github.com/Stellar-songifi/lyricsflip/issues) tab.
+> **Record of finished work**: This file tracks issues and features that have been completed, verified, and merged. For the active list of open work, planned features, and unresolved bugs, see [`BACKLOG.md`](BACKLOG.md). For all 125+ tracked items and milestones, see [GitHub Issues](https://github.com/Stellar-songifi/lyricsflip/issues).
 
 ---
 
@@ -34,28 +32,6 @@ The frontend, backend, and documentation used incompatible event names and paylo
 
 ## Frontend
 
-### LF-198 · The wager modal must use real escrow
-
-**Area:** Frontend · **Priority:** P2 · **Type:** Feature · **Effort:** M  
-**Files:** `frontend/src/components/organisms/wager-modal.tsx`, `frontend/src/components/organisms/wager-summary-modal.tsx`, `frontend/src/lib/utils.ts`, `frontend/src/lib/stellar/client.ts`
-
-**Description**
-
-The wager modal now connects directly to real escrow parameters, converting stakes to stroops via `bigint` math, validating wallet balances against min/max limits and fee reserves, displaying true configured round rules instead of arbitrary odds/duration, and detailing the escrow deposit in the summary modal prior to signing.
-
-**Tasks**
-
-- [ ] Pass the stake, converted to stroops (7 decimals) with `bigint` math, to `create_round`.
-- [ ] Remove the fields with no contract meaning (odds, duration), or map them to configured values.
-- [ ] Show the wager token's balance and the min/max limits, and disable submission when the balance is too low.
-- [ ] Show the escrow transfer in the summary modal before the player signs.
-
-**Acceptance criteria**
-
-- [ ] Creating a 5 XLM wager round moves 5 XLM into the contract (testnet).
-- [ ] No form field is silently ignored.
-
-**Related:** Closes [#684](https://github.com/Stellar-songifi/lyricsflip/issues/684) · Reopened by [#890](https://github.com/Stellar-songifi/lyricsflip/issues/890) (LF-304): the stake is not sent on-chain until LF-256 adds wager arguments to `create_round`.
 ### LF-196 · Make `useRoundEvents` reliable
 
 **Area:** Frontend · **Priority:** P2 · **Type:** Bug · **Effort:** S  
@@ -104,39 +80,10 @@ New wallets that don't exist on-chain, or don't hold enough XLM for fees, fail w
 
 **Acceptance criteria**
 
-- A brand-new testnet wallet can go from connecting to playing without leaving the app:
-  1. Connect an unfunded wallet → orange banner appears immediately with **Fund with Friendbot**.
-  2. Click **Fund with Friendbot** → Friendbot is called, banner disappears once balance is confirmed.
-  3. Any transaction attempted with a zero or insufficient balance shows a friendly toast error instead of an opaque SDK exception.
-  4. The same banner also warns about wallet network mismatches (existing behaviour preserved).
-- Mainnet / non-testnet wallets: Friendbot button is **not** shown; only the balance warning text appears.
+- [x] A brand-new testnet wallet can go from connecting to playing without leaving the app.
+- [x] Mainnet / non-testnet wallets: Friendbot button is not shown; only the balance warning text appears.
 
 **Related:** Closes [#686](https://github.com/Stellar-songifi/lyricsflip/issues/686)
-
----
-
-### LF-199 · Claim-winnings and refund UI
-
-**Area:** Frontend · **Priority:** P2 · **Type:** Feature · **Effort:** S  
-**Files:** `frontend/src/components/organisms/game-result-modal.tsx`, `frontend/src/components/organisms/game-result-popup.tsx`, `frontend/src/components/organisms/unclaimed-winnings.tsx`, `frontend/src/app/profile/page.tsx`
-
-**Description**
-
-After finalization, winners need a **Claim** button, losers should see what they lost, and a cancelled round should show its refund. The profile page should list rounds with unclaimed winnings.
-
-**Tasks**
-
-- [x] Add a Claim button to the result modal and popup, with pending, success, and error toasts.
-- [x] Winner can claim winnings with pull-payment contract call (`claimWinnings`/`claimEarnings`), and the button disappears once the claim succeeds.
-- [x] Display clear breakdown for losers showing the wager amount lost.
-- [x] Display refund breakdown and messaging for cancelled rounds.
-- [x] Add an "Unclaimed winnings" section to `/profile` listing won rounds with real-time claim actions and toast feedback.
-
-**Acceptance criteria**
-
-- [x] A winner can claim from the results screen and from the profile page, and the button disappears once the claim succeeds.
-
-**Related:** Closes [#685](https://github.com/Stellar-songifi/lyricsflip/issues/685)
 
 ---
 
@@ -161,8 +108,8 @@ After finalization, winners need a **Claim** button, losers should see what they
 
 **Acceptance criteria**
 
-- A round that draws a card which is later removed still grades answers and finalizes without panicking; the player's wager is not locked.
-- `get_card` on a removed card returns `NonExistingCard`; a removed card cannot be resurrected by `update_card`.
-- `update_card` rejects answer-field changes while a live round references the card and allows them once the round is finalized.
+- [x] A round that draws a card which is later removed still grades answers and finalizes without panicking; the player's wager is not locked.
+- [x] `get_card` on a removed card returns `NonExistingCard`; a removed card cannot be resurrected by `update_card`.
+- [x] `update_card` rejects answer-field changes while a live round references the card and allows them once the round is finalized.
 
 **Related:** Closes [#662](https://github.com/Stellar-songifi/lyricsflip/issues/662)

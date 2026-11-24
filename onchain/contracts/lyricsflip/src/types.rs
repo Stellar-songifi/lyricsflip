@@ -83,6 +83,19 @@ pub enum Genre {
     Folk = 12,
 }
 
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct RoundView {
+    pub round: Round,
+    pub players: Vec<Address>,
+    pub ready: Vec<bool>,
+    pub scores: Map<Address, u64>,
+    pub my_card_index: u32,
+    pub my_answered_current: bool,
+    pub finalized: bool,
+    pub expires_at: u64,
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct RoundFilter {
     pub genre: Option<Genre>,
@@ -166,6 +179,10 @@ pub struct LegacyRound {
     pub genre: Genre,
     pub wager_amount: i128,
     pub start_time: u64,
+    /// Per-round snapshot of the answer window (seconds), taken at creation
+    /// time. Admins can change the configured default via `set_answer_window`
+    /// (LF-307); each round keeps the window it was created with.
+    pub answer_window: u64,
     pub is_started: bool,
     pub is_completed: bool,
     pub end_time: u64,
@@ -403,6 +420,8 @@ pub enum DataKey {
     MaxPlayers,
     /// Ledger timestamp at which a round was created; drives the lobby timeout.
     RoundCreatedAt(u64),
+    /// Admin-configured answer window (seconds) for newly created rounds.
+    AnswerWindow,
     /// Address of the `lyricsflip-nft` contract used to mint rewards.
     NftContract,
     /// Whether a player has already claimed a milestone reward.

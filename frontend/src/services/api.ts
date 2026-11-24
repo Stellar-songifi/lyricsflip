@@ -10,7 +10,7 @@ import { env } from '@/env';
 // The backend serves every REST route under the versioned prefix `/api/v1`
 // (e.g. `/api/v1/auth/challenge`, `/api/v1/leaderboard`). `NEXT_PUBLIC_API_URL`
 // should therefore point at the `/api/v1` root, e.g.
-// `http://localhost:4000/api/v1`. When unset we fall back to that same root.
+// `http://localhost:4000/api/v1`. env.ts normalizes a bare backend origin to this root.
 const DEFAULT_API_BASE_URL = 'http://localhost:4000/api/v1';
 
 // Define the base configuration for API

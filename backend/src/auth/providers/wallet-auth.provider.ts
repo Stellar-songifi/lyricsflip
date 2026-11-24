@@ -1,5 +1,7 @@
 import {
   forwardRef,
+  HttpException,
+  HttpStatus,
   Inject,
   Injectable,
   UnauthorizedException,
@@ -12,6 +14,9 @@ import { UserService } from '../../user/providers/user.service';
 import { GenerateTokensProvider } from './generate-tokens-provider';
 import {
   WALLET_CHALLENGE_KEY_PREFIX,
+  WALLET_CHALLENGE_MAX_PER_ADDRESS,
+  WALLET_CHALLENGE_RATE_KEY_PREFIX,
+  WALLET_CHALLENGE_RATE_WINDOW_SECONDS,
   WALLET_CHALLENGE_TTL_SECONDS,
 } from '../constant/wallet-auth.constant';
 
@@ -39,10 +44,12 @@ export class WalletAuthProvider {
    */
   public async createChallenge(address: string) {
     this.assertValidAddress(address);
+    await this.assertChallengeRateLimit(address);
 
     const nonce = randomBytes(32).toString('hex');
-    const expiresAt = Date.now() + WALLET_CHALLENGE_TTL_SECONDS * 1000;
-    const challenge = this.buildChallenge(address, nonce, expiresAt);
+    const issuedAt = Date.now();
+    const expiresAt = issuedAt + WALLET_CHALLENGE_TTL_SECONDS * 1000;
+    const challenge = this.buildChallenge(address, nonce, issuedAt, expiresAt);
 
     await this.redisService.set(
       this.challengeKey(address),
@@ -72,7 +79,7 @@ export class WalletAuthProvider {
     // request (even one carrying a valid signature) can never be replayed.
     await this.redisService.del(key);
 
-    this.assertChallengeBinding(challenge);
+    this.assertChallengeBinding(address, challenge);
 
     if (!this.verifySignature(address, challenge, signedChallenge)) {
       throw new UnauthorizedException('Invalid signature');
@@ -103,8 +110,9 @@ export class WalletAuthProvider {
         return true;
       }
 
-      // Raw-byte signatures are only accepted behind a feature flag, for
-      // tests and legacy clients.
+      // Raw-byte signatures are accepted only under NODE_ENV=test, so test
+      // suites can sign with a bare Keypair. There is no way to enable this
+      // in any other environment.
       if (this.allowRawSignatures()) {
         return keypair.verify(Buffer.from(challenge, 'utf8'), signature);
       }
@@ -119,6 +127,7 @@ export class WalletAuthProvider {
   private buildChallenge(
     address: string,
     nonce: string,
+    issuedAt: number,
     expiresAt: number,
   ): string {
     return [
@@ -127,6 +136,7 @@ export class WalletAuthProvider {
       `domain: ${this.appUrl()}`,
       `network: ${this.networkPassphrase()}`,
       `nonce: ${nonce}`,
+      `issuedAt: ${issuedAt}`,
       `expiresAt: ${expiresAt}`,
     ].join('\n');
   }
@@ -135,7 +145,7 @@ export class WalletAuthProvider {
    * Rejects challenges whose embedded domain/network/expiry no longer match
    * the current configuration (e.g. a challenge signed for another domain).
    */
-  private assertChallengeBinding(challenge: string): void {
+  private assertChallengeBinding(address: string, challenge: string): void {
     const fields = this.parseChallenge(challenge);
     if (!fields) {
       throw new UnauthorizedException('Malformed challenge');
@@ -149,9 +159,34 @@ export class WalletAuthProvider {
       throw new UnauthorizedException('Challenge network mismatch');
     }
 
+    if (fields.address !== address) {
+      throw new UnauthorizedException('Challenge address mismatch');
+    }
+
+    const issuedAt = Number(fields.issuedAt);
     const expiresAt = Number(fields.expiresAt);
-    if (!Number.isFinite(expiresAt) || expiresAt < Date.now()) {
+    const now = Date.now();
+    if (
+      !Number.isFinite(issuedAt) ||
+      !Number.isFinite(expiresAt) ||
+      issuedAt > now ||
+      expiresAt < now
+    ) {
       throw new UnauthorizedException('Challenge expired');
+    }
+  }
+
+  /** Caps challenge issuance per address (the per-IP cap is a route throttle). */
+  private async assertChallengeRateLimit(address: string): Promise<void> {
+    const count = await this.redisService.incrWithTtl(
+      `${WALLET_CHALLENGE_RATE_KEY_PREFIX}${address}`,
+      WALLET_CHALLENGE_RATE_WINDOW_SECONDS,
+    );
+    if (count > WALLET_CHALLENGE_MAX_PER_ADDRESS) {
+      throw new HttpException(
+        'Too many challenge requests for this address; try again later',
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
     }
   }
 
@@ -170,6 +205,7 @@ export class WalletAuthProvider {
       !fields.domain ||
       !fields.network ||
       !fields.nonce ||
+      !fields.issuedAt ||
       !fields.expiresAt
     ) {
       return null;
@@ -199,11 +235,9 @@ export class WalletAuthProvider {
     }
   }
 
+  /** Legacy raw-byte signatures: tests only, never configurable. */
   private allowRawSignatures(): boolean {
-    const value = this.configService.get<string | boolean>(
-      'WALLET_AUTH_ALLOW_RAW_SIGNATURES',
-    );
-    return value === true || value === 'true';
+    return this.configService.get<string>('NODE_ENV') === 'test';
   }
 
   private assertValidAddress(address: string): void {

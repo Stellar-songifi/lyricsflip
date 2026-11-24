@@ -206,3 +206,11 @@ There is one logger, `AppLogger` (`src/logger`). Use Nest's `new Logger(MyServic
 it routes through `AppLogger`. Production writes JSON lines; other environments write readable lines.
 Every HTTP request gets an `x-request-id` and exactly one access log line. Known secret fields
 (passwords, tokens, authorization headers, JWTs) are redacted. Set `LOG_LEVEL` to `error`, `warn`, `info`, `debug` or `verbose`.
+
+## Wallet auth (LF-337)
+
+`POST /auth/challenge` issues a single-use challenge containing the domain (`APP_URL`), the Stellar network passphrase (`STELLAR_NETWORK`), a nonce, `issuedAt` and `expiresAt`. The wallet signs it with SEP-53 `signMessage`; `POST /auth/verify` checks the signature and re-checks the domain/network/expiry binding.
+
+- Raw-byte signatures are accepted only when `NODE_ENV=test`; there is no environment flag to enable them.
+- Challenge issuance is limited per IP (route throttle) and per address (5/min, Redis counter).
+- **Contract accounts (`C...`, passkey wallets) are not supported.** They require SEP-45 (web authentication for contract accounts), which is not implemented; challenge requests for them are rejected with 400.

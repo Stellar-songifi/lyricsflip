@@ -94,6 +94,15 @@ export const validationSchema = Joi.object({
   STELLAR_RPC_URL: Joi.string().uri().optional(),
   LYRICSFLIP_CONTRACT_ID: contractIdSchema.optional(),
   LYRICSFLIP_NFT_CONTRACT_ID: contractIdSchema.optional(),
+  // LF-340: escrow contract that holds wagers and pays out winnings. Its
+  // Deposited/Refunded/Settled/Claimed events are the source of truth for
+  // wager records — the indexer derives all Wager rows from them.
+  LYRICSFLIP_ESCROW_CONTRACT_ID: contractIdSchema.optional(),
+  // Stellar network passphrase, used to build read-only contract
+  // simulations (e.g. the nightly wager reconciliation balance check).
+  STELLAR_NETWORK_PASSPHRASE: Joi.string().optional(),
+  SOROBAN_ADMIN_SECRET_KEY: Joi.string().optional(),
+  CORS_ORIGINS: Joi.string().optional(),
   SOROBAN_ADMIN_SECRET_KEY: Joi.string().allow('').optional(),
   SOROBAN_ADMIN_PUBLIC_KEY: Joi.string().allow('').optional(),
 
@@ -123,6 +132,13 @@ export const validationSchema = Joi.object({
   INDEXER_BACKOFF_BASE_MS: Joi.number().integer().min(0).optional(),
   INDEXER_BACKOFF_MAX_MS: Joi.number().integer().min(0).optional(),
 
+  // Health check tuning - see configuration.ts for the defaults applied when unset.
+  INDEXER_MAX_LAG_LEDGERS: Joi.number().integer().min(0).optional().default(100),
+  RPC_HEALTH_TIMEOUT_MS: Joi.number().integer().min(1).optional().default(5000),
+  // LF-340: wager reconciliation config.
+  SOROBAN_NATIVE_TOKEN_CONTRACT_ID: contractIdSchema.optional(),
+  WAGER_RECONCILIATION_TOLERANCE: Joi.string().optional(),
+});
   // ── Health-check tuning ───────────────────────────────────────────────────
   INDEXER_MAX_LAG_LEDGERS: Joi.number()
     .integer()

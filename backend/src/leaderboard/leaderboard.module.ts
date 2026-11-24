@@ -8,6 +8,7 @@ import {
 } from './leaderboard.controller';
 import { LeaderboardRoundResult } from './entities/leaderboard-round-result.entity';
 import { LeaderboardService } from './providers/leaderboard.service';
+import { LeaderboardBoardService } from './providers/leaderboard-board.service';
 
 @Module({
   imports: [
@@ -16,7 +17,7 @@ import { LeaderboardService } from './providers/leaderboard.service';
     RedisModule,
   ],
   controllers: [LeaderboardController, PlayersController],
-  providers: [LeaderboardService],
-  exports: [LeaderboardService],
+  providers: [LeaderboardService, LeaderboardBoardService],
+  exports: [LeaderboardService, LeaderboardBoardService],
 })
 export class LeaderboardModule {}

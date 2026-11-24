@@ -36,6 +36,9 @@ FRONTEND_ENV="${REPO_ROOT}/frontend/.env.local"
 
 IDENTITY="me"
 CARDS_PER_ROUND=5
+# The escrow contract is built below but not deployed yet (LF-013); leave the
+# frontend variable empty until wagering is wired end to end.
+ESCROW_CONTRACT_ID=""
 
 LOCAL_RPC_URL="http://localhost:8000/soroban/rpc"
 LOCAL_PASSPHRASE="Standalone Network ; February 2017"
@@ -172,8 +175,9 @@ KEEP_LINES=""
 if [[ -f "${FRONTEND_ENV}" ]]; then
   KEEP_LINES="$(grep -v '^NEXT_PUBLIC_LYRICSFLIP_CONTRACT_ID' "${FRONTEND_ENV}" \
                 | grep -v '^NEXT_PUBLIC_LYRICSFLIP_NFT_CONTRACT_ID' \
-                | grep -v '^NEXT_PUBLIC_SOROBAN_RPC_URL' \
-                | grep -v '^NEXT_PUBLIC_NETWORK_PASSPHRASE' || true)"
+                | grep -v '^NEXT_PUBLIC_LYRICSFLIP_ESCROW_CONTRACT_ID' \
+                | grep -v '^NEXT_PUBLIC_STELLAR_RPC_URL' \
+                | grep -v '^NEXT_PUBLIC_STELLAR_NETWORK_PASSPHRASE' || true)"
 fi
 
 {
@@ -184,8 +188,8 @@ fi
   echo "NEXT_PUBLIC_LYRICSFLIP_NFT_CONTRACT_ID=${NFT_CONTRACT_ID}"
   echo "NEXT_PUBLIC_LYRICSFLIP_ESCROW_CONTRACT_ID=${ESCROW_CONTRACT_ID}"
   if [[ -n "${RPC_URL}" ]]; then
-    echo "NEXT_PUBLIC_SOROBAN_RPC_URL=${RPC_URL}"
-    echo "NEXT_PUBLIC_NETWORK_PASSPHRASE=${NETWORK_PASSPHRASE}"
+    echo "NEXT_PUBLIC_STELLAR_RPC_URL=${RPC_URL}"
+    echo "NEXT_PUBLIC_STELLAR_NETWORK_PASSPHRASE=${NETWORK_PASSPHRASE}"
   fi
 } > "${FRONTEND_ENV}"
 

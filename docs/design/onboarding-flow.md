@@ -1,36 +1,25 @@
-Task
-Description: Create comprehensive Figma designs for the mobile app onboarding flow, focusing on user engagement and clear value proposition.
+# First-run onboarding
 
-Delivarbles:
+The home-page stepper guides a player through the first round:
 
-Screens Designed:
-Welcome/Splash screen
-App value proposition screen
-Game mechanics explanation screen
-Account creation/wallet connection screen
-Success/Ready to play screen
-Design Elements:
+1. **Connect a wallet** — links to wallet sign-in; wallet authentication is
+   required before creating a username.
+2. **Fund on testnet** — uses Friendbot for a connected testnet wallet. The
+   step is skipped on networks that do not support Friendbot.
+3. **Choose a username** — continues through the existing wallet-authenticated
+   username flow.
+4. **Play the tutorial round** — opens the quick-game flow from a short
+   instructional card.
 
-Clear visual hierarchy
-Engaging illustrations/animations
-Progress indicator
-CTA buttons
-Wallet connection UI
-Typography system
-Color palette
-Deliverables:
+Completed account-backed steps are derived from the connected wallet, XLM
+balance, and saved username. Starting the tutorial round is remembered per
+wallet in local storage so returning players can skip the completed flow.
 
-[ ] High-fidelity screen designs
-[ ] Component library
-[ ] Interactive prototype
-[ ] Animation specifications
-[ ] Design system documentation
-[ ] Mobile responsive layouts (iOS/Android)
-Design Considerations:
+Funnel measurement is first-party and aggregate-only. The browser sends the
+completed step name without wallet addresses or session identifiers; the
+backend stores daily counts, and authorized analytics users can read the last
+30 days at `/api/v1/analytics/onboarding-funnel`. Testnet funding and the
+non-testnet funding skip are counted separately. Local counters are also kept
+on-device. Storage or analytics failures do not block onboarding.
 
-Dark/Light theme variants
-Accessibility guidelines
-Animation specifications for developers
-Design tokens for easy implementation
-
-https://www.figma.com/design/6phOWkHKQgLRhRwmBBQDXB/LyricsFlip?node-id=715-5041&t=DYVCuWSnjHjRe0Co-4
+Design reference: [LyricsFlip onboarding screens](https://www.figma.com/design/6phOWkHKQgLRhRwmBBQDXB/LyricsFlip?node-id=715-5041&t=DYVCuWSnjHjRe0Co-4).

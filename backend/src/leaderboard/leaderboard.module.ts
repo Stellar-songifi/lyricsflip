@@ -8,15 +8,18 @@ import {
 } from './leaderboard.controller';
 import { LeaderboardRoundResult } from './entities/leaderboard-round-result.entity';
 import { LeaderboardService } from './providers/leaderboard.service';
+import { LeaderboardBoardService } from './providers/leaderboard-board.service';
+import { AntiCheatModule } from '../anti-cheat/anti-cheat.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([LeaderboardRoundResult]),
     forwardRef(() => IndexerModule),
+    forwardRef(() => AntiCheatModule),
     RedisModule,
   ],
   controllers: [LeaderboardController, PlayersController],
-  providers: [LeaderboardService],
-  exports: [LeaderboardService],
+  providers: [LeaderboardService, LeaderboardBoardService],
+  exports: [LeaderboardService, LeaderboardBoardService],
 })
 export class LeaderboardModule {}

@@ -3,26 +3,6 @@
  *
  * Per-card 15-second countdown for Issue #472 (LF-055), synced with the
  * contract's answer window for Issue #679 (LF-193).
- *
- * The contract opens the window when the `next_card` transaction is included
- * in a ledger (`CARD_ANSWER_WINDOW_SECONDS`, 15 s) and scores anything that
- * lands after it as wrong. A countdown that starts at render time therefore
- * keeps accepting clicks after the contract window has closed.
- *
- * When the caller supplies `startedAtMs` (the ledger close time of the
- * `next_card` transaction) the countdown is derived from that absolute
- * timestamp, minus one ledger of submission latency, so the UI closes early
- * rather than accepting an answer the contract will reject. Without an anchor
- * the hook keeps its original local countdown.
- *
- * - Start the timer whenever a new card is displayed.
- * - On timeout, call `onTimeout()` so the parent can flip the card and
- *   count the card as a miss.
- * - Stop the timer (and reset it) when `isActive` becomes false (e.g.
- *   the player answered or the component unmounts).
- *
- * The timer does NOT tick if the user prefers reduced motion; callers
- * should still respect that signal for the flip animation.
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -98,8 +78,7 @@ export function useCardTimer({
   }, []);
 
   // Ledger-anchored countdown: a single interval that recomputes the
-  // remaining seconds from the contract deadline. It is created once per
-  // card and cleared on unmount.
+  // remaining seconds from the contract deadline.
   useEffect(() => {
     if (deadlineMs === null || !isActive || firedRef.current) return;
 

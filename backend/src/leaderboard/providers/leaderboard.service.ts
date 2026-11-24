@@ -4,23 +4,18 @@ import { Repository } from 'typeorm';
 import { OnEvent } from '@nestjs/event-emitter';
 import { RedisService } from '../../redis/redis.service';
 import { LeaderboardRoundResult } from '../entities/leaderboard-round-result.entity';
-import {
-  LeaderboardEntryDto,
-  LeaderboardPeriod,
-  LeaderboardQueryDto,
-  PaginatedLeaderboardDto,
-} from '../dto/leaderboard.dto';
+import { LeaderboardBoardService } from './leaderboard-board.service';
 import {
   PlayerBadgeDto,
   PlayerProfileDto,
   PlayerRecentRoundDto,
 } from '../dto/player-profile.dto';
+import { ModerationService } from '../../anti-cheat/providers/moderation.service';
 
 // Short TTL: the leaderboard is meant to reflect the last few completed
 // rounds fairly promptly, and cache invalidation on 'round.completed'
 // already clears it on write, so this mostly protects against read bursts.
 const CACHE_TTL_SECONDS = 30;
-const CACHE_KEY_PREFIX = 'leaderboard';
 const PROFILE_CACHE_KEY_PREFIX = 'player-profile';
 const RECENT_ROUNDS_LIMIT = 20;
 
@@ -43,6 +38,10 @@ export class LeaderboardService {
     @InjectRepository(LeaderboardRoundResult)
     private readonly roundResultRepository: Repository<LeaderboardRoundResult>,
     private readonly redisService: RedisService,
+    private readonly boardService: LeaderboardBoardService,
+  ) {}
+
+    private readonly moderationService: ModerationService,
   ) {}
 
   // Retrieves a page of the leaderboard for a period/genre combination,
@@ -96,8 +95,16 @@ export class LeaderboardService {
     const rows = await qb.getRawMany();
     const total = rows.length;
     const offset = (page - 1) * limit;
-    const data: LeaderboardEntryDto[] = rows
-      .slice(offset, offset + limit)
+
+    // Fetch moderation status for every address in this page in parallel.
+    const pageRows = rows.slice(offset, offset + limit);
+    const flagStatuses = await Promise.all(
+      pageRows.map((row) =>
+        this.moderationService.getAddressStatus(row.address),
+      ),
+    );
+
+    const data: LeaderboardEntryDto[] = pageRows
       .map((row, index) => {
         const roundsPlayed = Number(row.roundsPlayed);
         const roundsWon = Number(row.roundsWon);
@@ -115,8 +122,14 @@ export class LeaderboardService {
           totalAnswers,
           accuracy: totalAnswers > 0 ? correctAnswers / totalAnswers : 0,
           bestRoundScore: Number(row.bestRoundScore),
+          flagStatus: flagStatuses[index],
         };
-      });
+      })
+      // Suppress hidden/banned entries from the public leaderboard.
+      .filter(
+        (entry) =>
+          entry.flagStatus !== 'hidden' && entry.flagStatus !== 'banned',
+      );
 
     const result: PaginatedLeaderboardDto = {
       data,
@@ -217,7 +230,7 @@ export class LeaderboardService {
     );
     const unclaimedWinnings = String(winningsRow?.[0]?.unclaimed ?? '0');
 
-    const rank = await this.getPlayerRank(address);
+    const rank = await this.boardService.getRank(address, 'all', 'points');
 
     const profile: PlayerProfileDto = {
       address,
@@ -270,39 +283,15 @@ export class LeaderboardService {
 
   // The indexer emits a coarse 'round.completed' event as soon as it decodes
   // the on-chain event, ahead of resolving it into per-player rows via
-  // recordRoundResult. Invalidate eagerly so a stale page is never served
-  // past this point, even before those rows land.
+  // recordRoundResult. Invalidate eagerly so a stale profile is never served
+  // past this point, even before those rows land. (The ranked boards are
+  // refreshed separately by LeaderboardBoardService.)
   @OnEvent('round.completed')
   async handleRoundCompleted(): Promise<void> {
     await this.invalidateCache();
   }
 
   private async invalidateCache(): Promise<void> {
-    await this.redisService.delPattern(`${CACHE_KEY_PREFIX}:*`);
     await this.redisService.delPattern(`${PROFILE_CACHE_KEY_PREFIX}:*`);
-  }
-
-  private cacheKey(
-    period: LeaderboardPeriod,
-    genre: string | undefined,
-    page: number,
-    limit: number,
-  ): string {
-    return `${CACHE_KEY_PREFIX}:${period}:${genre ?? 'all'}:${page}:${limit}`;
-  }
-
-  private periodStart(period: LeaderboardPeriod): Date | null {
-    const now = new Date();
-    if (period === 'day' || period === 'daily') {
-      return new Date(
-        Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()),
-      );
-    }
-    if (period === 'week' || period === 'weekly') {
-      const start = new Date(now);
-      start.setUTCDate(start.getUTCDate() - 7);
-      return start;
-    }
-    return null;
   }
 }

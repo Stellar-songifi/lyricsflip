@@ -1,7 +1,3 @@
-import { Inter, JetBrains_Mono } from 'next/font/google';
-import localFont from 'next/font/local';
-import { Suspense } from 'react';
-import { Toaster } from 'sonner';
 import { NextIntlClientProvider } from 'next-intl';
 import { getLocale, getMessages, getTranslations } from 'next-intl/server';
 import { ThemeProvider } from '@/components/providers/theme-provider';
@@ -24,6 +20,7 @@ const interV = localFont({
   src: '../fonts/inter-v.ttf',
   variable: '--font-interv',
 });
+
 
 export default async function RootLayout({
   children,

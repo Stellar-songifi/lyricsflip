@@ -2,14 +2,27 @@
 # seed-cards.sh — read seed/songs.json and invoke add_card for each
 # entry against the deployed LyricsFlip game contract.
 #
+# LF-353: This script is now a thin wrapper that delegates to the unified
+# seeder (`npm run seed:unified` in the backend) when Node.js and the
+# backend dependencies are available. The unified seeder:
+#   1. Inserts into the database.
+#   2. Checks which cards already exist on-chain (by sha256 fingerprint).
+#   3. Pushes only new cards in batches.
+#   4. Writes back the on-chain card_id to the database.
+# This keeps the database and the chain in sync from a single source.
+#
+# When Node.js is not available, the script falls back to the original
+# direct CLI invocation path (below) so it still works in a pure Rust
+# toolchain environment.
+#
 # Usage:
 #   ./scripts/seed-cards.sh [network]   (default: testnet)
 #
 # Prerequisites:
-#   • deploy.sh has already been run (NEXT_PUBLIC_LYRICSFLIP_CONTRACT_ID must
-#     be set in frontend/.env.local, or exported in the environment).
+#   • deploy.sh has already been run (LYRICSFLIP_CONTRACT_ID must be set
+#     in the environment or frontend/.env.local).
 #   • Stellar CLI installed.
-#   • jq installed (https://stedolan.github.io/jq/).
+#   • For the unified path: Node.js + backend npm dependencies installed.
 #   • A funded identity called "me" on the target network.
 
 set -euo pipefail
@@ -18,10 +31,49 @@ NETWORK="${1:-testnet}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ONCHAIN_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 REPO_ROOT="$(cd "${ONCHAIN_DIR}/.." && pwd)"
+BACKEND_DIR="${REPO_ROOT}/backend"
 FRONTEND_ENV="${REPO_ROOT}/frontend/.env.local"
 CARDS_JSON="${REPO_ROOT}/seed/songs.json"
 
 IDENTITY="me"
+
+# ---------------------------------------------------------------------------
+# Resolve contract ID
+# ---------------------------------------------------------------------------
+if [[ -z "${NEXT_PUBLIC_LYRICSFLIP_CONTRACT_ID:-}" ]]; then
+  if [[ -f "${FRONTEND_ENV}" ]]; then
+    # shellcheck disable=SC1090
+    NEXT_PUBLIC_LYRICSFLIP_CONTRACT_ID="$(grep '^NEXT_PUBLIC_LYRICSFLIP_CONTRACT_ID=' "${FRONTEND_ENV}" \
+      | head -1 | cut -d= -f2)"
+  fi
+fi
+
+if [[ -z "${NEXT_PUBLIC_LYRICSFLIP_CONTRACT_ID:-}" ]]; then
+  echo "ERROR: NEXT_PUBLIC_LYRICSFLIP_CONTRACT_ID is not set."
+  echo "Run ./scripts/deploy.sh first, or export the variable."
+  exit 1
+fi
+
+export LYRICSFLIP_CONTRACT_ID="${NEXT_PUBLIC_LYRICSFLIP_CONTRACT_ID}"
+export STELLAR_NETWORK="${NETWORK}"
+
+# ---------------------------------------------------------------------------
+# Try the unified seeder (LF-353) first
+# ---------------------------------------------------------------------------
+if command -v node &>/dev/null && [[ -d "${BACKEND_DIR}/node_modules" ]]; then
+  log() { echo "[seed-cards.sh] $*"; }
+  log "Using unified seeder (LF-353) — DB + chain from one source."
+  log "Contract: ${LYRICSFLIP_CONTRACT_ID} on ${NETWORK}"
+  log "Identity: ${IDENTITY}"
+
+  cd "${BACKEND_DIR}"
+  exec npm run seed:unified
+fi
+
+# ---------------------------------------------------------------------------
+# Fallback: direct CLI invocation (original path)
+# ---------------------------------------------------------------------------
+log() { echo "[seed-cards.sh] $*"; }
 
 # ---------------------------------------------------------------------------
 # Network configuration
@@ -46,28 +98,10 @@ case "${NETWORK}" in
     ;;
 esac
 
-log() { echo "[seed-cards.sh] $*"; }
-
-# ---------------------------------------------------------------------------
-# Resolve contract ID
-# ---------------------------------------------------------------------------
-if [[ -z "${NEXT_PUBLIC_LYRICSFLIP_CONTRACT_ID:-}" ]]; then
-  if [[ -f "${FRONTEND_ENV}" ]]; then
-    # shellcheck disable=SC1090
-    NEXT_PUBLIC_LYRICSFLIP_CONTRACT_ID="$(grep '^NEXT_PUBLIC_LYRICSFLIP_CONTRACT_ID=' "${FRONTEND_ENV}" \
-      | head -1 | cut -d= -f2)"
-  fi
-fi
-
-if [[ -z "${NEXT_PUBLIC_LYRICSFLIP_CONTRACT_ID:-}" ]]; then
-  echo "ERROR: NEXT_PUBLIC_LYRICSFLIP_CONTRACT_ID is not set."
-  echo "Run ./scripts/deploy.sh first, or export the variable."
-  exit 1
-fi
-
 CONTRACT_ID="${NEXT_PUBLIC_LYRICSFLIP_CONTRACT_ID}"
 OWNER_ADDRESS="$(stellar keys address "${IDENTITY}")"
 
+log "Fallback mode: direct CLI invocation (no DB write-back)."
 log "Seeding cards into ${CONTRACT_ID} on ${NETWORK}…"
 log "Caller: ${OWNER_ADDRESS}"
 
@@ -85,7 +119,7 @@ if [[ ! -f "${CARDS_JSON}" ]]; then
 fi
 
 CARD_COUNT="$(jq 'length' "${CARDS_JSON}")"
-log "Found ${CARD_COUNT} cards in cards.json"
+log "Found ${CARD_COUNT} cards in songs.json"
 
 # ---------------------------------------------------------------------------
 # Add each card
@@ -114,3 +148,5 @@ while IFS= read -r CARD_JSON; do
 done < <(jq -c '.[]' "${CARDS_JSON}")
 
 log "Seeding complete. ${INDEX} cards added."
+log "WARNING: Fallback mode does not write back on-chain card_ids to the database."
+log "         Run 'npm run seed:unified' in the backend for full DB + chain sync."

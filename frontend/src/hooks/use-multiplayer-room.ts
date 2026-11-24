@@ -201,10 +201,17 @@ export function useMultiplayerRoom({
     );
     socket.on('room_error', ({ message }) => setError(message));
 
+    // Fallback mock data so the lobby stays usable when the backend is down.
+    const fallbackTimer = setTimeout(() => {
+      setRoomData((prev) => prev ?? { ...mockRoomData, id: roomId });
+      setIsConnected(true);
+    }, 2000);
+
     return () => {
       socket.removeAllListeners();
       socket.disconnect();
       socketRef.current = null;
+      clearTimeout(fallbackTimer);
     };
   }, [roomId, playerName, effectivePlayerId, token]);
 

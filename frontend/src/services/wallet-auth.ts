@@ -2,8 +2,8 @@ import { post } from './api';
 import { clearAuthTokens } from './api';
 
 // Talks to the backend's wallet-based auth endpoints (backend/src/auth/auth.controller.ts
-// `challenge`/`verify`). NEXT_PUBLIC_API_URL must point at the bare backend
-// origin (e.g. `http://localhost:4000`) - the backend has no `/api` prefix.
+// `challenge`/`verify`). NEXT_PUBLIC_API_URL is normalized to the backend's
+// versioned API root (e.g. `http://localhost:4000/api/v1`).
 
 /** Nonce string to sign with the wallet (e.g. StellarWalletsKit.signMessage). */
 export interface WalletChallengeResponse {

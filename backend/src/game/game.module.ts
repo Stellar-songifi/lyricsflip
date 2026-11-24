@@ -17,6 +17,8 @@ import { GameGateway } from './game.gateway';
 import { CustomGameMode } from './entities/custom-game-mode.entity';
 import { GameSessionModule } from '../game-session/game-session.module';
 import { AuthModule } from '../auth/auth.module';
+// LF-339: membership checks against chain_round_player for the game gateway.
+import { RoundPlayersRepository } from '../room/round-players.repository';
 
 @Module({
   imports: [TypeOrmModule.forFeature([CustomGameMode]), GameSessionModule, AuthModule],
@@ -38,6 +40,9 @@ import { AuthModule } from '../auth/auth.module';
     CustomGameModeService,
     MatchmakingService,
     GameStatsService,
+
+    // LF-339: round membership repository for socket auth.
+    RoundPlayersRepository,
 
     // `/game` websocket namespace
     GameGateway,

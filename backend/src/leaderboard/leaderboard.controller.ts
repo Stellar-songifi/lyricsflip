@@ -7,55 +7,76 @@ import {
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
 import { LeaderboardService } from './providers/leaderboard.service';
+import { LeaderboardBoardService } from './providers/leaderboard-board.service';
 import {
   LeaderboardQueryDto,
+  LeaderboardRankQueryDto,
   PaginatedLeaderboardDto,
+  PlayerRankDto,
 } from './dto/leaderboard.dto';
 import { PlayerProfileDto } from './dto/player-profile.dto';
+import {
+  LeaderboardThrottle,
+  PlayerProfileThrottle,
+} from '../common/throttler/throttle-limits';
 
 // Controller for managing leaderboard operations.
 @ApiTags('leaderboard')
 @Controller('leaderboard')
 export class LeaderboardController {
-  constructor(private readonly leaderboardService: LeaderboardService) {}
+  constructor(private readonly boardService: LeaderboardBoardService) {}
 
-  // Retrieve the leaderboard, optionally filtered by period and genre.
+  // Retrieve a page of a leaderboard for a window and metric.
   @Get()
+  @LeaderboardThrottle()
   @ApiOperation({
     summary: 'Get leaderboard',
     description:
-      'Retrieves the leaderboard ranking, filterable by period and genre',
+      'Ranking derived from indexed on-chain data, for a daily, weekly or all-time window and a wins, points or streak metric',
   })
   @ApiResponse({
     status: 200,
     description: 'Leaderboard successfully retrieved',
     type: PaginatedLeaderboardDto,
   })
-  @ApiResponse({ status: 500, description: 'Internal server error occurred' })
+  @ApiResponse({ status: 400, description: 'Invalid window, metric or page' })
   getLeaderboard(@Query() query: LeaderboardQueryDto) {
-    return this.leaderboardService.getLeaderboard(query);
+    return this.boardService.getBoard(query);
   }
 
   // Retrieve the rank of a specific player.
+  @Get('rank/:address')
   @Get('rank/:playerId')
+  @LeaderboardThrottle()
   @ApiOperation({
     summary: 'Get player rank',
-    description: 'Retrieves the all-time, all-genre rank of a specific player',
+    description:
+      'Rank and score of an address on the board for a window and metric',
   })
   @ApiParam({
-    name: 'playerId',
+    name: 'address',
     type: 'string',
-    description: 'Unique identifier of the player',
-    example: 'player123',
+    description: 'Stellar address of the player',
   })
   @ApiResponse({
     status: 200,
     description: 'Player rank successfully retrieved',
+    type: PlayerRankDto,
   })
-  @ApiResponse({ status: 404, description: 'Player not found' })
-  @Get('rank/:playerId')
-  getPlayerRank(@Param('playerId') playerId: string) {
-    return this.leaderboardService.getPlayerRank(playerId);
+  @ApiResponse({ status: 404, description: 'Player has no ranked rounds' })
+  async getPlayerRank(
+    @Param('address') address: string,
+    @Query() query: LeaderboardRankQueryDto,
+  ) {
+    const rank = await this.boardService.getRank(
+      address,
+      query.window,
+      query.metric,
+    );
+    if (!rank) {
+      throw new NotFoundException(`Player ${address} is not on this board`);
+    }
+    return rank;
   }
 }
 
@@ -67,6 +88,7 @@ export class PlayersController {
 
   // Retrieve the profile of a specific player by address.
   @Get(':address')
+  @PlayerProfileThrottle()
   @ApiOperation({
     summary: 'Get player profile',
     description:

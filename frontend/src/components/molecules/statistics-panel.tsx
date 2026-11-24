@@ -1,9 +1,4 @@
 'use client';
-import { useEffect, useState } from 'react';
-
-import { useGameTimer } from '@/features/game/hooks/use-game-timer';
-import GameResultPopup from '../organisms/game-result-popup';
-import { formatTime } from '@/lib/utils';
 
 interface StatisticsPanelProps {
   /** Pre-formatted remaining time (e.g. `04:12`). */

@@ -7,6 +7,7 @@ import { Button } from '@/components/atoms/button';
 import ChallengeInvite from '@/components/organisms/challenge-invite';
 import { LyricCard } from '@/components/organisms/lyric-card';
 import RoundScoreboard from '@/components/organisms/round-scoreboard';
+import { SpectatorView } from '@/components/organisms/SpectatorView';
 import { SongOptions } from '@/components/molecules/song-options';
 import {
   CARD_TIMEOUT_SECONDS,
@@ -127,7 +128,7 @@ function MultiplayerRoundClient() {
   const [isLoading, setIsLoading] = useState(true);
   const [isBusy, setIsBusy] = useState(false);
   const [error, setError] = useState<string | null>(
-    isValidId ? null : 'That invite link is not valid.',
+    isValidId ? null : t('invalidInvite'),
   );
 
   // ── Game state (LF-195) ───────────────────────────────────────────────────
@@ -230,7 +231,7 @@ function MultiplayerRoundClient() {
     } finally {
       setIsLoading(false);
     }
-  }, [systemCalls, roundId, rawRoundId]);
+  }, [systemCalls, roundId, rawRoundId, t]);
 
   useEffect(() => {
     if (!systemCalls || roundId === null) {
@@ -305,7 +306,7 @@ function MultiplayerRoundClient() {
       await systemCalls.startRound(roundId);
       await loadRound();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to mark ready');
+      setError(err instanceof Error ? err.message : t('failedReady'));
     } finally {
       setIsBusy(false);
     }
@@ -572,6 +573,19 @@ function MultiplayerRoundClient() {
           Back to lobby
         </Button>
       </div>,
+    );
+  }
+
+  // ── Spectator mode ────────────────────────────────────────────────────────
+  // Non-participants who open a live/started round link see the spectator view.
+  if (isStarted && !isParticipant) {
+    return shell(
+      <>
+        <h1 className="text-2xl font-bold mb-6">
+          Round {rawRoundId} · {getGenreDisplayName(round.genre)}
+        </h1>
+        <SpectatorView roundId={rawRoundId} />
+      </>,
     );
   }
 

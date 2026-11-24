@@ -353,20 +353,26 @@ stellar contract invoke --id <LYRICSFLIP_CONTRACT_ID> --source me --network test
 
 > `build_question_card` needs **at least 4 distinct titles** (3 wrong options plus the right one); `create_round` needs at least `cards_per_round` cards.
 
-### 3. Run the frontend
+### 3. Run the frontend against shared testnet contracts
+
+The repository includes a shared testnet deployment record in
+[`deployments/testnet.json`](deployments/testnet.json). New contributors do not
+need to deploy contracts to run the frontend.
 
 ```bash
 cd frontend
 npm install
-cat > .env.local <<'ENV'
-NEXT_PUBLIC_STELLAR_RPC_URL=https://soroban-testnet.stellar.org
-NEXT_PUBLIC_STELLAR_NETWORK_PASSPHRASE=Test SDF Network ; September 2015
-NEXT_PUBLIC_LYRICSFLIP_CONTRACT_ID=<LYRICSFLIP_CONTRACT_ID>
-NEXT_PUBLIC_LYRICSFLIP_NFT_CONTRACT_ID=<LYRICSFLIP_NFT_CONTRACT_ID>
-NEXT_PUBLIC_API_URL=http://localhost:4000
-ENV
-npm run dev        # http://localhost:3000
+npm run env:testnet   # writes frontend/.env.local from deployments/testnet.json
+npm run dev           # http://localhost:3000
 ```
+
+Shared testnet IDs from `deployments/testnet.json`:
+
+- `lyricsflip`: `CBNLE2RKKSFYPI7NPPTQL6OW6K42C46LBDW5TXZKK2OR5LJLUJ32CNGX`
+- `lyricsflip-nft`: `CCUREEL7CHI5MHE6H4KHEZYXROG4RKAZYGWQAGPOJZPSDCSII5PNEXNT`
+
+If you need your own deployment instead of the shared one, follow the contract
+deployment steps above and replace the IDs in `frontend/.env.local`.
 
 ### 4. Run the backend
 

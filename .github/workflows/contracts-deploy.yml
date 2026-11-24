@@ -33,7 +33,7 @@ jobs:
       DEPLOYMENT_FILE: deployments/testnet.json
       # Expected contract version after migrate (LF-157). Bump alongside the
       # contract's `version()` constant.
-      EXPECTED_VERSION: '1'
+      EXPECTED_VERSION: '2'
     steps:
       - uses: actions/checkout@v4
         with:
@@ -92,13 +92,15 @@ jobs:
             NFT_ID=$(stellar contract deploy --wasm "$WASM_DIR/lyricsflip_nft.wasm" \
               --source deployer --network "$NETWORK" -- \
               --owner "$OWNER" --minter "$GAME_ID" \
-              --token_name "LyricsFlip" --token_symbol "LFLIP" \
+              --name "LyricsFlip" --symbol "LFLIP" \
               --base_uri "https://lyricsflip.xyz/nft/")
-            ESCROW_ID=$(stellar contract deploy --wasm "$WASM_DIR/lyricsflip_escrow.wasm" \
-              --source deployer --network "$NETWORK" -- \
-              --owner "$GAME_ID" --treasury "$OWNER" --fee_bps 0)
-            stellar contract invoke --id "$GAME_ID" --source deployer --network "$NETWORK" -- \
-              set_escrow_contract --caller "$OWNER" --escrow "$ESCROW_ID"
+            if [[ -f "$WASM_DIR/lyricsflip_escrow.wasm" ]]; then
+              ESCROW_ID=$(stellar contract deploy --wasm "$WASM_DIR/lyricsflip_escrow.wasm" \
+                --source deployer --network "$NETWORK" -- \
+                --owner "$GAME_ID" --treasury "$OWNER" --fee_bps 0)
+              stellar contract invoke --id "$GAME_ID" --source deployer --network "$NETWORK" -- \
+                set_escrow_contract --caller "$OWNER" --escrow "$ESCROW_ID"
+            fi
             stellar contract invoke --id "$GAME_ID" --source deployer --network "$NETWORK" \
               -- set_cards_per_round --caller "$OWNER" --value 5
           else
@@ -153,15 +155,18 @@ jobs:
             # LF-362: Card requires difficulty (1-3). Keep the source file
             # untouched and default to 2 when an entry omits it. jq builds the
             # JSON so quotes and backslashes in lyrics cannot break the payload.
-            jq -c '[.[] | {card_id: 0, genre, artist, title, year,
-                            difficulty: (.difficulty // 2), lyrics}]' \
+            # The on-chain contract currently rejects years before 1900.
+            jq -c '[.[] | select(.year >= 1900 and .year <= (now | strftime("%Y") | tonumber))
+                    | {card_id: 0, genre, artist, title, year,
+                       difficulty: (.difficulty // 2), lyrics}]' \
               seed/songs.json > "$CARDS_JSON"
             total=$(jq 'length' "$CARDS_JSON")
-            for ((start = 0; start < total; start += 20)); do
-              batch=$(jq -c ".[$start:($start + 20)]" "$CARDS_JSON")
+            batch_size=8
+            for ((start = 0; start < total; start += batch_size)); do
+              batch=$(jq -c ".[$start:($start + $batch_size)]" "$CARDS_JSON")
               stellar contract invoke --id "$GAME_ID" --source deployer --network "$NETWORK" \
                 -- add_cards --caller "$OWNER" --cards "$batch" >/dev/null
-              seeded=$(( start + 20 < total ? start + 20 : total ))
+              seeded=$(( start + batch_size < total ? start + batch_size : total ))
               echo "Seeded $seeded/$total cards"
             done
           fi

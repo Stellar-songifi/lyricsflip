@@ -2,14 +2,14 @@
   "network": "testnet",
   "rpcUrl": "https://soroban-testnet.stellar.org",
   "networkPassphrase": "Test SDF Network ; September 2015",
-  "lyricsflip": "",
-  "lyricsflipNft": "",
-  "tag": "",
-  "commit": "",
-  "deployedAt": "",
+  "lyricsflip": "CBNLE2RKKSFYPI7NPPTQL6OW6K42C46LBDW5TXZKK2OR5LJLUJ32CNGX",
+  "lyricsflipNft": "CCUREEL7CHI5MHE6H4KHEZYXROG4RKAZYGWQAGPOJZPSDCSII5PNEXNT",
+  "tag": "lf363-shared-testnet",
+  "commit": "693d0ef09d6e3dd996ca3193889332552ad9c92b",
+  "deployedAt": "2026-11-24T08:00:55Z",
   "wasm": {
-    "lyricsflip": "",
-    "lyricsflipNft": ""
+    "lyricsflip": "b2fa52999bbf1f1bd7f4189f4231014489ccab05caedb9674d145b017adcdd91",
+    "lyricsflipNft": "1c62db20c3240ebb61c1302a9a0cc6506bb8c5f0b178f5f74d144619f22a92c7"
   },
   "lyricsflipEscrow": ""
 }

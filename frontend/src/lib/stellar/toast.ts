@@ -1,5 +1,6 @@
 import { toast } from 'sonner';
 import type { contract } from '@stellar/stellar-sdk';
+import type { QueryClient } from '@tanstack/react-query';
 import {
   type ContractErrorInfo,
   LYRICSFLIP_ERRORS,
@@ -17,6 +18,17 @@ const MIN_FEE_STROOPS = BigInt(1_000_000);
 
 const explorerTxUrl = (hash: string, networkPassphrase: string) =>
   `https://stellar.expert/explorer/${networkPassphrase === PUBLIC_PASSPHRASE ? 'public' : 'testnet'}/tx/${hash}`;
+
+export interface WithTxToastOptions {
+  /**
+   * Query keys to invalidate after the transaction is confirmed.  Pass the
+   * round-related keys from `QUERY_KEYS` (see `use-chain-queries.ts`) so
+   * every subscriber refreshes once instead of waiting for the next polling
+   * tick.
+   */
+  invalidateKeys?: unknown[][];
+  queryClient?: QueryClient;
+}
 
 interface HorizonBalance {
   asset_type: string;
@@ -78,6 +90,9 @@ async function assertSufficientBalance(
  * When `publicKey` is provided a balance pre-check runs before the wallet
  * prompt to catch unfunded / low-balance accounts early and show a friendly
  * error instead of an opaque simulation failure.
+ *
+ * After a successful submission, all `invalidateKeys` are invalidated on the
+ * provided `queryClient` so related queries re-fetch immediately.
  */
 export interface TxResult<T> {
   result: T;
@@ -101,7 +116,10 @@ export async function withTxToastResult<T>(
   networkPassphrase: string,
   errors: Record<number, ContractErrorInfo> = LYRICSFLIP_ERRORS,
   publicKey?: string | null,
+  options: WithTxToastOptions = {},
 ): Promise<TxResult<T>> {
+  const { invalidateKeys, queryClient } = options;
+
   // Balance pre-check: surface friendly errors before asking for a signature.
   if (publicKey) {
     await assertSufficientBalance(publicKey);
@@ -124,6 +142,17 @@ export async function withTxToastResult<T>(
           }
         : undefined,
     });
+
+    // Invalidate any provided React Query keys so subscribers pick up the
+    // new chain state immediately without waiting for the next poll tick.
+    if (queryClient && invalidateKeys?.length) {
+      await Promise.all(
+        invalidateKeys.map((key) =>
+          queryClient.invalidateQueries({ queryKey: key }),
+        ),
+      );
+    }
+
     // `createdAt` only exists on the success variant of the response union.
     const txResponse = sent.getTransactionResponse;
     const closedAtSeconds =

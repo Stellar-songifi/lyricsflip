@@ -7,12 +7,21 @@ import {
   Query,
   ParseUUIDPipe,
   ParseEnumPipe,
+  HttpCode,
+  HttpStatus,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiQuery } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiQuery,
+  ApiResponse,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
 import { SongsService } from './songs.service';
 import { GenresService } from './genres.service';
 import { QuerySongsDto } from './dto/query-songs.dto';
 import { RecordGenrePlayDto } from './dto/record-genre-play.dto';
+import { SubmitSongDto } from './dto/submit-song.dto';
 import { Genre } from './enums/genre.enum';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import {
@@ -20,8 +29,9 @@ import {
   SearchThrottle,
 } from '../common/throttler/throttle-limits';
 
-// Public, read-only song catalogue. Curation (create/update/delete/approve)
-// lives under AdminSongsController ('/admin/songs') — see LF-090.
+// Public song catalogue and submission.
+// Curation (review/approve/reject/publish) lives under AdminSongsController
+// ('/admin/songs') — see LF-090 / LF-343.
 @ApiTags('songs')
 @Controller('songs')
 export class SongsController {
@@ -37,6 +47,23 @@ export class SongsController {
   })
   findAll(@Query() query: QuerySongsDto) {
     return this.songsService.findAll(query);
+  }
+
+  @Post('submit')
+  @HttpCode(HttpStatus.CREATED)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Submit a song for review',
+    description:
+      'Creates a card in SUBMITTED status. ' +
+      'An admin will review it before it becomes publicly visible. ' +
+      'The license must be one of the values allowed by the content policy: ' +
+      'CC0-1.0, CC-PDDC, LicenseRef-PublicDomain, or LicenseRef-<provider>.',
+  })
+  @ApiResponse({ status: 201, description: 'Song submitted — pending admin review' })
+  @ApiResponse({ status: 400, description: 'Validation error or license not permitted by content policy' })
+  submitSong(@Body() dto: SubmitSongDto) {
+    return this.songsService.submit(dto);
   }
 
   @Get('random')

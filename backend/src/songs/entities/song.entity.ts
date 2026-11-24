@@ -13,17 +13,43 @@ import { SongDifficulty } from '../enums/song-difficulty.enum';
 import { Tag } from './tag.entity';
 
 /**
- * Curation state of a song in the catalogue:
- *  - draft: newly added, not yet reviewed; excluded from public listings.
- *  - approved: reviewed and ready to be pushed on-chain.
- *  - on_chain: synced to the contract via add_card/add_cards (see
- *    SongSyncService); onChainCardId holds the id the contract returned.
+ * Full curation lifecycle of a song card:
+ *
+ *   submitted ──► in_review ──► approved ──► on_chain
+ *                     └──────► rejected
+ *
+ *  - submitted: a user or admin has proposed the card; excluded from public
+ *    listings and not eligible for on-chain sync.
+ *  - in_review: an admin has picked it up for review; still excluded from
+ *    public listings.
+ *  - approved: an admin has verified the license and content; the card will
+ *    be included in the next POST /admin/songs/sync run.
+ *  - on_chain: synced to the contract via add_cards (see SongSyncService);
+ *    onChainCardId holds the id the contract returned.
+ *  - rejected: the card was refused (bad license, policy violation, etc.);
+ *    rejectionReason records why.
+ *
+ * Legacy values kept for backward compatibility with existing rows:
+ *  - draft: equivalent to submitted; treated as submitted in all service
+ *    logic (the initial migration used 'draft' before the full workflow
+ *    was introduced).
  */
 export enum SongStatus {
   DRAFT = 'draft',
+  SUBMITTED = 'submitted',
+  IN_REVIEW = 'in_review',
   APPROVED = 'approved',
   ON_CHAIN = 'on_chain',
+  REJECTED = 'rejected',
 }
+
+/** Statuses that are not yet publicly visible. */
+export const UNPUBLISHED_STATUSES: SongStatus[] = [
+  SongStatus.DRAFT,
+  SongStatus.SUBMITTED,
+  SongStatus.IN_REVIEW,
+  SongStatus.REJECTED,
+];
 
 /**
  * Off-chain copy of the contract `Card` (card_id, genre, artist, title, year,
@@ -39,7 +65,7 @@ export class Song {
   @Column({ type: 'bigint', unique: true, nullable: true })
   onChainCardId: string | null;
 
-  @Column({ type: 'enum', enum: SongStatus, default: SongStatus.DRAFT })
+  @Column({ type: 'enum', enum: SongStatus, default: SongStatus.SUBMITTED })
   status: SongStatus;
 
   @Column({ type: 'enum', enum: Genre })
@@ -73,9 +99,28 @@ export class Song {
   @Column('text')
   source: string;
 
-  /** SPDX identifier, or `LicenseRef-<provider>` for licensed data. */
+  /**
+   * SPDX identifier or `LicenseRef-<provider>` for licensed data.
+   * Must be one of the values listed in ALLOWED_LICENSES
+   * (songs/constants/allowed-licenses.ts), which mirrors docs/content-policy.md.
+   */
   @Column()
   license: string;
+
+  /**
+   * UUID of the User who reviewed this card (set when status moves to
+   * in_review, approved, or rejected). Stored as a plain UUID string to
+   * avoid a cross-domain FK from Catalogue to Identity.
+   */
+  @Column({ type: 'uuid', nullable: true })
+  reviewerId: string | null;
+
+  /**
+   * Human-readable reason recorded when an admin rejects a card.
+   * Required on rejection; null for all other statuses.
+   */
+  @Column({ type: 'text', nullable: true })
+  rejectionReason: string | null;
 
   @Column({ default: 0 })
   playCount: number;

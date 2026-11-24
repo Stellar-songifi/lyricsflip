@@ -20,6 +20,7 @@ export interface UseStellarResult {
   isLoading: boolean;
   error: Error | null;
   warnings: string[];
+  networkMismatch: boolean;
   connect: () => Promise<void>;
   disconnect: () => Promise<void>;
   /** True once the user holds a backend session (signed challenge or restored cookie). */
@@ -36,6 +37,7 @@ export function useStellar(): UseStellarResult {
     isLoading,
     error,
     warnings,
+    networkMismatch,
     connect,
     disconnect,
     isAuthenticated,
@@ -50,6 +52,7 @@ export function useStellar(): UseStellarResult {
     isLoading,
     error,
     warnings,
+    networkMismatch,
     connect,
     disconnect,
     isAuthenticated,

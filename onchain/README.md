@@ -313,6 +313,20 @@ cd onchain
 ./scripts/seed-cards.sh testnet
 ```
 
+### Automatic testnet reset recovery (LF-365)
+
+Stellar testnet resets wipe contract instances, so the IDs in
+`deployments/testnet.json` stop resolving. The `Contracts Deploy` workflow runs
+every six hours and uses `getLedgerEntries` on each recorded contract instance.
+When an instance is missing, it deploys fresh contracts, wires and seeds them,
+and commits the new IDs back to `deployments/testnet.json` — no manual steps
+needed. Until a preview is rebuilt with those IDs, the frontend shows a
+"Stellar testnet was reset" banner instead of an opaque `contract not found`
+error.
+
+`seed-cards.sh` accepts `STELLAR_IDENTITY` to use the workflow's `deployer`
+identity during that recovery.
+
 ### Manual deployment (alternative)
 
 If you prefer to deploy by hand:

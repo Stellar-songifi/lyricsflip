@@ -96,6 +96,7 @@ const parseImport = (fileName: string, text: string): CardFields[] => {
 };
 
 export const AdminCards = () => {
+    const t = useTranslations('adminCards');
     const { systemCalls } = useStellar();
     const [fields, setFields] = useState<CardFields>(emptyFields);
     const [fieldErrors, setFieldErrors] = useState<CardErrors>({});
@@ -115,6 +116,20 @@ export const AdminCards = () => {
         );
     }, [catalogue, search]);
 
+    const validateCard = (f: CardFields): CardErrors => {
+        const errors: CardErrors = {};
+        const year = Number(f.year);
+        if (!GENRE_VALUES.includes(f.genre as Genre)) errors.genre = t('genreMustBeOneOf', { values: GENRE_VALUES.join(", ") });
+        if (!f.artist.trim()) errors.artist = t('artistRequired');
+        if (!f.title.trim()) errors.title = t('titleRequired');
+        if (!f.lyrics.trim()) errors.lyrics = t('lyricsRequired');
+        else if (f.lyrics.length > MAX_LYRICS_LEN) errors.lyrics = t('lyricsTooLong', { max: MAX_LYRICS_LEN });
+        if (!Number.isInteger(year) || year < MIN_CARD_YEAR || year > new Date().getFullYear()) {
+            errors.year = t('yearRange', { min: MIN_CARD_YEAR, max: new Date().getFullYear() });
+        }
+        return errors;
+    };
+
     const loadCatalogue = useCallback(async () => {
         if (!systemCalls) return;
         try {
@@ -123,9 +138,9 @@ export const AdminCards = () => {
             for (let id = count; id > BigInt(0) && ids.length < CATALOGUE_SIZE; id--) ids.push(id);
             setCatalogue(await Promise.all(ids.map((id) => systemCalls.getCard(id))));
         } catch (err) {
-            setError(err instanceof Error ? err.message : "Failed to load cards");
+            setError(err instanceof Error ? err.message : t('failedLoad'));
         }
-    }, [systemCalls]);
+    }, [systemCalls, t]);
 
     useEffect(() => {
         loadCatalogue();
@@ -191,7 +206,7 @@ export const AdminCards = () => {
             setImportRows(parseImport(file.name, await file.text()));
         } catch (err) {
             setImportRows([]);
-            setError(err instanceof Error ? err.message : "Failed to parse file");
+            setError(err instanceof Error ? err.message : t('failedParse'));
         }
     };
 
@@ -202,13 +217,13 @@ export const AdminCards = () => {
         setError(null);
         try {
             for (let i = 0; i < cards.length; i += MAX_CARDS_PER_BATCH) {
-                setProgress(`Submitting cards ${i + 1}–${Math.min(i + MAX_CARDS_PER_BATCH, cards.length)} of ${cards.length}...`);
+                setProgress(t('submitting', { from: i + 1, to: Math.min(i + MAX_CARDS_PER_BATCH, cards.length), total: cards.length }));
                 await systemCalls.addCards(cards.slice(i, i + MAX_CARDS_PER_BATCH));
             }
             setImportRows([]);
             await loadCatalogue();
         } catch (err) {
-            setError(err instanceof Error ? err.message : "Failed to import cards");
+            setError(err instanceof Error ? err.message : t('failedImport'));
         } finally {
             setProgress(null);
             setIsLoading(false);
@@ -261,7 +276,7 @@ export const AdminCards = () => {
             </section>
 
             <section>
-                <h2 className="text-xl font-bold mb-2">Bulk Import</h2>
+                <h2 className="text-xl font-bold mb-2">{t('bulkImportTitle')}</h2>
                 <p className="text-sm text-gray-600 mb-2">
                     CSV with a header row, or a JSON array, with fields: genre, artist, title, year, difficulty, lyrics. Missing difficulty defaults to 2.
                 </p>
@@ -287,7 +302,7 @@ export const AdminCards = () => {
                             </tbody>
                         </table>
                         <Button onClick={handleImport} disabled={isLoading || !importValid} className="mt-4">
-                            Import {importRows.length} cards
+                            {t('importCards', { count: importRows.length })}
                         </Button>
                     </div>
                 )}

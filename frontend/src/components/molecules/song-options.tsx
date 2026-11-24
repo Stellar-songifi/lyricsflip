@@ -43,6 +43,15 @@ function getOptionValue(
   }
 }
 
+/**
+ * Answer options for a single card.
+ *
+ * Accessibility (LF-311):
+ * - Rendered as a WAI-ARIA `radiogroup` of `radio` buttons.
+ * - Number keys `1`–`4` choose an option directly; arrow keys move focus; the
+ *   chosen option is announced through an `aria-live="polite"` region.
+ * - A visible focus ring is shown on keyboard focus (`focus-visible:ring-*`).
+ */
 export function SongOptions({
   options,
   selectedOption = null,

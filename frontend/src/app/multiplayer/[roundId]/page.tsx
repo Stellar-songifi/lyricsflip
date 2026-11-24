@@ -128,7 +128,7 @@ function MultiplayerRoundClient() {
   const [isLoading, setIsLoading] = useState(true);
   const [isBusy, setIsBusy] = useState(false);
   const [error, setError] = useState<string | null>(
-    isValidId ? null : 'That invite link is not valid.',
+    isValidId ? null : t('invalidInvite'),
   );
 
   // ── Game state (LF-195) ───────────────────────────────────────────────────
@@ -231,7 +231,7 @@ function MultiplayerRoundClient() {
     } finally {
       setIsLoading(false);
     }
-  }, [systemCalls, roundId, rawRoundId]);
+  }, [systemCalls, roundId, rawRoundId, t]);
 
   useEffect(() => {
     if (!systemCalls || roundId === null) {
@@ -306,7 +306,7 @@ function MultiplayerRoundClient() {
       await systemCalls.startRound(roundId);
       await loadRound();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to mark ready');
+      setError(err instanceof Error ? err.message : t('failedReady'));
     } finally {
       setIsBusy(false);
     }

@@ -53,6 +53,7 @@ jobs:
       - name: npm audit (production dependencies)
         run: npm audit --omit=dev
       - run: npm run lint
+      - run: npm run check:i18n
       - run: npx tsc --noEmit
       - name: Unit tests with coverage
         run: npm test -- --ci --coverage

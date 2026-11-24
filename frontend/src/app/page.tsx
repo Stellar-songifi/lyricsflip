@@ -1,5 +1,6 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import Welcome from '@/components/atoms/welcome';
 import { GameModal } from '@/components/organisms/game-modal';
 import { GameOptions } from '@/components/organisms/game-mode-selection';
@@ -10,6 +11,7 @@ import { useStellar } from '@/lib/stellar/hooks/use-stellar';
 import { useTranslations } from 'next-intl';
 
 export default function Home() {
+  const t = useTranslations('home');
   const { openModal } = useModalStore();
   const { isLoading, error } = useStellar();
   const t = useTranslations('Home');
@@ -53,8 +55,6 @@ export default function Home() {
     <main className="lg:max-w-[53rem] mt-4 mx-auto h-fit w-full mb-20 lg:mb-12 p-4 lg:p-0 md:mt-24 lg:mt-32">
       <Welcome />
       <GameOptions onSelectGame={handleGameSelect} />
-
-      {/* Modals */}
       <GameModal />
       <WagerModal />
       <PracticeModal />

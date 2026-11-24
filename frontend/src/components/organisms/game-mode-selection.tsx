@@ -57,11 +57,7 @@ const gameOptions: GameOption[] = [
   },
 ];
 
-interface GameOptionsProps {
-  onSelectGame?: (gameId: string) => void;
-}
-
-export function GameOptions({ onSelectGame }: GameOptionsProps) {
+export function GameOptions({ onSelectGame }: { onSelectGame?: (gameId: string) => void }) {
   return (
     <div className="flex flex-col gap-5">
       <div className="grid gap-5 sm:grid-cols-2 w-full">

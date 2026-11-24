@@ -1,4 +1,4 @@
-import { IsString, Matches } from 'class-validator';
+import { IsOptional, IsString, Matches, MaxLength } from 'class-validator';
 import { STELLAR_PUBLIC_KEY_REGEX } from './wallet-challenge-request.dto';
 
 export class WalletVerifyDto {
@@ -12,4 +12,14 @@ export class WalletVerifyDto {
   // the wallet (e.g. StellarWalletsKit.signMessage).
   @IsString()
   signedChallenge: string;
+
+  /**
+   * Optional referral code supplied by the client on first sign-in (LF-355).
+   * When present and the address is new, a pending Referral row is created
+   * linking this user to the code owner.
+   */
+  @IsOptional()
+  @IsString()
+  @MaxLength(64)
+  referralCode?: string;
 }

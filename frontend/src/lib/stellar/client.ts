@@ -18,12 +18,9 @@ import { withTxToast, withTxToastResult, type TxResult } from './toast';
 import {
   Client as LyricsFlipClient,
   type AnswerResult as WireAnswerResult,
-  type Card as WireCard,
   type Genre as WireGenre,
   type Milestone as WireMilestone,
-  type QuestionCard as WireQuestionCard,
   type Role as WireRole,
-  type Round as WireRound,
 } from './generated/src';
 import {
   type Answer,
@@ -45,7 +42,6 @@ import {
   genreToWire,
   questionKindFromWire,
   questionKindToWire,
-  questionKindFromWire,
 } from './types';
 
 /**
@@ -145,6 +141,8 @@ export interface SystemCalls {
   getCard: (cardId: bigint) => Promise<Card>;
   getCardsCount: () => Promise<bigint>;
   setCardsPerRound: (value: number) => Promise<void>;
+  /** Sets the default answer window (5–180 s) used when creating new rounds. */
+  setAnswerWindow: (value: number) => Promise<void>;
   setRole: (recipient: string, isEnable: boolean) => Promise<void>;
   isAdmin: (address: string) => Promise<boolean>;
   isOwner: (address: string) => Promise<boolean>;
@@ -234,7 +232,7 @@ export function generateInviteCode(): string {
 
 const notImplemented =
   (name: string) =>
-  async (): Promise<any> => {
+  async (): Promise<never> => {
     throw new Error(`${name} is not implemented on-chain; wire this to a backend API.`);
   };
 
@@ -288,6 +286,7 @@ type LyricsFlipContract = {
   get_card: (args: { card_id: bigint }) => Promise<contract.AssembledTransaction<WireCard>>;
   get_cards_count: () => Promise<contract.AssembledTransaction<bigint>>;
   set_cards_per_round: (args: { caller: string; value: number }) => Promise<contract.AssembledTransaction<null>>;
+  set_answer_window: (args: { caller: string; value: number }) => Promise<contract.AssembledTransaction<null>>;
   set_role: (args: {
     caller: string;
     recipient: string;

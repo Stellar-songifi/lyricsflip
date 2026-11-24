@@ -1,0 +1,14 @@
+{
+  "network": "mainnet",
+  "lyricsflip": "",
+  "lyricsflipEscrow": "",
+  "lyricsflipNft": "",
+  "tag": "",
+  "commit": "",
+  "deployedAt": "",
+  "wasm": {
+    "lyricsflip": "",
+    "lyricsflipEscrow": "",
+    "lyricsflipNft": ""
+  }
+}

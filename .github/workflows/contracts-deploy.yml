@@ -1,7 +1,7 @@
-# LF-110 / LF-242: deploy (first run) or upgrade (later runs) the contracts
-# when a `contracts-v*` tag is pushed (either by hand or by release-please,
-# LF-244), then commit the IDs and WASM hashes to deployments/<network>.json
-# so the frontend picks them up as defaults.
+# LF-110 / LF-242 / LF-364: deploy (first run) or upgrade (later runs) the
+# game, escrow, and NFT contracts when a `contracts-v*` tag is pushed (either
+# by hand or by release-please, LF-244), then commit the IDs and WASM hashes to
+# deployments/<network>.json so the frontend picks them up as defaults.
 #
 # Required secrets:
 #   STELLAR_TESTNET_SECRET_KEY  secret key (S...) of the funded owner identity
@@ -66,12 +66,15 @@ jobs:
           WASM_DIR=onchain/target/wasm32v1-none/release
           mkdir -p wasm-artifacts
           cp "$WASM_DIR/lyricsflip.wasm" wasm-artifacts/lyricsflip.wasm
+          cp "$WASM_DIR/lyricsflip_escrow.wasm" wasm-artifacts/lyricsflip_escrow.wasm
           cp "$WASM_DIR/lyricsflip_nft.wasm" wasm-artifacts/lyricsflip_nft.wasm
-          ( cd wasm-artifacts && sha256sum lyricsflip.wasm lyricsflip_nft.wasm > SHA256SUMS )
+          ( cd wasm-artifacts && sha256sum lyricsflip.wasm lyricsflip_escrow.wasm lyricsflip_nft.wasm > SHA256SUMS )
           cat wasm-artifacts/SHA256SUMS
           GAME_SHA=$(awk '$2 == "lyricsflip.wasm" {print $1}' wasm-artifacts/SHA256SUMS)
+          ESCROW_SHA=$(awk '$2 == "lyricsflip_escrow.wasm" {print $1}' wasm-artifacts/SHA256SUMS)
           NFT_SHA=$(awk '$2 == "lyricsflip_nft.wasm" {print $1}' wasm-artifacts/SHA256SUMS)
           echo "GAME_SHA=$GAME_SHA" >> "$GITHUB_ENV"
+          echo "ESCROW_SHA=$ESCROW_SHA" >> "$GITHUB_ENV"
           echo "NFT_SHA=$NFT_SHA" >> "$GITHUB_ENV"
       - name: Deploy or upgrade
         shell: bash
@@ -80,6 +83,7 @@ jobs:
           WASM_DIR=onchain/target/wasm32v1-none/release
           GAME_ID=$(jq -r '.lyricsflip // ""' "$DEPLOYMENT_FILE")
           NFT_ID=$(jq -r '.lyricsflipNft // ""' "$DEPLOYMENT_FILE")
+          ESCROW_ID=$(jq -r '.lyricsflipEscrow // ""' "$DEPLOYMENT_FILE")
 
           if [[ -z "$GAME_ID" || -z "$NFT_ID" ]]; then
             echo "No existing deployment; deploying fresh contracts"
@@ -90,11 +94,6 @@ jobs:
               --owner "$OWNER" --minter "$GAME_ID" \
               --token_name "LyricsFlip" --token_symbol "LFLIP" \
               --base_uri "https://lyricsflip.xyz/nft/")
-            ESCROW_ID=$(stellar contract deploy --wasm "$WASM_DIR/lyricsflip_escrow.wasm" \
-              --source deployer --network "$NETWORK" -- \
-              --owner "$GAME_ID" --treasury "$OWNER" --fee_bps 0)
-            stellar contract invoke --id "$GAME_ID" --source deployer --network "$NETWORK" -- \
-              set_escrow_contract --caller "$OWNER" --escrow "$ESCROW_ID"
             stellar contract invoke --id "$GAME_ID" --source deployer --network "$NETWORK" \
               -- set_cards_per_round --caller "$OWNER" --value 5
           else
@@ -118,17 +117,39 @@ jobs:
             done
           fi
 
-          jq --arg game "$GAME_ID" --arg nft "$NFT_ID" \
+          # LF-364: escrow has its own lifecycle, so deploy it whenever the
+          # record has no escrow ID (even if game/nft already exist), otherwise
+          # keep its WASM in sync with the workspace build.
+          if [[ -z "$ESCROW_ID" ]]; then
+            echo "Deploying lyricsflip-escrow with constructor args (LF-257)"
+            ESCROW_ID=$(stellar contract deploy --wasm "$WASM_DIR/lyricsflip_escrow.wasm" \
+              --source deployer --network "$NETWORK" -- \
+              --owner "$GAME_ID" --treasury "$OWNER" --fee_bps 0)
+          else
+            echo "Upgrading existing escrow contract in place"
+            hash=$(stellar contract upload --wasm "$WASM_DIR/lyricsflip_escrow.wasm" \
+              --source deployer --network "$NETWORK")
+            stellar contract invoke --id "$ESCROW_ID" --source deployer --network "$NETWORK" \
+              -- upgrade --caller "$OWNER" --new_wasm_hash "$hash"
+          fi
+
+          # LF-256: (re)assert the game -> escrow link. The setter is idempotent.
+          stellar contract invoke --id "$GAME_ID" --source deployer --network "$NETWORK" -- \
+            set_escrow_contract --caller "$OWNER" --escrow "$ESCROW_ID"
+
+          jq --arg game "$GAME_ID" --arg escrow "$ESCROW_ID" --arg nft "$NFT_ID" \
              --arg tag "${GITHUB_REF_NAME}" --arg commit "${GITHUB_SHA}" \
              --arg at "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
-             --arg gameSha "$GAME_SHA" --arg nftSha "$NFT_SHA" \
-             '.lyricsflip = $game | .lyricsflipNft = $nft | .tag = $tag | .commit = $commit | .deployedAt = $at
-              | .wasm = {lyricsflip: $gameSha, lyricsflipNft: $nftSha}' \
+             --arg gameSha "$GAME_SHA" --arg escrowSha "$ESCROW_SHA" --arg nftSha "$NFT_SHA" \
+             '.lyricsflip = $game | .lyricsflipEscrow = $escrow | .lyricsflipNft = $nft
+              | .tag = $tag | .commit = $commit | .deployedAt = $at
+              | .wasm = ((.wasm // {}) + {lyricsflip: $gameSha, lyricsflipEscrow: $escrowSha, lyricsflipNft: $nftSha})' \
              "$DEPLOYMENT_FILE" > tmp.json && mv tmp.json "$DEPLOYMENT_FILE"
 
           {
             echo "### Testnet deployment"
             echo "- lyricsflip: \`$GAME_ID\` (sha256 \`$GAME_SHA\`)"
+            echo "- lyricsflip-escrow: \`$ESCROW_ID\` (sha256 \`$ESCROW_SHA\`)"
             echo "- lyricsflip-nft: \`$NFT_ID\` (sha256 \`$NFT_SHA\`)"
           } >> "$GITHUB_STEP_SUMMARY"
       - name: Smoke test
@@ -137,13 +158,28 @@ jobs:
           set -euo pipefail
           GAME_ID=$(jq -r '.lyricsflip' "$DEPLOYMENT_FILE")
           NFT_ID=$(jq -r '.lyricsflipNft' "$DEPLOYMENT_FILE")
+          ESCROW_ID=$(jq -r '.lyricsflipEscrow // ""' "$DEPLOYMENT_FILE")
           version=$(stellar contract invoke --id "$GAME_ID" --source deployer --network "$NETWORK" \
             -- version | tr -d '"[:space:]')
           [[ "$version" == "$EXPECTED_VERSION" ]] || {
             echo "::error::smoke test: lyricsflip version() = '$version'"; exit 1; }
           cards=$(stellar contract invoke --id "$GAME_ID" --source deployer --network "$NETWORK" \
             -- get_cards_count)
-          echo "Smoke test OK: version=$version cards=$cards"
+
+          # LF-364: prove escrow exists and is owned by the deployed game.
+          [[ -n "$ESCROW_ID" ]] || {
+            echo "::error::smoke test: no lyricsflipEscrow in $DEPLOYMENT_FILE"; exit 1; }
+          escrow_config=$(stellar contract invoke --id "$ESCROW_ID" --source deployer --network "$NETWORK" \
+            -- get_config)
+          echo "Escrow config: $escrow_config"
+          echo "$escrow_config" | jq -e \
+            --arg owner "$GAME_ID" --arg treasury "$OWNER" \
+            '(.owner // .game) == $owner and .treasury == $treasury and ((.fee_bps | tonumber) == 0)' \
+            >/dev/null || {
+              echo "::error::smoke test: escrow config does not match game=$GAME_ID treasury=$OWNER fee_bps=0"
+              exit 1
+            }
+          echo "Smoke test OK: version=$version cards=$cards escrow=$ESCROW_ID"
       - name: Attach WASM files to the release
         if: startsWith(github.ref, 'refs/tags/')
         env:
@@ -154,6 +190,7 @@ jobs:
             || gh release create "$GITHUB_REF_NAME" --title "$GITHUB_REF_NAME" --notes "Contracts ${GITHUB_REF_NAME}"
           gh release upload "$GITHUB_REF_NAME" \
             wasm-artifacts/lyricsflip.wasm \
+            wasm-artifacts/lyricsflip_escrow.wasm \
             wasm-artifacts/lyricsflip_nft.wasm \
             wasm-artifacts/SHA256SUMS --clobber
       - name: Commit deployment record
@@ -207,12 +244,15 @@ jobs:
           WASM_DIR=onchain/target/wasm32v1-none/release
           mkdir -p wasm-artifacts
           cp "$WASM_DIR/lyricsflip.wasm" wasm-artifacts/lyricsflip.wasm
+          cp "$WASM_DIR/lyricsflip_escrow.wasm" wasm-artifacts/lyricsflip_escrow.wasm
           cp "$WASM_DIR/lyricsflip_nft.wasm" wasm-artifacts/lyricsflip_nft.wasm
-          ( cd wasm-artifacts && sha256sum lyricsflip.wasm lyricsflip_nft.wasm > SHA256SUMS )
+          ( cd wasm-artifacts && sha256sum lyricsflip.wasm lyricsflip_escrow.wasm lyricsflip_nft.wasm > SHA256SUMS )
           cat wasm-artifacts/SHA256SUMS
           GAME_SHA=$(awk '$2 == "lyricsflip.wasm" {print $1}' wasm-artifacts/SHA256SUMS)
+          ESCROW_SHA=$(awk '$2 == "lyricsflip_escrow.wasm" {print $1}' wasm-artifacts/SHA256SUMS)
           NFT_SHA=$(awk '$2 == "lyricsflip_nft.wasm" {print $1}' wasm-artifacts/SHA256SUMS)
           echo "GAME_SHA=$GAME_SHA" >> "$GITHUB_ENV"
+          echo "ESCROW_SHA=$ESCROW_SHA" >> "$GITHUB_ENV"
           echo "NFT_SHA=$NFT_SHA" >> "$GITHUB_ENV"
       - name: Deploy or upgrade
         shell: bash
@@ -221,6 +261,7 @@ jobs:
           WASM_DIR=onchain/target/wasm32v1-none/release
           GAME_ID=$(jq -r '.lyricsflip // ""' "$DEPLOYMENT_FILE")
           NFT_ID=$(jq -r '.lyricsflipNft // ""' "$DEPLOYMENT_FILE")
+          ESCROW_ID=$(jq -r '.lyricsflipEscrow // ""' "$DEPLOYMENT_FILE")
 
           if [[ -z "$GAME_ID" || -z "$NFT_ID" ]]; then
             echo "No existing deployment; deploying fresh contracts"
@@ -253,17 +294,39 @@ jobs:
             done
           fi
 
-          jq --arg game "$GAME_ID" --arg nft "$NFT_ID" \
+          # LF-364: escrow has its own lifecycle, so deploy it whenever the
+          # record has no escrow ID (even if game/nft already exist), otherwise
+          # keep its WASM in sync with the workspace build.
+          if [[ -z "$ESCROW_ID" ]]; then
+            echo "Deploying lyricsflip-escrow with constructor args (LF-257)"
+            ESCROW_ID=$(stellar contract deploy --wasm "$WASM_DIR/lyricsflip_escrow.wasm" \
+              --source deployer --network "$NETWORK" -- \
+              --owner "$GAME_ID" --treasury "$OWNER" --fee_bps 0)
+          else
+            echo "Upgrading existing escrow contract in place"
+            hash=$(stellar contract upload --wasm "$WASM_DIR/lyricsflip_escrow.wasm" \
+              --source deployer --network "$NETWORK")
+            stellar contract invoke --id "$ESCROW_ID" --source deployer --network "$NETWORK" \
+              -- upgrade --caller "$OWNER" --new_wasm_hash "$hash"
+          fi
+
+          # LF-256: (re)assert the game -> escrow link. The setter is idempotent.
+          stellar contract invoke --id "$GAME_ID" --source deployer --network "$NETWORK" -- \
+            set_escrow_contract --caller "$OWNER" --escrow "$ESCROW_ID"
+
+          jq --arg game "$GAME_ID" --arg escrow "$ESCROW_ID" --arg nft "$NFT_ID" \
              --arg tag "${GITHUB_REF_NAME}" --arg commit "${GITHUB_SHA}" \
              --arg at "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
-             --arg gameSha "$GAME_SHA" --arg nftSha "$NFT_SHA" \
-             '.lyricsflip = $game | .lyricsflipNft = $nft | .tag = $tag | .commit = $commit | .deployedAt = $at
-              | .wasm = {lyricsflip: $gameSha, lyricsflipNft: $nftSha}' \
+             --arg gameSha "$GAME_SHA" --arg escrowSha "$ESCROW_SHA" --arg nftSha "$NFT_SHA" \
+             '.lyricsflip = $game | .lyricsflipEscrow = $escrow | .lyricsflipNft = $nft
+              | .tag = $tag | .commit = $commit | .deployedAt = $at
+              | .wasm = ((.wasm // {}) + {lyricsflip: $gameSha, lyricsflipEscrow: $escrowSha, lyricsflipNft: $nftSha})' \
              "$DEPLOYMENT_FILE" > tmp.json && mv tmp.json "$DEPLOYMENT_FILE"
 
           {
             echo "### Mainnet deployment"
             echo "- lyricsflip: \`$GAME_ID\` (sha256 \`$GAME_SHA\`)"
+            echo "- lyricsflip-escrow: \`$ESCROW_ID\` (sha256 \`$ESCROW_SHA\`)"
             echo "- lyricsflip-nft: \`$NFT_ID\` (sha256 \`$NFT_SHA\`)"
           } >> "$GITHUB_STEP_SUMMARY"
       - name: Smoke test
@@ -271,13 +334,28 @@ jobs:
         run: |
           set -euo pipefail
           GAME_ID=$(jq -r '.lyricsflip' "$DEPLOYMENT_FILE")
+          ESCROW_ID=$(jq -r '.lyricsflipEscrow // ""' "$DEPLOYMENT_FILE")
           version=$(stellar contract invoke --id "$GAME_ID" --source deployer --network "$NETWORK" \
             -- version | tr -d '"[:space:]')
           [[ "$version" == "$EXPECTED_VERSION" ]] || {
             echo "::error::smoke test: lyricsflip version() = '$version'"; exit 1; }
           cards=$(stellar contract invoke --id "$GAME_ID" --source deployer --network "$NETWORK" \
             -- get_cards_count)
-          echo "Smoke test OK: version=$version cards=$cards"
+
+          # LF-364: prove escrow exists and is owned by the deployed game.
+          [[ -n "$ESCROW_ID" ]] || {
+            echo "::error::smoke test: no lyricsflipEscrow in $DEPLOYMENT_FILE"; exit 1; }
+          escrow_config=$(stellar contract invoke --id "$ESCROW_ID" --source deployer --network "$NETWORK" \
+            -- get_config)
+          echo "Escrow config: $escrow_config"
+          echo "$escrow_config" | jq -e \
+            --arg owner "$GAME_ID" --arg treasury "$OWNER" \
+            '(.owner // .game) == $owner and .treasury == $treasury and ((.fee_bps | tonumber) == 0)' \
+            >/dev/null || {
+              echo "::error::smoke test: escrow config does not match game=$GAME_ID treasury=$OWNER fee_bps=0"
+              exit 1
+            }
+          echo "Smoke test OK: version=$version cards=$cards escrow=$ESCROW_ID"
       - name: Attach WASM files to the release
         env:
           GH_TOKEN: ${{ github.token }}
@@ -287,6 +365,7 @@ jobs:
             || gh release create "$GITHUB_REF_NAME" --title "$GITHUB_REF_NAME" --notes "Contracts ${GITHUB_REF_NAME}"
           gh release upload "$GITHUB_REF_NAME" \
             wasm-artifacts/lyricsflip.wasm \
+            wasm-artifacts/lyricsflip_escrow.wasm \
             wasm-artifacts/lyricsflip_nft.wasm \
             wasm-artifacts/SHA256SUMS --clobber
       - name: Commit deployment record

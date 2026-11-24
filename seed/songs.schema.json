@@ -1,0 +1,64 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://raw.githubusercontent.com/Stellar-songifi/lyricsflip/main/seed/songs.schema.json",
+  "title": "LyricsFlip seed song catalogue",
+  "description": "Shared source of truth for the database and on-chain card seeders. The card fields mirror the contract's Card struct in contracts/lyricsflip/src/types.rs.",
+  "type": "array",
+  "minItems": 1,
+  "items": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "genre",
+      "artist",
+      "title",
+      "year",
+      "difficulty",
+      "lyrics",
+      "source",
+      "license"
+    ],
+    "properties": {
+      "genre": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 12
+      },
+      "artist": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 200
+      },
+      "title": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 200
+      },
+      "year": {
+        "type": "integer",
+        "minimum": 1800,
+        "maximum": 2026
+      },
+      "difficulty": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 3,
+        "description": "Required Card field (LF-177): easy = 1, medium = 2, hard = 3."
+      },
+      "lyrics": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 1000
+      },
+      "source": {
+        "type": "string",
+        "minLength": 1,
+        "description": "Content attribution required by docs/content-policy.md."
+      },
+      "license": {
+        "type": "string",
+        "minLength": 1
+      }
+    }
+  }
+}

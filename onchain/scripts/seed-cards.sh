@@ -1,35 +1,20 @@
 #!/usr/bin/env bash
-# seed-cards.sh — read seed/songs.json and invoke add_card for each
-# entry against the deployed LyricsFlip game contract.
-#
-# LF-353: This script is now a thin wrapper that delegates to the unified
-# seeder (`npm run seed:unified` in the backend) when Node.js and the
-# backend dependencies are available. The unified seeder:
-#   1. Inserts into the database.
-#   2. Checks which cards already exist on-chain (by sha256 fingerprint).
-#   3. Pushes only new cards in batches.
-#   4. Writes back the on-chain card_id to the database.
-# This keeps the database and the chain in sync from a single source.
-#
-# When Node.js is not available, the script falls back to the original
-# direct CLI invocation path (below) so it still works in a pure Rust
-# toolchain environment.
+# seed-cards.sh — batch-load seed/songs.json into the deployed LyricsFlip game
+# contract with `add_cards`, skipping cards that are already present.
 #
 # Usage:
 #   ./scripts/seed-cards.sh [network]   (default: testnet)
 #
 # Environment:
-#   STELLAR_IDENTITY  funded Stellar CLI identity to sign with (default: me)
+#   STELLAR_IDENTITY                    funded Stellar CLI identity (default: me)
+#   LYRICSFLIP_CONTRACT_ID /            contract to seed; falls back to
+#   NEXT_PUBLIC_LYRICSFLIP_CONTRACT_ID  frontend/.env.local
+#   LOCAL_RPC_URL                       RPC endpoint for the `local` network
 #
 # Prerequisites:
-#   • deploy.sh has already been run (LYRICSFLIP_CONTRACT_ID must be set
-#     in the environment or frontend/.env.local).
-#   • Stellar CLI installed.
-#   • jq installed (https://stedolan.github.io/jq/).
-#   • A funded identity called "me" on the target network (or the identity
-#     named by STELLAR_IDENTITY).
-#   • For the unified path: Node.js + backend npm dependencies installed.
-#   • A funded identity called "me" on the target network.
+#   • deploy.sh has already been run (or the contract id is exported).
+#   • Stellar CLI and jq installed (https://stedolan.github.io/jq/).
+#   • A funded identity called "me" on the target network (or STELLAR_IDENTITY).
 
 set -euo pipefail
 
@@ -37,56 +22,20 @@ NETWORK="${1:-testnet}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ONCHAIN_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 REPO_ROOT="$(cd "${ONCHAIN_DIR}/.." && pwd)"
-BACKEND_DIR="${REPO_ROOT}/backend"
 FRONTEND_ENV="${REPO_ROOT}/frontend/.env.local"
 CARDS_JSON="${REPO_ROOT}/seed/songs.json"
+BATCH_SIZE=20
 
 IDENTITY="${STELLAR_IDENTITY:-me}"
 
-# ---------------------------------------------------------------------------
-# Resolve contract ID
-# ---------------------------------------------------------------------------
-if [[ -z "${NEXT_PUBLIC_LYRICSFLIP_CONTRACT_ID:-}" ]]; then
-  if [[ -f "${FRONTEND_ENV}" ]]; then
-    # shellcheck disable=SC1090
-    NEXT_PUBLIC_LYRICSFLIP_CONTRACT_ID="$(grep '^NEXT_PUBLIC_LYRICSFLIP_CONTRACT_ID=' "${FRONTEND_ENV}" \
-      | head -1 | cut -d= -f2)"
-  fi
-fi
-
-if [[ -z "${NEXT_PUBLIC_LYRICSFLIP_CONTRACT_ID:-}" ]]; then
-  echo "ERROR: NEXT_PUBLIC_LYRICSFLIP_CONTRACT_ID is not set."
-  echo "Run ./scripts/deploy.sh first, or export the variable."
-  exit 1
-fi
-
-export LYRICSFLIP_CONTRACT_ID="${NEXT_PUBLIC_LYRICSFLIP_CONTRACT_ID}"
-export STELLAR_NETWORK="${NETWORK}"
-
-# ---------------------------------------------------------------------------
-# Try the unified seeder (LF-353) first
-# ---------------------------------------------------------------------------
-if command -v node &>/dev/null && [[ -d "${BACKEND_DIR}/node_modules" ]]; then
-  log() { echo "[seed-cards.sh] $*"; }
-  log "Using unified seeder (LF-353) — DB + chain from one source."
-  log "Contract: ${LYRICSFLIP_CONTRACT_ID} on ${NETWORK}"
-  log "Identity: ${IDENTITY}"
-
-  cd "${BACKEND_DIR}"
-  exec npm run seed:unified
-fi
-
-# ---------------------------------------------------------------------------
-# Fallback: direct CLI invocation (original path)
-# ---------------------------------------------------------------------------
 log() { echo "[seed-cards.sh] $*"; }
 
 # ---------------------------------------------------------------------------
 # Network configuration
 # ---------------------------------------------------------------------------
 # The "local" network targets the Stellar quickstart container defined in
-# docker-compose.yml (started with `--local --enable rpc`).  Its standalone
-# network passphrase differs from testnet, so we pass explicit RPC URL and
+# docker-compose.yml (started with `--local --enable rpc`). Its standalone
+# network passphrase differs from testnet, so pass explicit RPC URL and
 # passphrase flags instead of relying on a named network in the CLI config.
 LOCAL_RPC_URL="${LOCAL_RPC_URL:-http://localhost:8000/soroban/rpc}"
 LOCAL_NETWORK_PASSPHRASE="Standalone Network ; February 2017"
@@ -104,58 +53,139 @@ case "${NETWORK}" in
     ;;
 esac
 
-CONTRACT_ID="${NEXT_PUBLIC_LYRICSFLIP_CONTRACT_ID}"
-OWNER_ADDRESS="$(stellar keys address "${IDENTITY}")"
+# ---------------------------------------------------------------------------
+# Resolve contract ID
+# ---------------------------------------------------------------------------
+CONTRACT_ID="${LYRICSFLIP_CONTRACT_ID:-${NEXT_PUBLIC_LYRICSFLIP_CONTRACT_ID:-}}"
 
-log "Fallback mode: direct CLI invocation (no DB write-back)."
-log "Seeding cards into ${CONTRACT_ID} on ${NETWORK}…"
-log "Caller: ${OWNER_ADDRESS}"
+if [[ -z "${CONTRACT_ID}" && -f "${FRONTEND_ENV}" ]]; then
+  # shellcheck disable=SC1090
+  CONTRACT_ID="$(grep '^NEXT_PUBLIC_LYRICSFLIP_CONTRACT_ID=' "${FRONTEND_ENV}" \
+    | head -1 | cut -d= -f2)"
+fi
+
+if [[ -z "${CONTRACT_ID}" ]]; then
+  echo "ERROR: NEXT_PUBLIC_LYRICSFLIP_CONTRACT_ID is not set." >&2
+  echo "Run ./scripts/deploy.sh first, or export the variable." >&2
+  exit 1
+fi
 
 # ---------------------------------------------------------------------------
 # Check prerequisites
 # ---------------------------------------------------------------------------
-if ! command -v jq &>/dev/null; then
-  echo "ERROR: jq is required. Install it from https://stedolan.github.io/jq/."
-  exit 1
-fi
+for tool in jq stellar; do
+  if ! command -v "${tool}" &>/dev/null; then
+    echo "ERROR: ${tool} is required to seed cards." >&2
+    exit 1
+  fi
+done
 
 if [[ ! -f "${CARDS_JSON}" ]]; then
-  echo "ERROR: ${CARDS_JSON} not found."
+  echo "ERROR: ${CARDS_JSON} not found." >&2
   exit 1
 fi
 
+OWNER_ADDRESS="$(stellar keys address "${IDENTITY}")"
+
+log "Seeding cards into ${CONTRACT_ID} on ${NETWORK}…"
+log "Caller: ${OWNER_ADDRESS}"
+
 CARD_COUNT="$(jq 'length' "${CARDS_JSON}")"
-log "Found ${CARD_COUNT} cards in songs.json"
+log "Found ${CARD_COUNT} songs in seed/songs.json"
 
-# ---------------------------------------------------------------------------
-# Add each card
-# ---------------------------------------------------------------------------
-INDEX=0
-while IFS= read -r CARD_JSON; do
-  GENRE="$(echo "${CARD_JSON}" | jq -r '.genre')"
-  ARTIST="$(echo "${CARD_JSON}" | jq -r '.artist')"
-  TITLE="$(echo "${CARD_JSON}" | jq -r '.title')"
-  YEAR="$(echo "${CARD_JSON}" | jq -r '.year')"
-  LYRICS="$(echo "${CARD_JSON}" | jq -r '.lyrics')"
+# difficulty is a required Card field (1–3) and must be present in the seed
+# file; the JSON Schema in seed/songs.schema.json enforces this in CI.
+if ! jq -e 'all(.[]; (.difficulty | type == "number") and .difficulty >= 1 and .difficulty <= 3)' \
+    "${CARDS_JSON}" >/dev/null; then
+  echo "ERROR: every song needs an integer difficulty between 1 and 3." >&2
+  exit 1
+fi
 
-  # Build the Soroban-XDR card struct. card_id is assigned by the contract;
-  # difficulty is part of the current Card type (default to the test fixture
-  # value when the seed file does not specify one).
-  DIFFICULTY="$(echo "${CARD_JSON}" | jq -r '.difficulty // 2')"
-  CARD_STRUCT="{\"card_id\":0,\"genre\":${GENRE},\"artist\":\"${ARTIST}\",\"title\":\"${TITLE}\",\"year\":${YEAR},\"difficulty\":${DIFFICULTY},\"lyrics\":\"${LYRICS}\"}"
+# jq builds every payload, so quotes and backslashes in lyrics stay valid JSON.
+# One compact object per line; batches are assembled below with `jq -s`.
+mapfile -t CARDS < <(
+  jq -c '.[] | {card_id:0, genre, artist, title, year, difficulty, lyrics}' "${CARDS_JSON}"
+)
 
-  log "  [${INDEX}/${CARD_COUNT}] Adding: ${TITLE} — ${ARTIST} (${YEAR})"
+if ((${#CARDS[@]} != CARD_COUNT)); then
+  echo "ERROR: failed to build payloads for every song." >&2
+  exit 1
+fi
+
+BATCH_TOTAL=$(((CARD_COUNT + BATCH_SIZE - 1) / BATCH_SIZE))
+ADDED=0
+DUPLICATES=0
+FAILED=0
+WRITES=0
+BATCH_NUM=0
+BATCH=()
+
+# The contract reports an already-inserted card as DuplicateCard (#31).
+# CLI versions spell the error differently, so match either form.
+is_duplicate_error() {
+  grep -Eqi 'DuplicateCard|Error\(Contract, #31\)|duplicate card' <<<"$1"
+}
+
+invoke() {
+  local method="$1" arg_name="$2" value="$3"
   stellar contract invoke \
     --id "${CONTRACT_ID}" \
     --source "${IDENTITY}" \
     "${NETWORK_ARGS[@]}" \
-    -- add_card \
+    -- "${method}" \
     --caller "${OWNER_ADDRESS}" \
-    --card "${CARD_STRUCT}" 2>&1
+    "${arg_name}" "${value}" 2>&1
+}
 
-  INDEX=$((INDEX + 1))
-done < <(jq -c '.[]' "${CARDS_JSON}")
+flush_batch() {
+  local batch_json size output card card_output
+  ((${#BATCH[@]} > 0)) || return 0
 
-log "Seeding complete. ${INDEX} cards added."
-log "WARNING: Fallback mode does not write back on-chain card_ids to the database."
-log "         Run 'npm run seed:unified' in the backend for full DB + chain sync."
+  batch_json="$(printf '%s\n' "${BATCH[@]}" | jq -sc '.')"
+  size="${#BATCH[@]}"
+  BATCH_NUM=$((BATCH_NUM + 1))
+  log "Batch ${BATCH_NUM}/${BATCH_TOTAL} — ${size} card(s)"
+
+  if output="$(invoke add_cards --cards "${batch_json}")"; then
+    ADDED=$((ADDED + size))
+    WRITES=$((WRITES + 1))
+    log "  added ${size} card(s)"
+  elif is_duplicate_error "${output}"; then
+    # add_cards is atomic: one duplicate rejects the whole batch. Retry the
+    # batch one card at a time so only the duplicates are skipped.
+    log "  batch contains a duplicate — retrying card-by-card"
+    while IFS= read -r card; do
+      if card_output="$(invoke add_card --card "${card}")"; then
+        ADDED=$((ADDED + 1))
+        WRITES=$((WRITES + 1))
+      elif is_duplicate_error "${card_output}"; then
+        DUPLICATES=$((DUPLICATES + 1))
+      else
+        printf '%s\n' "${card_output}" >&2
+        FAILED=$((FAILED + 1))
+      fi
+    done < <(jq -c '.[]' <<<"${batch_json}")
+  else
+    printf '%s\n' "${output}" >&2
+    echo "ERROR: add_cards failed for batch ${BATCH_NUM}." >&2
+    exit 1
+  fi
+
+  BATCH=()
+}
+
+for card in "${CARDS[@]}"; do
+  BATCH+=("${card}")
+  if ((${#BATCH[@]} == BATCH_SIZE)); then
+    flush_batch
+  fi
+done
+flush_batch
+
+log "Summary: ${ADDED}/${CARD_COUNT} card(s) added, ${DUPLICATES} duplicate(s) skipped, \
+${FAILED} failure(s), ${WRITES} successful write transaction(s)."
+
+if ((FAILED > 0)); then
+  echo "ERROR: ${FAILED} card(s) could not be added." >&2
+  exit 1
+fi

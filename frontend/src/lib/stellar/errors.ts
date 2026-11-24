@@ -1,7 +1,68 @@
-// Numeric contract error codes, mirroring `onchain/contracts/lyricsflip/src/errors.rs`
-// and the `Error` enum in `onchain/contracts/lyricsflip-nft/src/lib.rs`. The
-// codes are stable (see the table in `onchain/README.md`); keep this file in
-// sync when a variant is added.
+// ---------------------------------------------------------------------------
+// LyricsFlip contract error codes
+// Auto-synced from onchain/contracts/lyricsflip/src/errors.rs
+// Never renumber or reuse a code — the numeric values are part of the ABI.
+// ---------------------------------------------------------------------------
+
+/** Every numeric error code the LyricsFlip core contract can emit. */
+export const enum LyricsFlipErrorCode {
+  AlreadyInitialized = 1,
+  NonExistingRound = 2,
+  RoundAlreadyStarted = 3,
+  NonExistingGenre = 4,
+  RoundAlreadyJoined = 5,
+  InvalidCardsPerRound = 6,
+  ArtistCardsIsZero = 7,
+  EmptyYearCards = 8,
+  EmptyGenreCards = 9,
+  RoundNotStarted = 10,
+  RoundCompleted = 11,
+  NotAParticipant = 12,
+  AlreadyReady = 13,
+  NotAuthorized = 14,
+  AmountExceedsLimit = 15,
+  LimitMustBeGreaterThanZero = 16,
+  NonExistingCard = 17,
+  RoundNotReady = 18,
+  RoundAlreadyFinalized = 19,
+  NotEnoughDistinctCards = 20,
+  RoundFull = 21,
+  InvalidMaxPlayers = 22,
+  NftContractNotSet = 23,
+  MilestoneNotReached = 24,
+  MilestoneAlreadyClaimed = 25,
+  InvalidCardTitle = 26,
+  InvalidCardArtist = 27,
+  InvalidCardLyrics = 28,
+  InvalidCardYear = 29,
+  LyricsTooLong = 30,
+  DuplicateCard = 31,
+  BatchTooLarge = 32,
+  NotPendingOwner = 33,
+}
+
+// ---------------------------------------------------------------------------
+// LyricsFlip NFT contract error codes
+// Auto-synced from onchain/contracts/lyricsflip-nft/src/lib.rs
+// ---------------------------------------------------------------------------
+
+/** Every numeric error code the LyricsFlip NFT contract can emit. */
+export const enum LyricsFlipNftErrorCode {
+  AlreadyInitialized = 1,
+  NotMinter = 2,
+  TokenAlreadyExists = 3,
+  TokenDoesNotExist = 4,
+  IncorrectOwner = 5,
+  InsufficientApproval = 6,
+  InvalidLiveUntilLedger = 7,
+  NotOwner = 8,
+  NotPendingOwner = 9,
+  BaseUriTooLong = 10,
+}
+
+// ---------------------------------------------------------------------------
+// Shared info type
+// ---------------------------------------------------------------------------
 
 export interface ContractErrorInfo {
   name: string;
@@ -10,7 +71,7 @@ export interface ContractErrorInfo {
 
 /**
  * Mapping of numeric error code to contract Error enum variant name for lyricsflip.
- * Stable ABI codes 1..44 matching `onchain/contracts/lyricsflip/src/errors.rs`.
+ * Stable ABI codes 1..50 matching `onchain/contracts/lyricsflip/src/errors.rs`.
  */
 export const CONTRACT_ERROR_NAMES: Record<number, string> = {
   1: 'AlreadyInitialized',
@@ -121,6 +182,10 @@ export const LYRICSFLIP_ERROR_MESSAGES: Record<string, string> = {
   TooManyOpenRounds: 'You already have the maximum number of open lobbies. Start or cancel one first.',
 };
 
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
 /**
  * Builds a numeric error table from a code-to-name mapping and a friendly messages map.
  */
@@ -175,6 +240,18 @@ export const LYRICSFLIP_NFT_ERRORS: Record<number, ContractErrorInfo> = buildErr
   NFT_ERROR_MESSAGES,
 );
 
+// ---------------------------------------------------------------------------
+// Contract identity — used to pick the right message table from an error
+// ---------------------------------------------------------------------------
+
+export type ContractId = 'lyricsflip' | 'lyricsflip-nft';
+
+/** Map a contract id to its message table. */
+const CONTRACT_TABLES: Record<ContractId, Record<number, ContractErrorInfo>> = {
+  'lyricsflip': LYRICSFLIP_ERRORS,
+  'lyricsflip-nft': LYRICSFLIP_NFT_ERRORS,
+};
+
 /**
  * Extracts the numeric code from a Soroban contract error, which surfaces in
  * simulation/submission messages as `Error(Contract, #<code>)`.
@@ -185,12 +262,23 @@ export function getContractErrorCode(error: unknown): number | undefined {
   return match ? Number(match[1]) : undefined;
 }
 
+/**
+ * Returns the error info for a known code, optionally scoped to a specific
+ * contract so that codes from the NFT contract don't collide with the core one.
+ */
 export function describeContractError(
   error: unknown,
-  table: Record<number, ContractErrorInfo> = LYRICSFLIP_ERRORS,
+  tableOrContractId:
+    | Record<number, ContractErrorInfo>
+    | ContractId = 'lyricsflip',
 ): ContractErrorInfo | undefined {
   const code = getContractErrorCode(error);
-  return code === undefined ? undefined : table[code];
+  if (code === undefined) return undefined;
+  const table =
+    typeof tableOrContractId === 'string'
+      ? CONTRACT_TABLES[tableOrContractId]
+      : tableOrContractId;
+  return table[code];
 }
 
 /** True when the user dismissed or declined the signature request in their wallet. */
@@ -260,10 +348,16 @@ export function parseHorizonRpcError(error: unknown): string | undefined {
  */
 export function parseContractError(
   error: unknown,
-  table: Record<number, ContractErrorInfo> = LYRICSFLIP_ERRORS,
+  tableOrContractId:
+    | Record<number, ContractErrorInfo>
+    | ContractId = 'lyricsflip',
 ): { code?: number; message: string } {
   const code = getContractErrorCode(error);
   if (code !== undefined) {
+    const table =
+      typeof tableOrContractId === 'string'
+        ? CONTRACT_TABLES[tableOrContractId]
+        : tableOrContractId;
     return { code, message: table[code]?.message ?? `Contract error #${code}.` };
   }
   if (isUserRejection(error)) {

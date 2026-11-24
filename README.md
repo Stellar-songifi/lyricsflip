@@ -3,9 +3,12 @@
 **LyricsFlip is an on-chain, card-based music guessing game built on Stellar (Soroban).** A card shows a snippet of song lyrics, and players race to guess the song, artist, or year before the card flips. Rounds can be played solo or against friends, and players can wager tokens and earn NFT badges. Every round, answer, and stat is recorded on the Stellar blockchain.
 
 [![LyricsFlip Contracts](https://github.com/Stellar-songifi/lyricsflip/actions/workflows/onchain.yml/badge.svg)](https://github.com/Stellar-songifi/lyricsflip/actions/workflows/onchain.yml)
+[![Contract Coverage](https://img.shields.io/badge/coverage-contracts-brightgreen)](https://github.com/Stellar-songifi/lyricsflip/actions/workflows/onchain.yml)
 
 - 🎨 **Figma design:** https://www.figma.com/design/6phOWkHKQgLRhRwmBBQDXB/LyricsFlip?node-id=0-1&t=0U8SlbaJijr7XNeG-1
+- 📚 **Documentation index:** [`docs/README.md`](docs/README.md)
 - 🗂️ **Issue backlog:** [`ISSUES.md`](ISSUES.md) (125 scoped issues with tasks and acceptance criteria)
+- 🗂️ **Issue backlog:** [`BACKLOG.md`](BACKLOG.md) (open work) · [`ISSUES.md`](ISSUES.md) (completed work)
 - 🤝 **Contributing:** [`CONTRIBUTING.md`](CONTRIBUTING.md) - Start here to contribute!
 
 ---
@@ -172,7 +175,7 @@ The contracts live in a Cargo workspace under [`onchain/`](onchain/) and use **s
 
 #### Randomness
 
-`get_random_numbers` builds a SHA-256 hash of `(seed, ledger sequence, ledger timestamp, i)` for each draw, reduces it modulo the pool size, and skips duplicates until it has enough unique values. `build_question_card` shuffles options with a linear-congruential Fisher–Yates shuffle. This is a straight port of the Cairo logic. It is **not** manipulation-resistant, because the caller supplies `seed` (see [LF-009](ISSUES.md#lf-009--card-selection-randomness-is-predictable-and-caller-controlled)).
+`get_random_numbers` builds a SHA-256 hash of `(seed, ledger sequence, ledger timestamp, i)` for each draw, reduces it modulo the pool size, and skips duplicates until it has enough unique values. `build_question_card` shuffles options with a linear-congruential Fisher–Yates shuffle. This is a straight port of the Cairo logic. It is **not** manipulation-resistant, because the caller supplies `seed` (see [LF-009](BACKLOG.md#lf-009--card-selection-randomness-is-predictable-and-caller-controlled)).
 
 For every public function, error, and event of both `lyricsflip` and `lyricsflip-nft` — including the reward NFT contract's minter-gated `mint` and its soulbound transfer/approve behavior — see [`onchain/docs/api.md`](onchain/docs/api.md), the single source of truth for the contract API. `onchain/scripts/check-api-docs.sh` runs in CI (LF-182) and fails the build if that file ever falls out of sync with the real contract surface.
 
@@ -260,7 +263,7 @@ Located in [`backend/`](backend/). It provides the off-chain side of the product
 
 Sample requests for most endpoints are in `backend/src/http-yac/*.http`, for use with the httpYac or REST Client VS Code extensions.
 
-> ⚠️ **Backend status:** the backend currently **does not compile**. `main.ts` and `app.module.ts` have errors, about 100 imports point to files that don't exist, and several packages are used but not declared in `package.json`. The backend also contains duplicate and experimental modules. Getting it building is tracked in [LF-073 – LF-081](ISSUES.md#backend-backend).
+> ⚠️ **Backend status:** the backend currently **does not compile**. `main.ts` and `app.module.ts` have errors, about 100 imports point to files that don't exist, and several packages are used but not declared in `package.json`. The backend also contains duplicate and experimental modules. Getting it building is tracked in [LF-073 – LF-081](BACKLOG.md#backend-backend).
 
 ---
 
@@ -301,11 +304,14 @@ lyricsflip/
 
 | Tool | Version | For |
 |---|---|---|
-| Rust | 1.98.1 (see `.tool-versions`) + `wasm32v1-none` target | Contracts |
+| Docker + Docker Compose | current | `make dev`: local Stellar quickstart, PostgreSQL, Redis, Mailpit |
+| Rust | 1.98.1 (see `.tool-versions`) + `wasm32v1-none` target | `make contracts`, `make deploy-local` (`make dev` installs the target) |
 | [Stellar CLI](https://developers.stellar.org/docs/tools/stellar-cli) | latest | Deploying and invoking contracts |
-| Node.js | 20 LTS recommended | Frontend and backend |
-| PostgreSQL / Redis | 14+ / 6+ | Backend |
-| A Stellar wallet | Freighter recommended, set to **Testnet** | Playing |
+| Node.js | 20 LTS recommended (see `.nvmrc`) | Frontend and backend |
+| `jq` | any recent version | `make seed-local` |
+| A Stellar wallet | Freighter recommended, set to **Standalone Network ; February 2017** for local play | Playing |
+
+The root `Makefile` wraps the commands for every package. All commands below run from the repository root; `make help` prints the full target list.
 
 ### 1. Clone
 
@@ -314,52 +320,44 @@ git clone https://github.com/Stellar-songifi/lyricsflip.git
 cd lyricsflip
 ```
 
-### 2. Build, test, and deploy the contracts
+### 2. Start the local stack
 
 ```bash
-cd onchain
-rustup target add wasm32v1-none
-cargo test                                    # unit tests
-cargo build --target wasm32v1-none --release  # → target/wasm32v1-none/release/*.wasm
+make dev
 ```
 
-Deploy to testnet (create and fund an identity first with `stellar keys generate --global me --network testnet --fund`):
+This installs the workspace npm dependencies and the Rust WASM target, starts `stellar/quickstart` (RPC at http://localhost:8000/soroban/rpc) together with Postgres, Redis and Mailpit, waits for the RPC to become healthy, and creates/funds the `me` identity used by the deploy scripts. It is safe to re-run.
+
+### 3. Deploy and seed the contracts
 
 ```bash
-# Game contract
-stellar contract deploy \
-  --wasm target/wasm32v1-none/release/lyricsflip.wasm \
-  --source me --network testnet \
-  -- --owner $(stellar keys address me)
-
-# NFT contract (minter = game contract ID from the previous step)
-stellar contract deploy \
-  --wasm target/wasm32v1-none/release/lyricsflip_nft.wasm \
-  --source me --network testnet \
-  -- --owner $(stellar keys address me) --minter <LYRICSFLIP_CONTRACT_ID> \
-     --token_name "LyricsFlip" --token_symbol "LFLIP" --base_uri "https://example.com/nft/"
+make deploy-local   # build WASM, deploy both contracts, write frontend/.env.local
+make seed-local     # add the cards from seed/songs.json
 ```
 
-Configure the game and add some cards:
+For a testnet deployment instead, see [Deploy to testnet](#deploy-to-testnet) below.
+
+> `build_question_card` needs **at least 4 distinct titles** (3 wrong options plus the right one); `create_round` needs at least `cards_per_round` cards. `seed/songs.json` provides both.
+
+### 4. Run the app
 
 ```bash
-stellar contract invoke --id <LYRICSFLIP_CONTRACT_ID> --source me --network testnet \
-  -- set_cards_per_round --caller $(stellar keys address me) --value 5
-
-stellar contract invoke --id <LYRICSFLIP_CONTRACT_ID> --source me --network testnet \
-  -- add_card --caller $(stellar keys address me) \
-  --card '{"card_id":0,"genre":1,"artist":"Demo Artist","title":"Demo Song","year":1999,"lyrics":"Demo lyric line"}'
+make frontend       # http://localhost:3000
 ```
 
-> `build_question_card` needs **at least 4 distinct titles** (3 wrong options plus the right one); `create_round` needs at least `cards_per_round` cards.
+Connect a wallet configured for the local network (passphrase `Standalone Network ; February 2017`) and play. In another terminal, `make backend` starts the NestJS API at http://localhost:4000 (Swagger at `/api/docs`) for profiles, leaderboards and multiplayer relay; it is not required for the core on-chain game.
 
 ### 3. Run the frontend against shared testnet contracts
 
 The repository includes a shared testnet deployment record in
 [`deployments/testnet.json`](deployments/testnet.json). New contributors do not
 need to deploy contracts to run the frontend.
+### 5. Checks
 
 ```bash
+make contracts      # cargo fmt --check, cargo test, WASM build
+make test           # contract + frontend + backend unit tests
+make lint           # Rust fmt/clippy + frontend/backend lint
 cd frontend
 npm install
 npm run env:testnet   # writes frontend/.env.local from deployments/testnet.json
@@ -375,15 +373,31 @@ If you need your own deployment instead of the shared one, follow the contract
 deployment steps above and replace the IDs in `frontend/.env.local`.
 
 ### 4. Run the backend
-
-```bash
-cd backend
-npm install
-cp .env.example .env.development   # fill in the values (see variables below); use a port other than 3000 so it doesn't clash with Next.js
-npm run start:dev  # Swagger at http://localhost:<PORT>/api/docs
+cat > .env.local <<'ENV'
+NEXT_PUBLIC_STELLAR_RPC_URL=https://soroban-testnet.stellar.org
+NEXT_PUBLIC_STELLAR_NETWORK_PASSPHRASE=Test SDF Network ; September 2015
+NEXT_PUBLIC_LYRICSFLIP_CONTRACT_ID=<LYRICSFLIP_CONTRACT_ID>
+NEXT_PUBLIC_LYRICSFLIP_NFT_CONTRACT_ID=<LYRICSFLIP_NFT_CONTRACT_ID>
+NEXT_PUBLIC_LYRICSFLIP_ESCROW_CONTRACT_ID=<LYRICSFLIP_ESCROW_CONTRACT_ID>
+NEXT_PUBLIC_API_URL=http://localhost:4000/api/v1
+ENV
+npm run dev        # http://localhost:3000
 ```
 
-> The backend doesn't build yet. See [Project status](#project-status--known-limitations).
+### Deploy to testnet
+
+Create and fund an identity, then run the same helper scripts directly:
+
+```bash
+stellar keys generate --global me --network testnet --fund
+cd onchain
+./scripts/deploy.sh testnet
+./scripts/seed-cards.sh testnet
+cd ..
+make frontend
+```
+
+`deploy.sh` writes the contract IDs to `frontend/.env.local`. If that file previously pointed at the local network, also set `NEXT_PUBLIC_STELLAR_RPC_URL=https://soroban-testnet.stellar.org` and `NEXT_PUBLIC_STELLAR_NETWORK_PASSPHRASE=Test SDF Network ; September 2015`. See [`onchain/README.md`](onchain/README.md) for manual deploy commands and contract details.
 
 ---
 
@@ -397,7 +411,20 @@ npm run start:dev  # Swagger at http://localhost:<PORT>/api/docs
 | `NEXT_PUBLIC_STELLAR_NETWORK_PASSPHRASE` | `Test SDF Network ; September 2015` | Network passphrase (also picks the wallet-kit network) |
 | `NEXT_PUBLIC_LYRICSFLIP_CONTRACT_ID` | — | Deployed game contract ID (`C…`) |
 | `NEXT_PUBLIC_LYRICSFLIP_NFT_CONTRACT_ID` | — | Deployed NFT contract ID (`C…`) |
-| `NEXT_PUBLIC_API_URL` | `http://localhost:3000/api` | Backend base URL |
+| `NEXT_PUBLIC_LYRICSFLIP_ESCROW_CONTRACT_ID` | — | Deployed escrow contract ID (`C…`) |
+| `NEXT_PUBLIC_API_URL` | `http://localhost:4000/api/v1` | Versioned backend API root; REST calls append paths such as `/auth/challenge` |
+| `NEXT_PUBLIC_WS_URL` | `http://localhost:4000` | Backend WebSocket origin |
+| `NEXT_PUBLIC_WAGERING_ENABLED` | `false` | Enables wager UI when an escrow contract is configured |
+| `NEXT_PUBLIC_STELLAR_HORIZON_URL` | `https://horizon-testnet.stellar.org` | Horizon endpoint |
+| `NEXT_PUBLIC_STELLAR_FRIENDBOT_URL` | `https://friendbot.stellar.org` | Friendbot endpoint for testnet onboarding |
+| `NEXT_PUBLIC_WAGER_ASSET_CODE` | `XLM` | Wager asset code |
+| `NEXT_PUBLIC_STELLAR_NETWORK` | `testnet` | Frontend network label |
+| `NEXT_PUBLIC_SITE_URL`, `NEXT_PUBLIC_APP_URL` | `https://lyricsflip.xyz` | Public site/app URLs |
+| `NEXT_PUBLIC_INDEXER_URL` | — | Optional event-indexer endpoint |
+
+Frontend public environment variables are validated with Zod during the Next.js
+build/render. In production, the game and NFT contract IDs must
+be valid Stellar contract StrKeys; a configured escrow ID is validated too.
 
 ### Backend (`backend/.env`, see `backend/.env.example`)
 
@@ -433,7 +460,7 @@ npm run start:dev  # Swagger at http://localhost:<PORT>/api/docs
 | Frontend | `cd frontend && npm test` | Jest + jsdom (`src/__tests__/`) |
 | Backend | `cd backend && npm test` / `npm run test:e2e` | Jest (`*.spec.ts`) |
 
-GitHub Actions (`.github/workflows/onchain.yml`) runs `cargo fmt --check`, a release WASM build, and `cargo test` on every push to `main` and on every PR. Frontend and backend CI are planned ([LF-106](ISSUES.md#lf-106--ci-workflow-for-the-frontend), [LF-107](ISSUES.md#lf-107--ci-workflow-for-the-backend)).
+GitHub Actions (`.github/workflows/onchain.yml`) runs `cargo fmt --check`, a release WASM build, and `cargo test` on every push to `main` and on every PR. Frontend and backend CI are tracked in ([LF-106](BACKLOG.md#lf-106--ci-workflow-for-the-frontend), [LF-107](BACKLOG.md#lf-107--ci-workflow-for-the-backend)).
 
 ---
 
@@ -443,18 +470,18 @@ LyricsFlip is under active development, following its migration from Starknet to
 
 | Area | Status | Tracked in |
 |---|---|---|
-| **Smart contracts** (`onchain/`) | Both contracts build to WASM and pass their unit tests in CI. Rounds, cards, answers, and streaks work on-chain; wagering, payouts, and NFT rewards are in progress. | [Contracts milestone](https://github.com/Stellar-songifi/lyricsflip/milestones) · [LF-001 – LF-034](ISSUES.md) |
-| **Frontend** (`frontend/`) | Wallet connection and typed contract calls work; screens are being wired to real on-chain data. | [Frontend milestone](https://github.com/Stellar-songifi/lyricsflip/milestones) · [LF-035 – LF-072](ISSUES.md) |
-| **Backend** (`backend/`) | Does not compile yet; being rebuilt module by module. | [Backend milestone](https://github.com/Stellar-songifi/lyricsflip/milestones) · [LF-073 – LF-105](ISSUES.md) |
-| **DevOps & docs** | Contract CI runs on every PR; frontend/backend CI and deployment are planned. | [DevOps milestone](https://github.com/Stellar-songifi/lyricsflip/milestones) · [LF-106 – LF-125](ISSUES.md) |
+| **Smart contracts** (`onchain/`) | Both contracts build to WASM and pass their unit tests in CI. Rounds, cards, answers, and streaks work on-chain; wagering, payouts, and NFT rewards are in progress. | [Contracts milestone](https://github.com/Stellar-songifi/lyricsflip/milestones) · [LF-001 – LF-034](BACKLOG.md) |
+| **Frontend** (`frontend/`) | Wallet connection and typed contract calls work; screens are being wired to real on-chain data. | [Frontend milestone](https://github.com/Stellar-songifi/lyricsflip/milestones) · [LF-035 – LF-072](BACKLOG.md) |
+| **Backend** (`backend/`) | Does not compile yet; being rebuilt module by module. | [Backend milestone](https://github.com/Stellar-songifi/lyricsflip/milestones) · [LF-073 – LF-105](BACKLOG.md) |
+| **DevOps & docs** | Contract CI runs on every PR; frontend/backend CI and deployment are planned. | [DevOps milestone](https://github.com/Stellar-songifi/lyricsflip/milestones) · [LF-106 – LF-125](BACKLOG.md) |
 
-For the current list of open work, see [`ISSUES.md`](ISSUES.md) and the repository's [milestones](https://github.com/Stellar-songifi/lyricsflip/milestones).
+For the current list of open work, see [`BACKLOG.md`](BACKLOG.md) and the repository's [milestones](https://github.com/Stellar-songifi/lyricsflip/milestones). Completed work is recorded in [`ISSUES.md`](ISSUES.md).
 
 ---
 
 ## Roadmap
 
-[`ISSUES.md`](ISSUES.md) holds 125 issues grouped by area, each with a description, a task list, and acceptance criteria:
+[`BACKLOG.md`](BACKLOG.md) holds open issues grouped by area, each with a description, a task list, and acceptance criteria. Finished issues are archived in [`ISSUES.md`](ISSUES.md):
 
 | Range | Area |
 |---|---|
@@ -472,7 +499,7 @@ Suggested order: **P0 contract fixes → frontend build fixes + wallet UX → re
 
 Contributions are welcome! Please read [`ContributionGuidelines.md`](ContributionGuidelines.md) first. In short:
 
-1. Pick an issue from [`ISSUES.md`](ISSUES.md) (or GitHub Issues) and comment to claim it. **Issues tagged for an event must not be applied for before the event starts.**
+1. Pick an issue from [`BACKLOG.md`](BACKLOG.md) (or GitHub Issues) and comment to claim it. **Issues tagged for an event must not be applied for before the event starts.**
 2. Create a branch (never push to `main`).
 3. Keep PRs focused. Include a clear description, link the issue, and show test evidence or screenshots.
 4. Make sure `cargo fmt --check && cargo test` (contracts) and `npm run lint && npm test` (frontend/backend) pass.

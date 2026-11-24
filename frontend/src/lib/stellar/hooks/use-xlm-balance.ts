@@ -8,9 +8,7 @@ import { useStellar } from './use-stellar';
 
 const HORIZON_URL = env.NEXT_PUBLIC_STELLAR_HORIZON_URL;
 
-const FRIENDBOT_URL =
-  process.env.NEXT_PUBLIC_STELLAR_FRIENDBOT_URL ||
-  'https://friendbot.stellar.org';
+const FRIENDBOT_URL = env.NEXT_PUBLIC_STELLAR_FRIENDBOT_URL;
 
 /**
  * Minimum XLM balance required to submit a transaction, in stroops.

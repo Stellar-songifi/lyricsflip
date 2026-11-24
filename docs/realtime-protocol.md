@@ -2,79 +2,139 @@
 
 ## Overview
 
-This document specifies the real-time communication protocol between the LyricsFlip client and server using WebSocket (Socket.IO). The server acts as a relay for on-chain state and events, with the Soroban blockchain serving as the source of truth for game correctness and results.
+This document specifies the real-time communication protocol between the LyricsFlip
+client and server using WebSocket (Socket.IO).  The server acts as a **relay** for
+on-chain state and events; the Soroban blockchain is the authoritative source of
+truth for game correctness, scoring, and results.
 
 ## Architecture
 
 - **Namespaces**: `/game` for game state and gameplay events
 - **Transport**: WebSocket with Socket.IO (fallback to polling)
-- **Authentication**: JWT token in socket handshake auth
+- **Authentication**: Wallet JWT token in socket handshake (see §Security model)
 - **CORS**: Configured via environment variable `CORS_ORIGINS`
+
+---
+
+## Security Model (LF-339)
+
+### Authentication
+
+Every socket connection **must** present a valid access token obtained through
+the wallet-auth flow (`POST /auth/wallet/challenge` → `POST /auth/wallet/verify`).
+
+```
+socket.connect({
+  auth: { token: '<access_token>' }
+});
+```
+
+Connections without a valid JWT are disconnected immediately after the
+handshake — before the socket can join any room or emit any event.
+
+The token payload carries:
+- `sub` — the internal user id
+- `address` — the Stellar wallet address (present for wallet-auth users)
+
+The server **never** trusts identity from the message body.  `playerId` fields
+in `room:join` or other payloads are ignored; the authenticated `sub`/`address`
+from the JWT are used exclusively.
+
+### Players vs Spectators
+
+On `room:join` the server queries `chain_round_player` (populated by the
+indexer from on-chain `RoundJoined` events) to decide the socket's role:
+
+| Role | Condition | Receives broadcasts | May emit gameplay events |
+|------|-----------|---------------------|--------------------------|
+| **player** | address / userId in `chain_round_player` for the round | ✓ | ✓ |
+| **spectator** | not in `chain_round_player` | ✓ | ✗ |
+
+A spectator socket joins the Socket.IO room and receives all broadcasts but
+any gameplay event it emits (`room:ready`, `answer:submitted`) is rejected
+with `{ success: false, error: '...' }`.  The role is returned in the
+`room:join` response:
+
+```
+{ success: true, role: 'player' | 'spectator', roomState: RoomState }
+```
+
+### Server-only events
+
+`score:update` and `round:completed` are **server → client only**.  The
+server registers no `@SubscribeMessage` handler for these names; a client
+frame with either name is silently dropped by Socket.IO.  Scores and results
+are derived exclusively from indexed on-chain events (`RoundCompleted`).
+
+### Rate limiting
+
+Each authenticated socket is limited to **60 messages per 10-second window**
+across all event types.  Exceeding the limit closes the specific message with
+a `rate limit exceeded` error; the connection is not terminated.
+
+---
 
 ## Client → Server Messages
 
 ### Room Management
 
 #### `room:join`
-Client joins a game room/round.
+Request entry to a round room.  The `roomId` must match the on-chain round id.
 
 ```typescript
 socket.emit('room:join', {
-  roomId: string;    // UUID of the game room/round
-  playerId: string;  // User's wallet address or ID
+  roomId: string;   // On-chain round id
 });
 
-// Response (server emits back):
-// Success: { success: true, roomState: RoomState }
-// Error: { success: false, error: string }
+// Response:
+// { success: true, role: 'player' | 'spectator', roomState: RoomState }
+// { success: false, error: string }
 ```
 
+> `playerId` fields in the payload are **ignored** — identity comes from the JWT.
+
 #### `room:leave`
-Client leaves the room. Automatically called on disconnect.
+Leave the room.  Automatically called on disconnect.
 
 ```typescript
-socket.emit('room:leave', {
-  roomId: string;
-});
-
+socket.emit('room:leave', { roomId: string });
 // Response: { success: true }
 ```
 
 #### `room:ready`
-Player signals they are ready to start the round.
+Signal readiness to start the round.  **Players only.**
 
 ```typescript
-socket.emit('room:ready', {
-  roomId: string;
-});
-
-// Response: { success: true }
+socket.emit('room:ready', { roomId: string });
+// Response: { success: true } | { success: false, error: 'You must join this room as a player first' }
 ```
 
 ### Gameplay
 
 #### `answer:submitted`
-Player submits their answer to the current question.
+Notify the server that the player submitted an answer on-chain.  **Players only.**
+The server relays this for UI updates; it does **not** update scores.
 
 ```typescript
 socket.emit('answer:submitted', {
   roomId: string;
-  answer: string;           // The submitted answer
-  roundIndex: number;       // Current round number
+  answer: string;           // On-chain transaction hash or answer identifier
+  roundIndex?: number;
 });
-
-// Response: { success: true }
-// Note: Validation and scoring happen on-chain; server relays the submission event
+// Response: { success: true } | { success: false, error: 'Not a player in this room' }
 ```
+
+---
 
 ## Server → Client Messages (Events)
 
-All server events are scoped to rooms using `socket.to(roomId).emit()`. Clients only receive events for rooms they've joined.
+All server events are scoped to the room.  Clients only receive events for
+rooms they have joined.
 
 ### Room State
 
 #### `room:state`
-Complete room state. Sent on join and after significant state changes.
+Complete room state.  Sent on join and after significant state changes.
 
 ```typescript
 {
@@ -85,10 +145,12 @@ Complete room state. Sent on join and after significant state changes.
   maxRounds: number;
   createdAt: ISO8601;
 }
+```
 
+```typescript
 Player {
-  playerId: string;
-  username: string;
+  playerId: string;   // JWT sub (internal user id)
+  username: string;   // Wallet address or display name
   isReady: boolean;
   score: number;
   joinedAt: ISO8601;
@@ -98,83 +160,62 @@ Player {
 ### Player Events
 
 #### `player:joined`
-A new player has joined the room.
+A verified player joined the room.  Not emitted for spectators.
 
 ```typescript
-{
-  playerId: string;
-  username: string;
-  playerCount: number;
-  timestamp: ISO8601;
-}
+{ playerId: string; username: string; playerCount: number; timestamp: ISO8601 }
 ```
 
 #### `player:left`
-A player has left the room.
+A player left the room.
 
 ```typescript
-{
-  playerId: string;
-  username: string;
-  playerCount: number;
-  timestamp: ISO8601;
-}
+{ playerId: string; username: string; playerCount: number; timestamp: ISO8601 }
 ```
 
 #### `player:ready`
-A player is ready (for round transitions).
+A player signalled readiness.
 
 ```typescript
-{
-  playerId: string;
-  readyCount: number;
-  totalPlayers: number;
-}
+{ playerId: string; readyCount: number; totalPlayers: number }
 ```
 
 ### Gameplay Events
 
 #### `card:next`
-A new question/lyric card is presented. Emitted when the round starts.
+A new lyric card is presented.  Emitted when the indexer sees `RoundStarted`.
 
 ```typescript
 {
   roundIndex: number;
   question: {
     id: string;
-    lyrics: string;           // Partial or obfuscated lyrics
-    options: string[];        // Multiple choice options (if applicable)
-    timeLimit: number;        // Milliseconds to answer
+    lyrics: string;
+    options: string[];
+    timeLimit: number;    // milliseconds
   };
   timestamp: ISO8601;
 }
 ```
 
 #### `timer:tick`
-Periodic timer update (1Hz or on-demand).
+Periodic timer update (1 Hz or on request via `room:sync`).
 
 ```typescript
-{
-  roundIndex: number;
-  remainingMs: number;
-  timestamp: ISO8601;
-}
+{ roundIndex: number; remainingMs: number; timestamp: ISO8601 }
 ```
 
 #### `score:update`
-A player's score has changed (on-chain validation).
+**Server-only.**  Scores derived from indexed `RoundCompleted` on-chain event.
+Clients must never emit this; frames with this name from clients are dropped.
 
 ```typescript
-{
-  playerId: string;
-  score: number;
-  pointsGained: number;
-  timestamp: ISO8601;
-}
+{ playerId: string; score: number; pointsGained: number; timestamp: ISO8601 }
 ```
 
 #### `round:completed`
-A round has finished (on-chain events processed).
+**Server-only.**  Emitted when the indexer processes a `RoundCompleted` event.
+Clients must never emit this; frames with this name from clients are dropped.
 
 ```typescript
 {
@@ -193,72 +234,75 @@ A round has finished (on-chain events processed).
 ### System Events
 
 #### `error`
-An error occurred (validation, room not found, etc.).
+An error occurred.
 
 ```typescript
-{
-  code: string;           // e.g., 'ROOM_NOT_FOUND', 'INVALID_ANSWER'
-  message: string;
-  timestamp: ISO8601;
-}
+{ code: string; message: string; timestamp: ISO8601 }
 ```
+
+Error codes:
+- `UNAUTHORIZED` — missing or invalid JWT
+- `NOT_A_PLAYER` — gameplay event from a spectator
+- `ROOM_NOT_FOUND` — referenced room does not exist
+- `RATE_LIMIT_EXCEEDED` — too many messages
 
 #### `disconnect`
-Server is closing the connection (maintenance, auth failure, etc.).
+Server is closing the connection.
 
 ```typescript
-{
-  reason: string;
-  message: string;
-}
+{ reason: string; message: string }
 ```
+
+---
 
 ## Event Source of Truth
 
-1. **On-Chain Events** (Soroban):
-   - `RoundCreated` → Server creates/initializes room
-   - `RoundStarted` → Server broadcasts `card:next`
-   - `AnswerSubmitted` → Logged and relayed
-   - `RoundCompleted` → Server broadcasts `round:completed` with indexed results
-   - `NftMinted` → Achievement unlocked (if applicable)
+| Event | Source | Gateway action |
+|-------|--------|----------------|
+| `RoundCreated` | On-chain (indexer) | Initialises room |
+| `RoundStarted` | On-chain (indexer) | Broadcasts `card:next` |
+| `AnswerSubmitted` | On-chain (indexer) | Relays `answer:submitted` |
+| `RoundCompleted` | On-chain (indexer) | Broadcasts `score:update` + `round:completed` |
+| `NftMinted` | On-chain (indexer) | Achievement unlock notification |
+| `player:joined` / `player:left` | Server (socket lifecycle) | Real-time lobby updates |
+| `player:ready` | Client → server relay | Waiting-room readiness |
 
-2. **Server-Managed State**:
-   - Player join/leave within a room
-   - Player ready status
-   - Room creation timestamp
-   - WebSocket connection state
-
-3. **Client-Managed State**:
-   - Local UI rendering (animations, timers)
-   - Optimistic answer submission (awaits server validation)
+---
 
 ## Connection Lifecycle
 
 ```
-Client connects
+Client → socket.connect({ auth: { token } })
    ↓
-Socket auth validated (JWT)
+Server: validate JWT → set socket.data.userId / address
+   │  failure → emit error{UNAUTHORIZED} → disconnect
    ↓
-room:join
+Client → room:join { roomId }
    ↓
-Server emits: room:state, player:joined (to others)
+Server: query chain_round_player → role = player | spectator
+   ↓  player: broadcast player:joined, add to playerRooms
+   ↓  spectator: silent join, add to spectatorRooms
    ↓
-[Gameplay: card:next, timer:tick, score:update]
+[Gameplay]
+   player  → answer:submitted   → server relays (no server scoring)
+   indexer → RoundCompleted     → server emits score:update + round:completed
    ↓
-room:leave or disconnect
+Client → room:leave  |  disconnect
    ↓
-Server emits: player:left (to others)
-   ↓
-Connection closed
+Server: broadcast player:left (players only), clean up
 ```
+
+---
 
 ## Error Handling
 
-- Invalid JWT → Disconnect before room operations
-- Room not found → Emit `error` event, don't join
-- Invalid answer submission → Emit `error` event, don't relay
-- On-chain validation failure → Emit `error` event with reason
-- RPC outage → Emit `error` event (indexer backlog, server waits for recovery)
+- **Invalid JWT** — socket disconnected immediately on connect
+- **Gameplay event from spectator** — `{ success: false, error: '...' }` returned to emitter; not broadcast
+- **Room not found** — `{ success: false, error: 'Room not found' }`
+- **Rate limit exceeded** — message rejected, connection kept
+- **RPC / indexer outage** — `score:update` / `round:completed` delayed until recovery
+
+---
 
 ## Configuration
 
@@ -266,30 +310,30 @@ Connection closed
 
 ```
 CORS_ORIGINS=http://localhost:3001,https://lyricsflip.example.com
-WEBSOCKET_NAMESPACE=/game
-SOCKET_IO_ADAPTER_PORT=3000
 ```
 
 **Socket.IO Adapter Settings** (`config/socket-io.config.ts`):
 
-- `pingInterval`: 10000ms (server → client keepalive)
-- `pingTimeout`: 5000ms (wait for pong response)
-- `connectTimeout`: 45000ms (initial connection timeout)
-- `maxHttpBufferSize`: 1MB
-- `transports`: ['websocket', 'polling'] (fallback support)
+- `pingInterval`: 10 000 ms
+- `pingTimeout`: 5 000 ms
+- `connectTimeout`: 45 000 ms
+- `maxHttpBufferSize`: 100 KB (default)
+- `transports`: `['websocket', 'polling']`
 
-## Testing Strategy
+---
 
-1. **Unit Tests**: DTO validation, message parsing
-2. **Integration Tests**: Socket.IO connection, room join/leave, event broadcasting
-3. **E2E Tests** (with fixtures):
-   - Two clients join same room → both receive `player:joined`
-   - Client in room A doesn't receive events from room B
-   - CORS rejection for disallowed origins
-   - Graceful reconnection after network interruption
+## Testing
+
+1. **Unit** — `ws-jwt-auth.guard.spec.ts`: guard rejects unauthenticated sockets
+2. **Contract** — `game/realtime-protocol.contract.spec.ts`: non-player cannot emit
+   gameplay events; `score:update` / `round:completed` have no client handler;
+   identity always comes from JWT
+3. **Integration** (future) — two Socket.IO clients, live DB, verify room isolation
+
+---
 
 ## References
 
+- Issue #925 (LF-339): Authenticate the game socket and check room membership
 - Issue #508 (LF-091): Real-time multiplayer protocol
-- Issue #505 (LF-088): On-chain event indexer (Soroban events → Postgres)
-- Related: LF-045 (optional WebSocket broadcast of indexed events)
+- Issue #505 (LF-088): On-chain event indexer

@@ -5,6 +5,7 @@ import type { SongAnalyticsService } from "../services/song-analytics.service"
 import type { TokenAnalyticsService } from "../services/token-analytics.service"
 import type { UserProgressionService } from "../services/user-progression.service"
 import type { AnalyticsAggregatorService } from "../services/analytics-aggregator.service"
+import { OnboardingFunnelService } from "../services/onboarding-funnel.service"
 import type { DateRangeDto } from "../dto/date-range.dto"
 import { AnalyticsResponseDto } from "../dto/analytics-response.dto"
 import { AnalyticsAuthGuard } from "../guards/analytics-auth.guard"
@@ -23,6 +24,7 @@ export class AnalyticsController {
     private readonly tokenAnalyticsService: TokenAnalyticsService,
     private readonly userProgressionService: UserProgressionService,
     private readonly analyticsAggregator: AnalyticsAggregatorService,
+    private readonly onboardingFunnel: OnboardingFunnelService,
   ) {}
 
   @Get('player-engagement')
@@ -64,5 +66,11 @@ export class AnalyticsController {
   async getAggregatedAnalytics(@Query(ValidationPipe) dateRange: DateRangeDto) {
     return this.analyticsAggregator.getAggregatedData(dateRange);
   }
-}
 
+  @Get('onboarding-funnel')
+  @AnalyticsRoles(AnalyticsRole.ANALYST, AnalyticsRole.ADMIN)
+  @ApiOperation({ summary: 'Get anonymous onboarding funnel counts for 30 days' })
+  async getOnboardingFunnel() {
+    return this.onboardingFunnel.getCounts();
+  }
+}

@@ -65,6 +65,32 @@ export class WagerService {
   }
 
   /**
+   * LF-340 / LF-351: Sums the amount of every wager currently in escrow
+   * (status = ESCROWED), grouped by asset.  Used by the nightly
+   * reconciliation job to compare the database's open pots against the
+   * escrow contract's actual on-chain token balance.
+   * LF-340: Sums the amount of every wager still in escrow (status =
+   * ESCROWED), grouped by asset. Used by the nightly reconciliation job to
+   * compare the database's open pots against the escrow contract's actual
+   * on-chain token balance.
+   */
+  async sumEscrowedAmounts(): Promise<Record<string, string>> {
+    const rows = await this.wagerRepository
+      .createQueryBuilder('wager')
+      .select('wager.asset', 'asset')
+      .addSelect('COALESCE(SUM(wager.amount), 0)', 'total')
+      .where('wager.status = :status', { status: WagerStatus.ESCROWED })
+      .groupBy('wager.asset')
+      .getRawMany<{ asset: string; total: string }>();
+
+    const result: Record<string, string> = {};
+    for (const row of rows) {
+      result[row.asset] = row.total;
+    }
+    return result;
+  }
+
+  /**
    * Upserts a wager row from an indexed on-chain event (`RoundJoined`,
    * `RoundCompleted`, `RoundCancelled`). Intended to be called by the
    * indexer (LF-088) as it decodes events — not exposed over HTTP.

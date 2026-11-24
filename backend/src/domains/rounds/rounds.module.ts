@@ -7,7 +7,10 @@ import { QuickGameModule } from '../../quick-game/quick-game.module';
 import { RoomModule } from '../../room/room.module';
 import { ScoringModule } from '../../scoring/scoring.module';
 import { WagerModule } from '../../wager/wager.module';
+import { RedisModule } from '../../redis/redis.module';
 import { RoundsController } from './rounds.controller';
+import { RoundsReadController } from './rounds-read.controller';
+import { RoundsReadService } from './providers/rounds-read.service';
 
 @Module({
   imports: [
@@ -19,8 +22,10 @@ import { RoundsController } from './rounds.controller';
     RoomModule,
     ScoringModule,
     WagerModule,
+    RedisModule,
   ],
-  controllers: [RoundsController],
+  controllers: [RoundsController, RoundsReadController],
+  providers: [RoundsReadService],
   exports: [
     GameModule,
     GameSessionModule,
@@ -29,6 +34,7 @@ import { RoundsController } from './rounds.controller';
     RoomModule,
     ScoringModule,
     WagerModule,
+    RoundsReadService,
   ],
 })
 export class RoundsModule {}

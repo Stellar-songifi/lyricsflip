@@ -52,30 +52,55 @@ Cross-cutting HTTP behaviour is configured once in `src/config/app-setup.ts`:
 
 ## Environment variables
 
-Copy `.env.example` to `backend/.env` (or `.env.development`):
+Copy `.env.example` to `backend/.env` (or `.env.development`).
+
+All variables are validated by Joi at boot (`src/config/validation.schema.ts`). A missing required
+variable, or an unsafe value in production, exits immediately with a clear message listing every
+violation — no silent late failures.
 
 | Variable | Required | Default | Description |
 | --- | --- | --- | --- |
-| `NODE_ENV` | no | `development` | Enables Swagger; schema changes always go through migrations, in every environment |
+| `NODE_ENV` | no | `development` | `development`, `production`, `test` or `staging`; enables Swagger outside production |
 | `LOG_LEVEL` | no | `info` | `error`, `warn`, `info`, `debug` or `verbose` |
-| `PORT` | no | `3000` | HTTP/WebSocket port |
+| `PORT` | no | `4000` | HTTP/WebSocket port |
 | `DATABASE_URL` | **yes** | — | e.g. `postgres://postgres:postgres@localhost:5432/lyricsflip` |
 | `DB_MIGRATIONS_RUN` | no | `true` | Run pending migrations on startup |
-| `JWT_SECRET` | **yes** | — | Access-token signing secret |
-| `JWT_REFRESH_SECRET` | yes | — | Refresh-token signing secret |
-| `JWT_ACCESS_TOKEN_TTL` / `JWT_REFRESH_TOKEN_TTL` | no | — | Token lifetimes (seconds) |
-| `JWT_TOKEN_AUDIENCE` / `JWT_TOKEN_ISSUER` | no | — | JWT `aud` / `iss` claims |
+| `JWT_SECRET` | **yes** | — | Access-token signing secret. In production must be ≥ 32 chars and not a known placeholder. |
+| `JWT_REFRESH_SECRET` | **yes** | — | Refresh-token signing secret. Same production rules as `JWT_SECRET`. |
+| `JWT_ACCESS_TOKEN_TTL` | no | `3600` | Access-token lifetime in seconds |
+| `JWT_REFRESH_TOKEN_TTL` | no | `7776000` | Refresh-token lifetime in seconds (90 days) |
+| `JWT_TOKEN_AUDIENCE` | no | — | JWT `aud` claim |
+| `JWT_TOKEN_ISSUER` | no | — | JWT `iss` claim |
+| `CORS_ORIGINS` | no | `http://localhost:3000` | Comma-separated allowed origins. In production `*` is rejected — list explicit origins. |
 | `STELLAR_NETWORK` | **yes** | — | `testnet`, `futurenet` or `mainnet` |
-| `SOROBAN_RPC_URL` | no | — | Soroban RPC used by the indexer and `/health`; validated at boot |
+| `SOROBAN_RPC_URL` | no | — | Soroban RPC used by the indexer and `/health`; validated as a URI at boot |
+| `STELLAR_RPC_URL` | no | — | Fallback Soroban RPC when `SOROBAN_RPC_URL` is unset; validated as a URI |
 | `LYRICSFLIP_CONTRACT_ID` | no | — | LyricsFlip game contract ID indexed by the indexer; validated with `StrKey.isValidContract` |
 | `LYRICSFLIP_NFT_CONTRACT_ID` | no | — | NFT contract ID indexed alongside `LYRICSFLIP_CONTRACT_ID` (so `NftMinted` events are indexed); validated with `StrKey.isValidContract` |
+| `SOROBAN_ADMIN_SECRET_KEY` | no | — | Admin account secret key used by `POST /admin/songs/sync` |
+| `SOROBAN_ADMIN_PUBLIC_KEY` | no | — | Admin account public key for building unsigned `add_card` transactions |
+| `WALLET_AUTH_ALLOW_RAW_SIGNATURES` | no | `false` | Accept legacy raw-byte signatures. Must be `false` in production. |
 | `REDIS_URL` | no | `redis://127.0.0.1:6379` | Throttler storage and health check |
-| `REDIS_HOST` / `REDIS_PORT` | no | `localhost` / `6379` | Cache store |
-| `RATE_LIMIT_TTL` / `RATE_LIMIT_LIMIT` | no | `60` / `10` | Default rate limit |
-| `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASS` | no | `localhost` / `1025` | Outgoing email (Mailpit in docker compose) |
+| `REDIS_HOST` / `REDIS_PORT` | no | `localhost` / `6379` | Cache store host and port |
+| `RATE_LIMIT_TTL` | no | `60000` | Rate-limit window in milliseconds |
+| `RATE_LIMIT_LIMIT` | no | `60` | Max requests per window |
+| `SMTP_HOST` | no | `localhost` | Outgoing SMTP host (Mailpit in docker compose) |
+| `SMTP_PORT` | no | `1025` | Outgoing SMTP port |
+| `SMTP_SECURE` | no | `false` | Use TLS for SMTP |
+| `SMTP_USER` / `SMTP_PASS` | no | — | SMTP credentials |
 | `MAIL_FROM` | no | `LyricsFlip <no-reply@lyricsflip.local>` | Sender address |
-| `PASSWORD_RESET_TTL_MINUTES` | no | `15` | Password-reset link lifetime |
-| `APP_URL` | no | `http://localhost:3000` | Public URL used in emails/links |
+| `APP_URL` | no | `http://localhost:3000` | Public URL used in emails and links |
+| `PASSWORD_RESET_TTL_MINUTES` | no | `15` | Password-reset link lifetime in minutes |
+| `ANALYTICS_API_KEY` | no | — | Shared secret expected in the `x-analytics-key` header |
+| `INDEXER_POLL_INTERVAL_MS` | no | `5000` | Indexer ledger-poll interval in milliseconds |
+| `INDEXER_EVENT_LIMIT` | no | `100` | Max events fetched per poll |
+| `INDEXER_KEEPER_ENABLED` | no | `false` | Enable the indexer keeper process |
+| `INDEXER_RETENTION_DAYS` | no | `7` | Soroban event-retention window (days); used to detect stale cursors |
+| `INDEXER_START_LEDGER` | no | — | Starting ledger when no cursor has been persisted |
+| `INDEXER_BACKOFF_BASE_MS` | no | `1000` | Exponential-backoff base delay on RPC errors (ms) |
+| `INDEXER_BACKOFF_MAX_MS` | no | `60000` | Exponential-backoff maximum delay on RPC errors (ms) |
+| `INDEXER_MAX_LAG_LEDGERS` | no | `100` | Max ledgers the indexer may lag behind the RPC before `/health/ready` reports unhealthy |
+| `RPC_HEALTH_TIMEOUT_MS` | no | `5000` | Timeout for the RPC `getLatestLedger` health probe |
 
 Both contract IDs and `SOROBAN_RPC_URL` are validated at boot (Joi and a runtime `StrKey.isValidContract`
 check). An invalid value stops the app with a clear message; in production, boot fails fast when the
@@ -206,3 +231,11 @@ There is one logger, `AppLogger` (`src/logger`). Use Nest's `new Logger(MyServic
 it routes through `AppLogger`. Production writes JSON lines; other environments write readable lines.
 Every HTTP request gets an `x-request-id` and exactly one access log line. Known secret fields
 (passwords, tokens, authorization headers, JWTs) are redacted. Set `LOG_LEVEL` to `error`, `warn`, `info`, `debug` or `verbose`.
+
+## Wallet auth (LF-337)
+
+`POST /auth/challenge` issues a single-use challenge containing the domain (`APP_URL`), the Stellar network passphrase (`STELLAR_NETWORK`), a nonce, `issuedAt` and `expiresAt`. The wallet signs it with SEP-53 `signMessage`; `POST /auth/verify` checks the signature and re-checks the domain/network/expiry binding.
+
+- Raw-byte signatures are accepted only when `NODE_ENV=test`; there is no environment flag to enable them.
+- Challenge issuance is limited per IP (route throttle) and per address (5/min, Redis counter).
+- **Contract accounts (`C...`, passkey wallets) are not supported.** They require SEP-45 (web authentication for contract accounts), which is not implemented; challenge requests for them are rejected with 400.

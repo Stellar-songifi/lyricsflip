@@ -22,6 +22,16 @@ const DynamicStellarProvider = dynamic(
   { ssr: false, loading: EngineLoading },
 );
 
+// Also client-only: the reset check uses the Stellar SDK, which must not be
+// pulled into the initial route bundle (LF-365).
+const DynamicTestnetResetBanner = dynamic(
+  () =>
+    import('@/components/molecules/testnet-reset-banner').then(
+      (mod) => mod.TestnetResetBanner,
+    ),
+  { ssr: false },
+);
+
 /**
  * Defers mounting the wallet/SDK provider until after the first client render so
  * the Stellar SDK and Wallets Kit are never part of the initial route bundle.
@@ -52,6 +62,8 @@ export default function ClientShell({
     <QueryClientProvider client={queryClient}>
       <DeferredStellarProvider>
         <Navbar />
+        {/* Explains a wiped testnet instance instead of an opaque RPC error (LF-365) */}
+        <DynamicTestnetResetBanner />
         {/* WalletStatusBanner sits below the navbar so it is visible on every route */}
         <WalletStatusBanner />
         {/* pb-20 on mobile so the fixed MobileNav bar never overlaps content; md:pb-0 restores normal flow on desktop */}

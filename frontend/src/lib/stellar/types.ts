@@ -67,12 +67,13 @@ export interface Round {
   genre: Genre;
   wager_amount: bigint;
   start_time: bigint;
+  /** Per-round answer window (seconds), snapshotted when the round was created. */
+  answer_window: number;
   is_started: boolean;
   is_completed: boolean;
   end_time: bigint;
   next_card_index: number;
   is_cancelled: boolean;
-  answer_window?: bigint;
   lobby_timeout?: bigint;
   round_duration?: bigint;
   /** LF-162: true when joining requires the invite code. */
@@ -100,6 +101,26 @@ export interface RoundFilter {
   genre?: Genre;
   decade?: bigint | number;
 }
+
+/** Mirror of the contract's `CARD_ANSWER_WINDOW_SECONDS` default. */
+export const CARD_ANSWER_WINDOW_SECONDS = 15;
+
+/** Mirror of the contract's `MAX_CORRECT_POINTS`. */
+export const MAX_CORRECT_POINTS = 100;
+
+/** Mirror of the contract's `POINTS_DECAY_PER_SECOND`. */
+export const POINTS_DECAY_PER_SECOND = 5;
+
+/** Mirror of the contract's `MIN_CORRECT_POINTS`. */
+export const MIN_CORRECT_POINTS = 10;
+
+/**
+ * Ledger-close grace the UI subtracts when starting the card countdown from
+ * the draw transaction (LF-307): the contract starts scoring from the card's
+ * `RoundCardStartedAt` ledger timestamp, so the UI must not over-count when
+ * its clock starts a ledger later than the draw.
+ */
+export const FIRST_LEDGER_GRACE_SECONDS = 2;
 
 /** Mirrors the contract's `Milestone` enum (encoded as a plain `u32`). */
 export const MILESTONES = { FirstWin: 0, Streak5: 1, TenWins: 2 } as const;
@@ -195,6 +216,28 @@ export const yearAnswerFromOption = (option: string): Answer => {
   return Answer.year(year);
 };
 
+/**
+ * A single answer option shown on the card.
+ */
+export interface SongOption {
+  title: string;
+  artist: string;
+}
+
+/**
+ * Maps the selected option to the `Answer` variant matching the question kind (LF-308).
+ */
+export const answerForOption = (kind: QuestionKind, option: SongOption): Answer => {
+  switch (kind) {
+    case 'Artist':
+      return Answer.artist(option.title);
+    case 'Year':
+      return Answer.year(BigInt(option.title));
+    case 'Title':
+    default:
+      return Answer.title(option.title);
+  }
+};
 export interface StellarAccount {
   address: string;
 }

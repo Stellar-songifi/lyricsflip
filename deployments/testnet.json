@@ -12,4 +12,15 @@
     "lyricsflipNft": "1c62db20c3240ebb61c1302a9a0cc6506bb8c5f0b178f5f74d144619f22a92c7"
   },
   "lyricsflipEscrow": ""
+  "lyricsflip": "",
+  "lyricsflipEscrow": "",
+  "lyricsflipNft": "",
+  "tag": "",
+  "commit": "",
+  "deployedAt": "",
+  "wasm": {
+    "lyricsflip": "",
+    "lyricsflipEscrow": "",
+    "lyricsflipNft": ""
+  }
 }

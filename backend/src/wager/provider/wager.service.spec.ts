@@ -144,6 +144,8 @@ describe('WagerService', () => {
 
   describe('sumEscrowedAmounts', () => {
     it('sums escrowed wager amounts grouped by asset', async () => {
+      const qb = (repository.createQueryBuilder as jest.Mock)();
+      (qb.getRawMany as jest.Mock).mockResolvedValue([
       const qb = repository.createQueryBuilder();
       qb.getRawMany.mockResolvedValue([
         { asset: 'native', total: '1500000000' },
@@ -168,12 +170,25 @@ describe('WagerService', () => {
     });
 
     it('returns an empty object when no escrowed wagers exist', async () => {
+      const qb = (repository.createQueryBuilder as jest.Mock)();
+      (qb.getRawMany as jest.Mock).mockResolvedValue([]);
       const qb = repository.createQueryBuilder();
       qb.getRawMany.mockResolvedValue([]);
 
       const result = await service.sumEscrowedAmounts();
 
       expect(result).toEqual({});
+    });
+
+    it('handles a single asset correctly', async () => {
+      const qb = (repository.createQueryBuilder as jest.Mock)();
+      (qb.getRawMany as jest.Mock).mockResolvedValue([
+        { asset: 'native', total: '42000' },
+      ]);
+
+      const result = await service.sumEscrowedAmounts();
+
+      expect(result).toEqual({ native: '42000' });
     });
   });
 });

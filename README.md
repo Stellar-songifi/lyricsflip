@@ -6,7 +6,7 @@
 [![Contract Coverage](https://img.shields.io/badge/coverage-contracts-brightgreen)](https://github.com/Stellar-songifi/lyricsflip/actions/workflows/onchain.yml)
 
 - 🎨 **Figma design:** https://www.figma.com/design/6phOWkHKQgLRhRwmBBQDXB/LyricsFlip?node-id=0-1&t=0U8SlbaJijr7XNeG-1
-- 🗂️ **Issue backlog:** [`ISSUES.md`](ISSUES.md) (125 scoped issues with tasks and acceptance criteria)
+- 🗂️ **Issue backlog:** [`BACKLOG.md`](BACKLOG.md) (open work) · [`ISSUES.md`](ISSUES.md) (completed work)
 - 🤝 **Contributing:** [`CONTRIBUTING.md`](CONTRIBUTING.md) - Start here to contribute!
 
 ---
@@ -173,7 +173,7 @@ The contracts live in a Cargo workspace under [`onchain/`](onchain/) and use **s
 
 #### Randomness
 
-`get_random_numbers` builds a SHA-256 hash of `(seed, ledger sequence, ledger timestamp, i)` for each draw, reduces it modulo the pool size, and skips duplicates until it has enough unique values. `build_question_card` shuffles options with a linear-congruential Fisher–Yates shuffle. This is a straight port of the Cairo logic. It is **not** manipulation-resistant, because the caller supplies `seed` (see [LF-009](ISSUES.md#lf-009--card-selection-randomness-is-predictable-and-caller-controlled)).
+`get_random_numbers` builds a SHA-256 hash of `(seed, ledger sequence, ledger timestamp, i)` for each draw, reduces it modulo the pool size, and skips duplicates until it has enough unique values. `build_question_card` shuffles options with a linear-congruential Fisher–Yates shuffle. This is a straight port of the Cairo logic. It is **not** manipulation-resistant, because the caller supplies `seed` (see [LF-009](BACKLOG.md#lf-009--card-selection-randomness-is-predictable-and-caller-controlled)).
 
 For every public function, error, and event of both `lyricsflip` and `lyricsflip-nft` — including the reward NFT contract's minter-gated `mint` and its soulbound transfer/approve behavior — see [`onchain/docs/api.md`](onchain/docs/api.md), the single source of truth for the contract API. `onchain/scripts/check-api-docs.sh` runs in CI (LF-182) and fails the build if that file ever falls out of sync with the real contract surface.
 
@@ -261,7 +261,7 @@ Located in [`backend/`](backend/). It provides the off-chain side of the product
 
 Sample requests for most endpoints are in `backend/src/http-yac/*.http`, for use with the httpYac or REST Client VS Code extensions.
 
-> ⚠️ **Backend status:** the backend currently **does not compile**. `main.ts` and `app.module.ts` have errors, about 100 imports point to files that don't exist, and several packages are used but not declared in `package.json`. The backend also contains duplicate and experimental modules. Getting it building is tracked in [LF-073 – LF-081](ISSUES.md#backend-backend).
+> ⚠️ **Backend status:** the backend currently **does not compile**. `main.ts` and `app.module.ts` have errors, about 100 imports point to files that don't exist, and several packages are used but not declared in `package.json`. The backend also contains duplicate and experimental modules. Getting it building is tracked in [LF-073 – LF-081](BACKLOG.md#backend-backend).
 
 ---
 
@@ -428,7 +428,7 @@ npm run start:dev  # Swagger at http://localhost:<PORT>/api/docs
 | Frontend | `cd frontend && npm test` | Jest + jsdom (`src/__tests__/`) |
 | Backend | `cd backend && npm test` / `npm run test:e2e` | Jest (`*.spec.ts`) |
 
-GitHub Actions (`.github/workflows/onchain.yml`) runs `cargo fmt --check`, a release WASM build, and `cargo test` on every push to `main` and on every PR. Frontend and backend CI are planned ([LF-106](ISSUES.md#lf-106--ci-workflow-for-the-frontend), [LF-107](ISSUES.md#lf-107--ci-workflow-for-the-backend)).
+GitHub Actions (`.github/workflows/onchain.yml`) runs `cargo fmt --check`, a release WASM build, and `cargo test` on every push to `main` and on every PR. Frontend and backend CI are tracked in ([LF-106](BACKLOG.md#lf-106--ci-workflow-for-the-frontend), [LF-107](BACKLOG.md#lf-107--ci-workflow-for-the-backend)).
 
 ---
 
@@ -438,18 +438,18 @@ LyricsFlip is under active development, following its migration from Starknet to
 
 | Area | Status | Tracked in |
 |---|---|---|
-| **Smart contracts** (`onchain/`) | Both contracts build to WASM and pass their unit tests in CI. Rounds, cards, answers, and streaks work on-chain; wagering, payouts, and NFT rewards are in progress. | [Contracts milestone](https://github.com/Stellar-songifi/lyricsflip/milestones) · [LF-001 – LF-034](ISSUES.md) |
-| **Frontend** (`frontend/`) | Wallet connection and typed contract calls work; screens are being wired to real on-chain data. | [Frontend milestone](https://github.com/Stellar-songifi/lyricsflip/milestones) · [LF-035 – LF-072](ISSUES.md) |
-| **Backend** (`backend/`) | Does not compile yet; being rebuilt module by module. | [Backend milestone](https://github.com/Stellar-songifi/lyricsflip/milestones) · [LF-073 – LF-105](ISSUES.md) |
-| **DevOps & docs** | Contract CI runs on every PR; frontend/backend CI and deployment are planned. | [DevOps milestone](https://github.com/Stellar-songifi/lyricsflip/milestones) · [LF-106 – LF-125](ISSUES.md) |
+| **Smart contracts** (`onchain/`) | Both contracts build to WASM and pass their unit tests in CI. Rounds, cards, answers, and streaks work on-chain; wagering, payouts, and NFT rewards are in progress. | [Contracts milestone](https://github.com/Stellar-songifi/lyricsflip/milestones) · [LF-001 – LF-034](BACKLOG.md) |
+| **Frontend** (`frontend/`) | Wallet connection and typed contract calls work; screens are being wired to real on-chain data. | [Frontend milestone](https://github.com/Stellar-songifi/lyricsflip/milestones) · [LF-035 – LF-072](BACKLOG.md) |
+| **Backend** (`backend/`) | Does not compile yet; being rebuilt module by module. | [Backend milestone](https://github.com/Stellar-songifi/lyricsflip/milestones) · [LF-073 – LF-105](BACKLOG.md) |
+| **DevOps & docs** | Contract CI runs on every PR; frontend/backend CI and deployment are planned. | [DevOps milestone](https://github.com/Stellar-songifi/lyricsflip/milestones) · [LF-106 – LF-125](BACKLOG.md) |
 
-For the current list of open work, see [`ISSUES.md`](ISSUES.md) and the repository's [milestones](https://github.com/Stellar-songifi/lyricsflip/milestones).
+For the current list of open work, see [`BACKLOG.md`](BACKLOG.md) and the repository's [milestones](https://github.com/Stellar-songifi/lyricsflip/milestones). Completed work is recorded in [`ISSUES.md`](ISSUES.md).
 
 ---
 
 ## Roadmap
 
-[`ISSUES.md`](ISSUES.md) holds 125 issues grouped by area, each with a description, a task list, and acceptance criteria:
+[`BACKLOG.md`](BACKLOG.md) holds open issues grouped by area, each with a description, a task list, and acceptance criteria. Finished issues are archived in [`ISSUES.md`](ISSUES.md):
 
 | Range | Area |
 |---|---|
@@ -467,7 +467,7 @@ Suggested order: **P0 contract fixes → frontend build fixes + wallet UX → re
 
 Contributions are welcome! Please read [`ContributionGuidelines.md`](ContributionGuidelines.md) first. In short:
 
-1. Pick an issue from [`ISSUES.md`](ISSUES.md) (or GitHub Issues) and comment to claim it. **Issues tagged for an event must not be applied for before the event starts.**
+1. Pick an issue from [`BACKLOG.md`](BACKLOG.md) (or GitHub Issues) and comment to claim it. **Issues tagged for an event must not be applied for before the event starts.**
 2. Create a branch (never push to `main`).
 3. Keep PRs focused. Include a clear description, link the issue, and show test evidence or screenshots.
 4. Make sure `cargo fmt --check && cargo test` (contracts) and `npm run lint && npm test` (frontend/backend) pass.

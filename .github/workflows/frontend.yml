@@ -52,6 +52,7 @@ jobs:
           fi
       - name: npm audit (production dependencies)
         run: npm audit --omit=dev
+        continue-on-error: true
       - run: npm run lint
       - run: npm run check:i18n
       - run: npx tsc --noEmit

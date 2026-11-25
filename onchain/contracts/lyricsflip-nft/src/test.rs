@@ -473,7 +473,9 @@ fn upgrade_keeps_state_and_changes_version() {
     assert_eq!(client.version(), 1);
     // Model a legacy deployment whose schema key is absent.
     env.as_contract(&client.address, || {
-        env.storage().instance().remove(&crate::DataKey::SchemaVersion);
+        env.storage()
+            .instance()
+            .remove(&crate::DataKey::SchemaVersion);
     });
     assert_eq!(client.schema_version(), 1);
 
@@ -615,15 +617,9 @@ fn burn_publishes_burn_event() {
 fn pause_and_unpause_are_owner_only() {
     let (_env, client, owner, minter) = setup();
 
-    assert_eq!(
-        client.try_pause(&minter),
-        Err(Ok(Error::NotOwner.into()))
-    );
+    assert_eq!(client.try_pause(&minter), Err(Ok(Error::NotOwner.into())));
     client.pause(&owner);
-    assert_eq!(
-        client.try_unpause(&minter),
-        Err(Ok(Error::NotOwner.into()))
-    );
+    assert_eq!(client.try_unpause(&minter), Err(Ok(Error::NotOwner.into())));
     assert!(client.is_paused());
     client.unpause(&owner);
     assert!(!client.is_paused());

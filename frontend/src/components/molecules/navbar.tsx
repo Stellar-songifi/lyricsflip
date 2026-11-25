@@ -104,7 +104,6 @@ const Navbar = () => {
                           {unreadCount > 99 ? '99+' : unreadCount}
                         </span>
                       )}
->>>>>>> upstream/main
                     </Link>
                   </li>
                 );

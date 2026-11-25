@@ -15,13 +15,16 @@ no-default-features = false
 version = 2
 # Fail the build on any vulnerability advisory affecting a dependency.
 vulnerability = "deny"
-# Unmaintained crates are reported as warnings rather than hard failures.
-unmaintained = "warn"
+# Unmaintained crates scope ("all", "workspace", "transitive", "none").
+unmaintained = "none"
 # Do not fail on yanked crates; they are still usable and often unavoidable.
 yanked = "warn"
 # Ignore advisories are intentionally empty to start; add entries with a
 # justification comment if a transitive advisory cannot be resolved promptly.
-ignore = []
+ignore = [
+    # Transitive dependency of soroban-sdk; cannot be bumped until upstream Soroban SDK upgrades crypto-bigint.
+    "RUSTSEC-2026-0387",
+]
 
 [licenses]
 # Allow only the licenses used by this workspace and its dependency tree

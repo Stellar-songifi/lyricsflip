@@ -41,7 +41,7 @@ jobs:
           # Config files (e.g. *.config.ts, jest.setup.ts, .storybook/) are allowed.
           mapfile -t stray < <(
             git ls-files 'frontend/*.ts' 'frontend/*.tsx' \
-              | grep -Ev '^frontend/(src|\.storybook)/' \
+              | grep -Ev '^frontend/(src|\.storybook|e2e)/' \
               | grep -Ev '^frontend/[^/]+\.(config|setup)\.ts$'
           )
           if [[ ${#stray[@]} -gt 0 ]]; then

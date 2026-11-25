@@ -373,10 +373,6 @@ type EscrowContract = {
   claim_winnings: (args: { caller: string; round_id: bigint }) => Promise<contract.AssembledTransaction<bigint>>;
 };
 
-type GameClientInstance = Awaited<ReturnType<typeof contract.Client.from<LyricsFlipContract>>>;
-
-const gameClientCache = new Map<string, Promise<GameClientInstance>>();
-
 function getClientCacheKey(config: StellarConfig, publicKey: string | null): string {
   return `${config.lyricsflipContractId}:${config.rpcUrl}:${config.networkPassphrase}:${publicKey ?? ''}`;
 }

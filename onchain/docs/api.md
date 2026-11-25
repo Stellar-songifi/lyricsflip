@@ -1249,3 +1249,46 @@ Every persistent round read and write extends the round entry TTL by 30 days, an
 ### Escrow events
 
 The typed `#[contractevent]` events are `EscrowRoundCreated`, `Deposited`, `Locked`, `Settled`, `Refunded`, `Cancelled`, `Claimed`, and `Swept`. They are emitted for every escrow token movement and lifecycle transition so indexers can reconcile escrow balances without relying on legacy untyped events.
+
+## Additional `lyricsflip` and `lyricsflip-nft` API items
+
+### Functions
+- `answer_and_next(env: Env, player: Address, round_id: u64, card_id: u64, selected_index: u32)`: Submit answer and advance to the next card.
+- `create_round_with_max_players(env: Env, creator: Address, genre: Genre, wager: i128, max_players: u32, is_private: bool)`: Create round with custom player limit.
+- `create_solo_round(env: Env, player: Address, genre: Genre)`: Create a single player solo round.
+- `get_admins(env: Env) -> Vec<Address>`: List all active admin addresses.
+- `get_answer_window(env: Env) -> u64`: Get configured per-card answer window in seconds.
+- `get_cards_by_genre(env: Env, genre: Genre, page: u32, limit: u32) -> Vec<Card>`: Paginated query for cards of a given genre.
+- `get_lobby_timeout(env: Env) -> u64`: Get configured lobby timeout in seconds.
+- `get_player_rounds(env: Env, player: Address) -> Vec<u64>`: Get round IDs for rounds played by an address.
+- `get_round_buffer(env: Env) -> u64`: Get configured latency buffer in seconds.
+- `get_round_duration(env: Env) -> u64`: Get configured round duration in seconds.
+- `get_round_summary(env: Env, round_id: u64) -> RoundSummary`: Get round summary view.
+- `migrate(env: Env, caller: Address)`: Execute storage schema migration.
+- `migrate_legacy_admins(env: Env, caller: Address)`: Migrate legacy admin keys to new list storage.
+- `reset_milestone(env: Env, caller: Address, player: Address, milestone: Milestone)`: Admin function to reset a claimed milestone.
+- `schema_version(env: Env) -> u32`: Get contract storage schema version.
+- `set_answer_window(env: Env, caller: Address, seconds: u64)`: Set per-card answer window.
+- `set_escrow_contract(env: Env, caller: Address, escrow: Address)`: Set linked escrow contract address.
+- `set_lobby_timeout(env: Env, caller: Address, seconds: u64)`: Set lobby timeout.
+- `set_round_buffer(env: Env, caller: Address, seconds: u64)`: Set latency buffer.
+- `set_round_duration(env: Env, caller: Address, seconds: u64)`: Set round duration override.
+
+### Errors
+- `InvalidAnswerWindow`: Answer window out of bounds.
+- `InvalidLobbyTimeout`: Lobby timeout out of bounds.
+- `InvalidRoundDuration`: Round duration out of bounds.
+- `MaxPlayersTooHigh`: Requested max players exceeds limits.
+- `TooManyOpenRounds`: Caller has too many active open rounds.
+
+### Events
+- `AnswerWindowUpdated`: Emitted when answer window configuration is updated.
+- `ContractUpgraded`: Emitted when contract WASM code is upgraded.
+- `EscrowContractUpdated`: Emitted when linked escrow contract address changes.
+- `LobbyTimeoutUpdated`: Emitted when lobby timeout is updated.
+- `MaxPlayersUpdated`: Emitted when max players configuration changes.
+- `MilestoneReset`: Emitted when an admin resets a player milestone.
+- `NftContractUpdated`: Emitted when linked NFT contract address changes.
+- `RoundBufferUpdated`: Emitted when latency buffer configuration is updated.
+- `RoundDurationUpdated`: Emitted when round duration configuration is updated.
+- `SchemaMigrated`: Emitted upon successful storage schema migration.

@@ -121,9 +121,7 @@ impl UpgradeFixture {
             .instance()
             .set(&DataKey::MigratedV2Summary, &summary);
 
-        env.storage()
-            .instance()
-            .set(&DataKey::SchemaVersion, &2u32);
+        env.storage().instance().set(&DataKey::SchemaVersion, &2u32);
 
         SchemaMigrated {
             caller,

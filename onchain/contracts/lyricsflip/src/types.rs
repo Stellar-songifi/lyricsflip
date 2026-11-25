@@ -435,8 +435,6 @@ pub enum DataKey {
     PlayerCardStartedAt((u64, Address, u64)),
     /// LF-157: Stored storage schema version for migration hooks.
     SchemaVersion,
-    /// LF-158: Owner-configured answer window in seconds per card.
-    AnswerWindow,
     /// LF-158: Owner-configured lobby timeout in seconds.
     LobbyTimeout,
     /// LF-158: Owner-configured round duration override in seconds (or None/0 for dynamic).

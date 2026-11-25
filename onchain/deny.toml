@@ -48,6 +48,8 @@ exceptions = []
 multiple-versions = "warn"
 # Deny wildcard version requirements; they make upgrades unpredictable.
 wildcards = "deny"
+# Allow path dependencies (e.g., { path = "../foo" }) to omit version numbers
+allow-wildcard-paths = true
 # Start with an empty skip list; add crates here only with a justification.
 skip = []
 # Deny dependencies on git sources by default to keep builds reproducible.

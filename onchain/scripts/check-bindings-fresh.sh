@@ -16,11 +16,13 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ONCHAIN_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 REPO_ROOT="$(cd "${ONCHAIN_DIR}/.." && pwd)"
 COMMITTED_DIR="${REPO_ROOT}/frontend/src/lib/stellar/generated"
-TMP_DIR="$(mktemp -d)"
+TMP_BASE="$(mktemp -d)"
+TMP_DIR="${TMP_BASE}/generated"
+mkdir -p "${TMP_DIR}"
 
 log() { echo "[check-bindings-fresh.sh] $*"; }
 
-cleanup() { rm -rf "${TMP_DIR}"; }
+cleanup() { rm -rf "${TMP_BASE}"; }
 trap cleanup EXIT
 
 # ---------------------------------------------------------------------------

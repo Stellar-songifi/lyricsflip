@@ -28,7 +28,7 @@
     "check:backend": "npm --prefix backend run lint && npm --prefix backend exec -- tsc --noEmit && npm --prefix backend run test",
     "knip:backend": "npm exec --yes --package=knip@6 -- knip --directory backend",
     "check:all": "npm run check:contracts && npm run check:frontend && npm run check:backend",
-    "prepare": "husky"
+    "prepare": "husky || true"
   },
   "engines": {
     "node": ">=20.18.0 <21"

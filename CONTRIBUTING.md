@@ -6,13 +6,13 @@ Thank you for your interest in contributing to LyricsFlip! This document provide
 
 1. [Code of Conduct](#code-of-conduct)
 2. [Getting Started](#getting-started)
-3. [Development Setup](#development-setup)
-4. [Branch Naming Conventions](#branch-naming-conventions)
-5. [Commit Message Conventions](#commit-message-conventions)
-6. [Pull Request Process](#pull-request-process)
-7. [Running Tests](#running-tests)
-8. [Coding Standards](#coding-standards)
-9. [Claiming Issues](#claiming-issues)
+3. [First 30 Minutes](#first-30-minutes)
+4. [Development Setup](#development-setup)
+5. [Branch Naming Conventions](#branch-naming-conventions)
+6. [Commit Message Conventions](#commit-message-conventions)
+7. [Pull Request Process](#pull-request-process)
+8. [Running Tests](#running-tests)
+9. [Coding Standards](#coding-standards)
 10. [Event Issue Rule](#event-issue-rule)
 11. [Getting Help](#getting-help)
 
@@ -54,6 +54,22 @@ lyricsflip/
 ```
 
 The mobile app lives in its own repository: [Stellar-songifi/lyricsflip_mobile](https://github.com/Stellar-songifi/lyricsflip_mobile).
+
+---
+
+## First 30 Minutes
+
+From clone to a passing test run in each package:
+
+1. **Check prerequisites** above: Node.js per `.nvmrc`, npm, Git. PostgreSQL and Redis are only needed to run the backend locally.
+2. **Clone and install** (section 1 below): `npm install` at the root installs the `frontend` and `backend` workspaces.
+3. **Copy the environment templates:** `backend/.env.example` to `backend/.env.development`, and `frontend/.env.example` to `frontend/.env.local`. The testnet network and contract settings are in those files.
+4. **Run the backend tests:** `npm --prefix backend run test`. Tests live beside source files as `*.spec.ts`.
+5. **Run the frontend tests:** `npm --prefix frontend run test`.
+6. **Run the contract checks** (optional): see `onchain/README.md`.
+7. **Pick a first issue:** open `ISSUES.md` and choose an entry with `Effort: S` and a `Priority` of P2 or P3, such as a docs entry. Read its **Files** list before starting.
+
+This repository has no `Makefile`. Use the `npm` scripts above, and the linting commands under [Running Tests](#running-tests).
 
 ---
 
@@ -178,6 +194,8 @@ refactor/optimize-database-queries
 ## Commit Message Conventions
 
 LyricsFlip uses [Conventional Commits](https://www.conventionalcommits.org/) to maintain a clear commit history.
+
+Commits are checked by commitlint (`commitlint.config.cjs`) through the husky `commit-msg` hook. A non-conforming message is rejected locally.
 
 **Format:**
 
@@ -400,3 +418,15 @@ src/
 
 /* … truncated 4299 chars — edit only what you need near the top … */
 ```
+
+---
+
+## Event Issue Rule
+
+If an issue is tagged for an event, and you apply for it before the event starts, you are automatically disqualified from that issue.
+
+---
+
+## Getting Help
+
+Open a question in the repository Discussions or Issues tab, or join the Telegram channel.

@@ -1,35 +1,48 @@
 import { Injectable } from '@nestjs/common';
 import {
+  HealthCheckError,
   HealthIndicator,
   HealthIndicatorResult,
-  HealthCheckError,
 } from '@nestjs/terminus';
-import { IndexerService } from '../indexer/services/indexer.service';
+import { IndexerMetrics } from '../indexer/services/indexer.metrics';
 
 /**
- * Reports whether the indexer has polled recently and without consecutive
- * errors. Used by the /health/ready endpoint.
+ * Reports the indexer as healthy when it has polled at least once and has not
+ * accumulated more than 5 consecutive RPC errors.
+ *
+ * This is a lightweight liveness check; lag relative to the chain tip is
+ * covered separately by IndexerLagHealthIndicator.
  */
 @Injectable()
 export class IndexerHealthIndicator extends HealthIndicator {
-  constructor(private readonly indexerService: IndexerService) {
+  private static readonly MAX_CONSECUTIVE_ERRORS = 5;
+
+  constructor(private readonly metrics: IndexerMetrics) {
     super();
   }
 
   async isHealthy(key: string): Promise<HealthIndicatorResult> {
-    const metrics = this.indexerService.getMetrics();
-    const isHealthy = metrics.consecutiveErrors < 5;
+    const m = this.metrics.getMetrics();
 
-    const result = this.getStatus(key, isHealthy, {
-      consecutiveErrors: metrics.consecutiveErrors,
-      lastPollAt: metrics.lastPollAt,
-      errorCount: metrics.errorCount,
-    });
+    const neverPolled = m.lastPollAt === null;
+    const tooManyErrors =
+      m.consecutiveErrors > IndexerHealthIndicator.MAX_CONSECUTIVE_ERRORS;
 
-    if (!isHealthy) {
-      throw new HealthCheckError('Indexer is unhealthy', result);
+    const healthy = !neverPolled && !tooManyErrors;
+
+    const details = {
+      lastPollAt: m.lastPollAt?.toISOString() ?? null,
+      consecutiveErrors: m.consecutiveErrors,
+      lastErrorAt: m.lastErrorAt?.toISOString() ?? null,
+    };
+
+    if (!healthy) {
+      throw new HealthCheckError(
+        neverPolled ? 'Indexer has not polled yet' : 'Indexer error threshold exceeded',
+        this.getStatus(key, false, details),
+      );
     }
 
-    return result;
+    return this.getStatus(key, true, details);
   }
 }

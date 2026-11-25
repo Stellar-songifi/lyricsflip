@@ -12,6 +12,7 @@ import { useStellar } from '@/lib/stellar/hooks/use-stellar';
 import { WalletButton } from './wallet-button';
 import { WalletStatusBanner } from './wallet-status-banner';
 import { useNotificationStore } from '@/store/use-notification-store';
+import { TxTrayTrigger } from './tx-tray';
 
 // Navigation items array — profile href is dynamic (resolved in the component)
 const staticNavItems = [
@@ -111,6 +112,7 @@ const Navbar = () => {
           </nav>
         </div>
         <div className="flex items-center gap-3">
+          <TxTrayTrigger />
           {/* Dark mode toggle */}
           <button
             onClick={toggleTheme}
@@ -165,6 +167,13 @@ export const MobileNav = () => {
     const unsubscribe = subscribeToNotifications();
     return unsubscribe;
   }, [fetchUnreadCount, subscribeToNotifications]);
+
+  const mobileNavItems = [
+    { href: '/', id: 'home', icon: <FiHome className="h-6 w-6" /> },
+    { href: '/wallet', id: 'wallet', icon: <FiCreditCard className="h-6 w-6" /> },
+    { href: '/leaderboard', id: 'leaderboard', icon: <IoTrophyOutline className="h-6 w-6" /> },
+    { href: '/more', id: 'more', icon: <FiGrid className="h-6 w-6" /> },
+  ];
 
   return (
     <>

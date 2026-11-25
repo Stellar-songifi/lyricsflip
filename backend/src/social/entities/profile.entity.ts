@@ -3,17 +3,11 @@ import { Entity, Column, PrimaryGeneratedColumn, OneToMany } from 'typeorm';
 import { Friend } from './friend.entity';
 import { Activity } from './activity.entity';
 
-export interface UserStats {
-  gamesPlayed: number;
-  gamesWon: number;
-  totalScore: number;
-  winRate: number;
-}
+export type UserStats = Record<string, number>;
 
-export interface AchievementRef {
+export interface Achievement {
   id: string;
   name: string;
-  unlockedAt: Date;
 }
 
 @Entity()
@@ -37,7 +31,7 @@ export class Profile {
   stats: UserStats;
 
   @Column('json')
-  achievements: AchievementRef[];
+  achievements: Achievement[];
 
   @Column()
   lastActive: Date;

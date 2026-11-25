@@ -40,6 +40,32 @@ export const templates = {
       html: layout(`<h2>${escapeHtml(params.title)}</h2><p>${escapeHtml(params.message)}</p>`),
     };
   },
+
+  winningsUnclaimed(params: {
+    roundId: string;
+    amount: string;
+    asset: string;
+    claimUrl: string;
+  }): RenderedEmail {
+    const url = escapeHtml(params.claimUrl);
+    const amount = escapeHtml(params.amount);
+    const asset = escapeHtml(params.asset);
+    const roundId = escapeHtml(params.roundId);
+    return {
+      subject: 'Your LyricsFlip winnings are waiting',
+      text:
+        `You won ${params.amount} ${params.asset} in round ${params.roundId} more than 24 hours ago,` +
+        ` but the reward has not been claimed yet.\n\n` +
+        `Claim your winnings here: ${params.claimUrl}\n\n` +
+        `If you have already claimed, you can ignore this email.`,
+      html: layout(
+        `<h2>Your winnings are waiting!</h2>
+<p>You won <strong>${amount} ${asset}</strong> in round <strong>${roundId}</strong> more than 24 hours ago, but the reward has not been claimed yet.</p>
+<p><a href="${url}" style="display:inline-block;padding:10px 16px;background:#6b21a8;color:#fff;border-radius:6px;text-decoration:none">Claim your winnings</a></p>
+<p>If you have already claimed, you can ignore this email.</p>`,
+      ),
+    };
+  },
 };
 
 export type TemplateName = keyof typeof templates;

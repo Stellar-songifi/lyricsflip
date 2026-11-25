@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# deploy.sh — build, deploy, and configure both LyricsFlip contracts on a
-# target Stellar network, then write the contract IDs to
-# frontend/.env.local.
+# deploy.sh — build, deploy, and link the three LyricsFlip contracts
+# (game, escrow, and NFT) on a target Stellar network, then write the
+# contract IDs to frontend/.env.local.
 #
 # Usage:
 #   ./scripts/deploy.sh [network]   (default: testnet)
@@ -22,6 +22,7 @@
 #
 # After a successful run the following files are written / updated:
 #   • frontend/.env.local   NEXT_PUBLIC_LYRICSFLIP_CONTRACT_ID,
+#                           NEXT_PUBLIC_LYRICSFLIP_ESCROW_CONTRACT_ID,
 #                           NEXT_PUBLIC_LYRICSFLIP_NFT_CONTRACT_ID and, for
 #                           `local`, the RPC URL / network passphrase.
 #   • deployments/<network>.json  contract IDs and WASM SHA-256 hashes.
@@ -36,6 +37,9 @@ FRONTEND_ENV="${REPO_ROOT}/frontend/.env.local"
 
 IDENTITY="me"
 CARDS_PER_ROUND=5
+# The escrow contract is built below but not deployed yet (LF-013); leave the
+# frontend variable empty until wagering is wired end to end.
+ESCROW_CONTRACT_ID=""
 
 LOCAL_RPC_URL="http://localhost:8000/soroban/rpc"
 LOCAL_PASSPHRASE="Standalone Network ; February 2017"
@@ -115,9 +119,11 @@ sha256_of() {
   fi
 }
 LYRICSFLIP_WASM_SHA="$(sha256_of "${LYRICSFLIP_WASM}")"
+ESCROW_WASM_SHA="$(sha256_of "${ESCROW_WASM}")"
 NFT_WASM_SHA="$(sha256_of "${NFT_WASM}")"
-log "Game WASM sha256: ${LYRICSFLIP_WASM_SHA}"
-log "NFT  WASM sha256: ${NFT_WASM_SHA}"
+log "Game   WASM sha256: ${LYRICSFLIP_WASM_SHA}"
+log "Escrow WASM sha256: ${ESCROW_WASM_SHA}"
+log "NFT    WASM sha256: ${NFT_WASM_SHA}"
 
 # ---------------------------------------------------------------------------
 # 2. Deploy game contract
@@ -131,7 +137,24 @@ LYRICSFLIP_CONTRACT_ID="$(stellar_net contract deploy \
 log "Game contract deployed: ${LYRICSFLIP_CONTRACT_ID}"
 
 # ---------------------------------------------------------------------------
-# 3. Deploy NFT contract  (minter = game contract)
+# 3. Deploy escrow contract (owner = game contract)
+# ---------------------------------------------------------------------------
+# LF-257: the escrow relies on a __constructor, so owner/treasury/fee_bps are
+# bound atomically at deploy time. The owner is the game contract so only it
+# can move funds; the deployer is the treasury and starts with a 0 bps fee.
+log "Deploying lyricsflip-escrow contract…"
+ESCROW_CONTRACT_ID="$(stellar_net contract deploy \
+  --wasm "${ESCROW_WASM}" \
+  --source "${IDENTITY}" \
+  -- \
+  --owner "${LYRICSFLIP_CONTRACT_ID}" \
+  --treasury "${OWNER_ADDRESS}" \
+  --fee_bps 0)"
+
+log "Escrow contract deployed: ${ESCROW_CONTRACT_ID}"
+
+# ---------------------------------------------------------------------------
+# 4. Deploy NFT contract  (minter = game contract)
 # ---------------------------------------------------------------------------
 log "Deploying lyricsflip-nft contract…"
 NFT_CONTRACT_ID="$(stellar_net contract deploy \
@@ -147,8 +170,18 @@ NFT_CONTRACT_ID="$(stellar_net contract deploy \
 log "NFT contract deployed: ${NFT_CONTRACT_ID}"
 
 # ---------------------------------------------------------------------------
-# 4. Configure the game contract
+# 5. Configure the game contract
 # ---------------------------------------------------------------------------
+# LF-256: link the newly deployed escrow to the game before any wager round
+# can be created.
+log "Linking escrow ${ESCROW_CONTRACT_ID} to the game contract…"
+stellar_net contract invoke \
+  --id "${LYRICSFLIP_CONTRACT_ID}" \
+  --source "${IDENTITY}" \
+  -- set_escrow_contract \
+  --caller "${OWNER_ADDRESS}" \
+  --escrow "${ESCROW_CONTRACT_ID}"
+
 log "Setting cards_per_round to ${CARDS_PER_ROUND}…"
 stellar_net contract invoke \
   --id "${LYRICSFLIP_CONTRACT_ID}" \
@@ -158,7 +191,7 @@ stellar_net contract invoke \
   --value "${CARDS_PER_ROUND}"
 
 # ---------------------------------------------------------------------------
-# 5. Write .env.local
+# 6. Write .env.local
 # ---------------------------------------------------------------------------
 log "Writing contract IDs to ${FRONTEND_ENV}…"
 
@@ -171,9 +204,11 @@ fi
 KEEP_LINES=""
 if [[ -f "${FRONTEND_ENV}" ]]; then
   KEEP_LINES="$(grep -v '^NEXT_PUBLIC_LYRICSFLIP_CONTRACT_ID' "${FRONTEND_ENV}" \
+                | grep -v '^NEXT_PUBLIC_LYRICSFLIP_ESCROW_CONTRACT_ID' \
                 | grep -v '^NEXT_PUBLIC_LYRICSFLIP_NFT_CONTRACT_ID' \
-                | grep -v '^NEXT_PUBLIC_SOROBAN_RPC_URL' \
-                | grep -v '^NEXT_PUBLIC_NETWORK_PASSPHRASE' || true)"
+                | grep -v '^NEXT_PUBLIC_LYRICSFLIP_ESCROW_CONTRACT_ID' \
+                | grep -v '^NEXT_PUBLIC_STELLAR_RPC_URL' \
+                | grep -v '^NEXT_PUBLIC_STELLAR_NETWORK_PASSPHRASE' || true)"
 fi
 
 {
@@ -184,8 +219,8 @@ fi
   echo "NEXT_PUBLIC_LYRICSFLIP_NFT_CONTRACT_ID=${NFT_CONTRACT_ID}"
   echo "NEXT_PUBLIC_LYRICSFLIP_ESCROW_CONTRACT_ID=${ESCROW_CONTRACT_ID}"
   if [[ -n "${RPC_URL}" ]]; then
-    echo "NEXT_PUBLIC_SOROBAN_RPC_URL=${RPC_URL}"
-    echo "NEXT_PUBLIC_NETWORK_PASSPHRASE=${NETWORK_PASSPHRASE}"
+    echo "NEXT_PUBLIC_STELLAR_RPC_URL=${RPC_URL}"
+    echo "NEXT_PUBLIC_STELLAR_NETWORK_PASSPHRASE=${NETWORK_PASSPHRASE}"
   fi
 } > "${FRONTEND_ENV}"
 
@@ -194,18 +229,21 @@ DEPLOYMENT_FILE="${REPO_ROOT}/deployments/${NETWORK}.json"
 if [[ -f "${DEPLOYMENT_FILE}" ]] && command -v jq &>/dev/null; then
   log "Updating ${DEPLOYMENT_FILE}…"
   jq --arg g "${LYRICSFLIP_CONTRACT_ID}" \
+     --arg e "${ESCROW_CONTRACT_ID}" \
      --arg n "${NFT_CONTRACT_ID}" \
      --arg d "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
      --arg gs "${LYRICSFLIP_WASM_SHA}" \
+     --arg es "${ESCROW_WASM_SHA}" \
      --arg ns "${NFT_WASM_SHA}" \
-     '.lyricsflip = $g | .lyricsflipNft = $n | .deployedAt = $d
-      | .wasm = ((.wasm // {}) + {lyricsflip: $gs, lyricsflipNft: $ns})' \
+     '.lyricsflip = $g | .lyricsflipEscrow = $e | .lyricsflipNft = $n | .deployedAt = $d
+      | .wasm = ((.wasm // {}) + {lyricsflip: $gs, lyricsflipEscrow: $es, lyricsflipNft: $ns})' \
      "${DEPLOYMENT_FILE}" > "${DEPLOYMENT_FILE}.tmp" && mv "${DEPLOYMENT_FILE}.tmp" "${DEPLOYMENT_FILE}"
 fi
 
 log "Done!"
-log "  Game contract : ${LYRICSFLIP_CONTRACT_ID}"
-log "  NFT  contract : ${NFT_CONTRACT_ID}"
+log "  Game contract   : ${LYRICSFLIP_CONTRACT_ID}"
+log "  Escrow contract : ${ESCROW_CONTRACT_ID}"
+log "  NFT contract    : ${NFT_CONTRACT_ID}"
 log ""
 log "Run './scripts/seed-cards.sh ${NETWORK}' to populate the card catalogue."
 if [[ "${NETWORK}" == "local" ]]; then

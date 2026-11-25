@@ -1,52 +1,63 @@
+import { NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { LeaderboardController } from './leaderboard.controller';
-import { LeaderboardService } from './providers/leaderboard.service';
+import { LeaderboardBoardService } from './providers/leaderboard-board.service';
 
 describe('LeaderboardController', () => {
   let controller: LeaderboardController;
-  let service: jest.Mocked<LeaderboardService>;
+  let boards: jest.Mocked<LeaderboardBoardService>;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [LeaderboardController],
       providers: [
         {
-          provide: LeaderboardService,
-          useValue: { getLeaderboard: jest.fn(), getPlayerRank: jest.fn() },
+          provide: LeaderboardBoardService,
+          useValue: { getBoard: jest.fn(), getRank: jest.fn() },
         },
       ],
     }).compile();
 
-    controller = module.get<LeaderboardController>(LeaderboardController);
-    service = module.get(LeaderboardService);
+    controller = module.get(LeaderboardController);
+    boards = module.get(LeaderboardBoardService);
   });
 
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
-  });
-
-  it('getLeaderboard forwards the query params to the service', async () => {
+  it('getLeaderboard forwards the query params to the board service', async () => {
     const query = {
-      period: 'weekly' as const,
-      genre: 'Pop',
+      window: 'weekly' as const,
+      metric: 'points' as const,
       page: 2,
       limit: 10,
     };
-    (service.getLeaderboard as jest.Mock).mockResolvedValue({ data: [] });
+    (boards.getBoard as jest.Mock).mockResolvedValue({ data: [] });
 
     await controller.getLeaderboard(query);
 
-    expect(service.getLeaderboard).toHaveBeenCalledWith(query);
+    expect(boards.getBoard).toHaveBeenCalledWith(query);
   });
 
-  it('getPlayerRank forwards the player id to the service', async () => {
-    (service.getPlayerRank as jest.Mock).mockResolvedValue({
-      playerId: 'p1',
-      rank: 1,
-    });
+  it('getPlayerRank returns the rank for the address, window and metric', async () => {
+    const rank = {
+      address: 'GA',
+      window: 'daily',
+      metric: 'streak',
+      rank: 3,
+      score: 7,
+      total: 10,
+    };
+    (boards.getRank as jest.Mock).mockResolvedValue(rank);
 
-    await controller.getPlayerRank('p1');
+    await expect(
+      controller.getPlayerRank('GA', { window: 'daily', metric: 'streak' }),
+    ).resolves.toEqual(rank);
+    expect(boards.getRank).toHaveBeenCalledWith('GA', 'daily', 'streak');
+  });
 
-    expect(service.getPlayerRank).toHaveBeenCalledWith('p1');
+  it('getPlayerRank responds 404 for an address that is not on the board', async () => {
+    (boards.getRank as jest.Mock).mockResolvedValue(null);
+
+    await expect(controller.getPlayerRank('GNOBODY', {})).rejects.toBeInstanceOf(
+      NotFoundException,
+    );
   });
 });

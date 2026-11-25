@@ -2,14 +2,15 @@ import { Injectable } from '@nestjs/common';
 import { IndexerService } from './indexer.service';
 
 /**
- * Thin wrapper that exposes IndexerService metrics as a named provider so
- * IndexerModule can export it without exposing the full IndexerService API.
+ * Thin façade that exposes indexer metrics to consumers outside the indexer
+ * module (e.g. the health indicator). Keeps IndexerService as the single
+ * source of truth while giving other modules a stable, narrow import.
  */
 @Injectable()
 export class IndexerMetrics {
-  constructor(private readonly indexerService: IndexerService) {}
+  constructor(private readonly indexer: IndexerService) {}
 
   getMetrics() {
-    return this.indexerService.getMetrics();
+    return this.indexer.getMetrics();
   }
 }

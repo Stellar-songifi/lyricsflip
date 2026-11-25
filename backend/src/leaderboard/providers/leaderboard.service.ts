@@ -4,17 +4,32 @@ import { Repository } from 'typeorm';
 import { OnEvent } from '@nestjs/event-emitter';
 import { RedisService } from '../../redis/redis.service';
 import { LeaderboardRoundResult } from '../entities/leaderboard-round-result.entity';
+import { LeaderboardBoardService } from './leaderboard-board.service';
 import {
   LeaderboardEntryDto,
-  LeaderboardPeriod,
-  LeaderboardQueryDto,
-  PaginatedLeaderboardDto,
 } from '../dto/leaderboard.dto';
 import {
   PlayerBadgeDto,
   PlayerProfileDto,
   PlayerRecentRoundDto,
 } from '../dto/player-profile.dto';
+import type { LeaderboardWindow } from '../dto/leaderboard.dto';
+
+export interface PeriodLeaderboardQuery {
+  period?: LeaderboardWindow;
+  genre?: string;
+  page?: number;
+  limit?: number;
+}
+
+export interface PeriodLeaderboardPage {
+  data: LeaderboardEntryDto[];
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+}
+import { ModerationService } from '../../anti-cheat/providers/moderation.service';
 
 // Short TTL: the leaderboard is meant to reflect the last few completed
 // rounds fairly promptly, and cache invalidation on 'round.completed'
@@ -43,6 +58,8 @@ export class LeaderboardService {
     @InjectRepository(LeaderboardRoundResult)
     private readonly roundResultRepository: Repository<LeaderboardRoundResult>,
     private readonly redisService: RedisService,
+    private readonly boardService: LeaderboardBoardService,
+    private readonly moderationService: ModerationService,
   ) {}
 
   // Retrieves a page of the leaderboard for a period/genre combination,
@@ -52,8 +69,8 @@ export class LeaderboardService {
   // a running total, so any period/genre combination can be served without a
   // separate job per bucket.
   async getLeaderboard(
-    query: LeaderboardQueryDto,
-  ): Promise<PaginatedLeaderboardDto> {
+    query: PeriodLeaderboardQuery,
+  ): Promise<PeriodLeaderboardPage> {
     const period = query.period ?? 'all';
     const genre = query.genre;
     const page = query.page ?? 1;
@@ -96,9 +113,17 @@ export class LeaderboardService {
     const rows = await qb.getRawMany();
     const total = rows.length;
     const offset = (page - 1) * limit;
-    const data: LeaderboardEntryDto[] = rows
-      .slice(offset, offset + limit)
-      .map((row, index): LeaderboardEntryDto => {
+
+    // Fetch moderation status for every address in this page in parallel.
+    const pageRows = rows.slice(offset, offset + limit);
+    const flagStatuses = await Promise.all(
+      pageRows.map((row) =>
+        this.moderationService.getAddressStatus(row.address),
+      ),
+    );
+
+    const data: LeaderboardEntryDto[] = pageRows
+      .map((row, index) => {
         const roundsPlayed = Number(row.roundsPlayed);
         const roundsWon = Number(row.roundsWon);
         const correctAnswers = Number(row.correctAnswers);
@@ -108,7 +133,6 @@ export class LeaderboardService {
           address: row.address,
           username: row.username,
           roundsWon,
-          roundsPlayed,
           winRate: roundsPlayed > 0 ? roundsWon / roundsPlayed : 0,
           maxStreak: Number(row.maxStreak),
           totalPoints: Number(row.totalPoints),
@@ -116,10 +140,16 @@ export class LeaderboardService {
           totalAnswers,
           accuracy: totalAnswers > 0 ? correctAnswers / totalAnswers : 0,
           bestRoundScore: Number(row.bestRoundScore),
+          flagStatus: flagStatuses[index],
         };
-      });
+      })
+      // Suppress hidden/banned entries from the public leaderboard.
+      .filter(
+        (entry) =>
+          entry.flagStatus !== 'hidden' && entry.flagStatus !== 'banned',
+      );
 
-    const result: PaginatedLeaderboardDto = {
+    const result: PeriodLeaderboardPage = {
       data,
       page,
       limit,
@@ -216,9 +246,9 @@ export class LeaderboardService {
         WHERE w.player_address = $1 AND w.claimed = false`,
       [address],
     );
-    const unclaimedWinnings = Number(winningsRow?.[0]?.unclaimed ?? 0);
+    const unclaimedWinnings = String(winningsRow?.[0]?.unclaimed ?? '0');
 
-    const rank = await this.getPlayerRank(address);
+    const rank = await this.boardService.getRank(address, 'all', 'points');
 
     const profile: PlayerProfileDto = {
       address,
@@ -271,20 +301,16 @@ export class LeaderboardService {
 
   // The indexer emits a coarse 'round.completed' event as soon as it decodes
   // the on-chain event, ahead of resolving it into per-player rows via
-  // recordRoundResult. Invalidate eagerly so a stale page is never served
-  // past this point, even before those rows land.
+  // recordRoundResult. Invalidate eagerly so a stale profile is never served
+  // past this point, even before those rows land. (The ranked boards are
+  // refreshed separately by LeaderboardBoardService.)
   @OnEvent('round.completed')
   async handleRoundCompleted(): Promise<void> {
     await this.invalidateCache();
   }
 
-  private async invalidateCache(): Promise<void> {
-    await this.redisService.delPattern(`${CACHE_KEY_PREFIX}:*`);
-    await this.redisService.delPattern(`${PROFILE_CACHE_KEY_PREFIX}:*`);
-  }
-
   private cacheKey(
-    period: LeaderboardPeriod,
+    period: LeaderboardWindow,
     genre: string | undefined,
     page: number,
     limit: number,
@@ -292,7 +318,7 @@ export class LeaderboardService {
     return `${CACHE_KEY_PREFIX}:${period}:${genre ?? 'all'}:${page}:${limit}`;
   }
 
-  private periodStart(period: LeaderboardPeriod): Date | null {
+  private periodStart(period: LeaderboardWindow): Date | null {
     const now = new Date();
     if (period === 'daily') {
       return new Date(
@@ -305,5 +331,10 @@ export class LeaderboardService {
       return start;
     }
     return null;
+  }
+
+  private async invalidateCache(): Promise<void> {
+    // Ranked boards are refreshed separately by LeaderboardBoardService.
+    await this.redisService.delPattern(`${PROFILE_CACHE_KEY_PREFIX}:*`);
   }
 }

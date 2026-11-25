@@ -1,44 +1,59 @@
 import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { In, Repository } from 'typeorm';
-import { RoundPlayer } from './entities/round-player.entity';
+import { InjectDataSource } from '@nestjs/typeorm';
+import { DataSource } from 'typeorm';
 
+/**
+ * LF-339: Thin query wrapper over the `chain_round_player` table that the
+ * indexer populates from on-chain `RoundJoined` events.  Used by game
+ * gateways to verify that a socket identity is an actual player in a round
+ * before accepting gameplay events from it.
+ *
+ * Column layout (from ChainRoundPlayer entity / AddIndexerSchema migration):
+ *   round_id  varchar(128)   — matches the on-chain u64 round id stored as text
+ *   player    varchar(128)   — Stellar account address (G…)
+ */
 @Injectable()
 export class RoundPlayersRepository {
-  constructor(
-    @InjectRepository(RoundPlayer)
-    private readonly repo: Repository<RoundPlayer>,
-  ) {}
+  constructor(@InjectDataSource() private readonly dataSource: DataSource) {}
 
-  async upsertPlayer(roundId: string, playerId: string): Promise<RoundPlayer> {
-    const existing = await this.repo.findOne({ where: { roundId, playerId } });
-    if (existing) return existing;
-    return this.repo.save(
-      this.repo.create({ roundId, playerId, isActive: true }),
-    );
-  }
-
-  async findByRound(roundId: string): Promise<RoundPlayer[]> {
-    return this.repo.find({ where: { roundId } });
-  }
-
-  async removePlayer(roundId: string, playerId: string): Promise<void> {
-    await this.repo.update({ roundId, playerId }, { isActive: false });
-  }
-
+  /**
+   * Returns `true` when `address` appears in `chain_round_player` for the
+   * given round.  Falls back to checking `userId` (the JWT `sub`) against the
+   * `player` column for email/password accounts whose on-chain address may not
+   * be known yet.
+   */
   async isPlayerInRound(
-    roundId: string,
+    roundId: number | string,
     address?: string,
     userId?: string,
   ): Promise<boolean> {
-    const playerIds = [address, userId].filter((playerId): playerId is string =>
-      Boolean(playerId),
-    );
-    if (playerIds.length === 0) return false;
+    if (!address && !userId) return false;
 
-    const count = await this.repo.count({
-      where: { roundId, playerId: In(playerIds), isActive: true },
-    });
-    return count > 0;
+    const rows = await this.dataSource.query<unknown[]>(
+      `SELECT 1
+         FROM chain_round_player
+        WHERE round_id = $1
+          AND player = ANY($2::text[])
+        LIMIT 1`,
+      [
+        String(roundId),
+        [address, userId].filter((v): v is string => Boolean(v)),
+      ],
+    );
+    return rows.length > 0;
+  }
+
+  /**
+   * Returns every player address recorded for a round, in join order.
+   */
+  async getPlayersInRound(roundId: number | string): Promise<string[]> {
+    const rows = await this.dataSource.query<{ player: string }[]>(
+      `SELECT player
+         FROM chain_round_player
+        WHERE round_id = $1
+        ORDER BY joined_ledger ASC NULLS LAST, id ASC`,
+      [String(roundId)],
+    );
+    return rows.map((r) => r.player);
   }
 }

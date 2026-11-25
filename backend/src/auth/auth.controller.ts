@@ -28,7 +28,10 @@ import {
 } from './refresh-cookie';
 import { ForgotPasswordDto } from './dtos/forgot-password.dto';
 import { ResetPasswordDto } from './dtos/reset-password.dto';
-import { AuthThrottle } from '../common/throttler/throttle-limits';
+import {
+  AuthThrottle,
+  WalletChallengeThrottle,
+} from '../common/throttler/throttle-limits';
 import { WalletAuthProvider } from './providers/wallet-auth.provider';
 import { WalletChallengeRequestDto } from './dtos/wallet-challenge-request.dto';
 import { WalletVerifyDto } from './dtos/wallet-verify.dto';
@@ -173,11 +176,12 @@ export class AuthController {
   }
 
   @Public() // Reachable before the caller has a token - that's the whole point.
+  @WalletChallengeThrottle()
   @Post('challenge')
   @ApiOperation({
     summary: 'Request a wallet-auth challenge',
     description:
-      'Returns a one-time nonce for the given Stellar address to sign with its wallet (e.g. StellarWalletsKit.signMessage).',
+      'Returns a one-time challenge (domain, network passphrase, nonce, issued-at, expiry) for the given Stellar G... address to sign via SEP-53 signMessage. Contract (C...) accounts are not supported (no SEP-45).',
   })
   @ApiResponse({ status: 201, description: 'Challenge issued.' })
   @ApiBody({ type: WalletChallengeRequestDto })
@@ -206,7 +210,7 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response,
   ) {
     const { accessToken, refreshToken, user } =
-      await this.walletAuthProvider.verify(dto.address, dto.signedChallenge);
+      await this.walletAuthProvider.verify(dto.address, dto.signedChallenge, dto.referralCode);
     setRefreshCookie(res, refreshToken);
     return { accessToken, user };
   }

@@ -1,22 +1,8 @@
-import {
-  Entity,
-  PrimaryGeneratedColumn,
-  Column,
-  CreateDateColumn,
-} from 'typeorm';
+import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
 
 export enum ChallengeType {
-  SCORE_BEAT = 'score_beat',
-  SONG_GUESS = 'song_guess',
-  STREAK = 'streak',
-}
-
-export enum ChallengeStatus {
-  PENDING = 'pending',
-  ACCEPTED = 'accepted',
-  COMPLETED = 'completed',
-  DECLINED = 'declined',
-  EXPIRED = 'expired',
+  DAILY = 'daily',
+  WEEKLY = 'weekly',
 }
 
 @Entity('challenges')
@@ -25,24 +11,14 @@ export class Challenge {
   id: string;
 
   @Column()
-  challengerId: string;
+  creatorId: string;
 
-  @Column()
-  challengedId: string;
-
-  @Column({ type: 'enum', enum: ChallengeType })
+  @Column({ type: 'enum', enum: ChallengeType, default: ChallengeType.DAILY })
   type: ChallengeType;
 
-  @Column({
-    type: 'enum',
-    enum: ChallengeStatus,
-    default: ChallengeStatus.PENDING,
-  })
-  status: ChallengeStatus;
+  @Column({ default: 'active' })
+  status: string;
 
-  @Column({ type: 'json', nullable: true })
-  metadata: Record<string, unknown>;
-
-  @CreateDateColumn()
+  @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   createdAt: Date;
 }

@@ -1,43 +1,45 @@
-import { Module, forwardRef } from '@nestjs/common';
-import { TypeOrmModule } from '@nestjs/typeorm';
-import { ScheduleModule } from '@nestjs/schedule';
+import { forwardRef, Module } from '@nestjs/common';
 import { EventEmitterModule } from '@nestjs/event-emitter';
-import { IndexerService } from './services/indexer.service';
+import { ScheduleModule } from '@nestjs/schedule';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import {
+  ChainAnswer,
+  ChainNft,
+  ChainRound,
+  ChainRoundPlayer,
+  ChainRoundResult,
+  IndexerState,
+  ProcessedEvent,
+} from './entities/indexer-state.entity';
 import { IndexerGateway } from './gateways/indexer.gateway';
-import { IndexerMetrics } from './services/indexer.metrics';
-import { RoundKeeperService } from './services/round-keeper.service';
-import { IndexerState } from './entities/indexer-state.entity';
-import { ChainRound } from './entities/chain-round.entity';
-import { ChainRoundPlayer } from './entities/chain-round-player.entity';
-import { ChainAnswer } from './entities/chain-answer.entity';
-import { ChainRoundResult } from './entities/chain-round-result.entity';
-import { ChainNft } from './entities/chain-nft.entity';
-import { ProcessedEvent } from './entities/processed-event.entity';
+import { IndexerService } from './services/indexer.service';
 import { LeaderboardModule } from '../leaderboard/leaderboard.module';
-import { StateRecoveryModule } from './state-recovery/state-recovery.module';
+// LF-340: the indexer derives Wager rows from the escrow contract's
+// Deposited/Refunded/Settled/Claimed events via WagerService.
+import { WagerModule } from '../wager/wager.module';
+
+const chainEntities = [
+  IndexerState,
+  ChainRound,
+  ChainRoundPlayer,
+  ChainAnswer,
+  ChainRoundResult,
+  ChainNft,
+  ProcessedEvent,
+];
 
 @Module({
   imports: [
     ScheduleModule.forRoot(),
     EventEmitterModule.forRoot(),
-    TypeOrmModule.forFeature([
-      IndexerState,
-      ChainRound,
-      ChainRoundPlayer,
-      ChainAnswer,
-      ChainRoundResult,
-      ChainNft,
-      ProcessedEvent,
-    ]),
+    TypeOrmModule.forFeature(chainEntities),
     forwardRef(() => LeaderboardModule),
-    forwardRef(() => StateRecoveryModule),
+    // LF-340: makes WagerService available to IndexerService so escrow
+    // events can upsert wager projections. WagerModule has no dependency on
+    // IndexerModule, so this does not create a circular import.
+    WagerModule,
   ],
-  providers: [
-    IndexerService,
-    IndexerGateway,
-    IndexerMetrics,
-    RoundKeeperService,
-  ],
-  exports: [IndexerService, IndexerMetrics],
+  providers: [IndexerService, IndexerGateway],
+  exports: [IndexerService, TypeOrmModule],
 })
 export class IndexerModule {}

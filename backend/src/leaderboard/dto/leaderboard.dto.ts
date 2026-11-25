@@ -1,82 +1,128 @@
-import { IsIn, IsOptional, IsPositive, IsString } from 'class-validator';
+import { IsIn, IsInt, IsOptional, Max, Min } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
-export type LeaderboardPeriod = 'all' | 'weekly' | 'daily';
+export const LEADERBOARD_WINDOWS = ['daily', 'weekly', 'all'] as const;
+export type LeaderboardWindow = (typeof LEADERBOARD_WINDOWS)[number];
 
-export const LEADERBOARD_PERIODS: readonly LeaderboardPeriod[] = [
-  'all',
-  'weekly',
-  'daily',
-];
+export const LEADERBOARD_METRICS = ['wins', 'points', 'streak'] as const;
+export type LeaderboardMetric = (typeof LEADERBOARD_METRICS)[number];
+
+export const MAX_LEADERBOARD_PAGE_SIZE = 100;
 
 export class LeaderboardQueryDto {
-  @ApiPropertyOptional({ enum: LEADERBOARD_PERIODS, default: 'all' })
-  @IsOptional()
-  @IsIn(LEADERBOARD_PERIODS)
-  period?: LeaderboardPeriod = 'all';
-
   @ApiPropertyOptional({
-    description: 'Filter to a single genre; omit for all genres',
+    enum: LEADERBOARD_WINDOWS,
+    default: 'all',
+    description:
+      'daily = since 00:00 UTC today, weekly = last 7 UTC days incl. today',
   })
   @IsOptional()
-  @IsString()
-  genre?: string;
+  @IsIn(LEADERBOARD_WINDOWS)
+  window?: LeaderboardWindow = 'all';
 
-  @ApiPropertyOptional({ default: 1 })
+  @ApiPropertyOptional({
+    enum: LEADERBOARD_METRICS,
+    default: 'wins',
+    description:
+      'wins = rounds won, points = total points, streak = best answer streak',
+  })
+  @IsOptional()
+  @IsIn(LEADERBOARD_METRICS)
+  metric?: LeaderboardMetric = 'wins';
+
+  @ApiPropertyOptional({ default: 1, minimum: 1 })
   @IsOptional()
   @Type(() => Number)
-  @IsPositive()
+  @IsInt()
+  @Min(1)
   page?: number = 1;
 
-  @ApiPropertyOptional({ default: 20 })
+  @ApiPropertyOptional({
+    default: 20,
+    minimum: 1,
+    maximum: MAX_LEADERBOARD_PAGE_SIZE,
+  })
   @IsOptional()
   @Type(() => Number)
-  @IsPositive()
+  @IsInt()
+  @Min(1)
+  @Max(MAX_LEADERBOARD_PAGE_SIZE)
   limit?: number = 20;
 }
 
+export class LeaderboardRankQueryDto {
+  @ApiPropertyOptional({ enum: LEADERBOARD_WINDOWS, default: 'all' })
+  @IsOptional()
+  @IsIn(LEADERBOARD_WINDOWS)
+  window?: LeaderboardWindow = 'all';
+
+  @ApiPropertyOptional({ enum: LEADERBOARD_METRICS, default: 'wins' })
+  @IsOptional()
+  @IsIn(LEADERBOARD_METRICS)
+  metric?: LeaderboardMetric = 'wins';
+}
+
 export class LeaderboardEntryDto {
-  @ApiProperty()
+  @ApiProperty({ description: '1-based position on the board' })
   rank: number;
 
-  @ApiProperty()
+  @ApiProperty({ description: 'Stellar address of the player' })
   address: string;
 
-  @ApiProperty()
-  username: string;
+  @ApiPropertyOptional({ description: 'Value of the requested metric' })
+  score?: number;
+  @ApiPropertyOptional()
+  username?: string;
 
-  @ApiProperty({ description: 'Total points accumulated in the period' })
-  totalPoints: number;
+  @ApiPropertyOptional({ description: 'Total points accumulated in the period' })
+  totalPoints?: number;
 
-  @ApiProperty()
-  roundsWon: number;
+  @ApiPropertyOptional()
+  roundsWon?: number;
 
-  @ApiProperty()
-  roundsPlayed: number;
+  @ApiPropertyOptional()
+  roundsPlayed?: number;
 
-  @ApiProperty({ description: 'roundsWon / roundsPlayed, in [0, 1]' })
-  winRate: number;
+  @ApiPropertyOptional({ description: 'roundsWon / roundsPlayed, in [0, 1]' })
+  winRate?: number;
 
-  @ApiProperty({
+  @ApiPropertyOptional({
     description: 'Correct answers / total answers, in [0, 1]',
   })
-  accuracy: number;
+  accuracy?: number;
 
-  @ApiProperty({ description: 'Highest single-round score in the period' })
-  bestRoundScore: number;
-
-  @ApiProperty()
-  maxStreak: number;
+  @ApiPropertyOptional({ description: 'Highest single-round score in the period' })
+  bestRoundScore?: number;
 
   @ApiPropertyOptional()
-  correctAnswers?: number;
+  maxStreak?: number;
 
-  @ApiPropertyOptional()
-  totalAnswers?: number;
+  /**
+   * Moderation status of the address.
+   *
+   * Null means no flags exist. 'hidden' or 'banned' means an admin has
+   * suppressed this entry; public leaderboard responses omit those entries
+   * entirely, but admin-facing responses include them with this field set.
+   *
+   * Possible values: 'pending' | 'reviewed' | 'hidden' | 'banned' | null
+   */
+  @ApiPropertyOptional({
+    nullable: true,
+    description:
+      'Anti-cheat moderation status. Null = no flags. ' +
+      "'hidden'/'banned' entries are suppressed on public leaderboards.",
+  })
+  flagStatus?: string | null;
 }
 
 export class PaginatedLeaderboardDto {
+  @ApiProperty({ enum: LEADERBOARD_WINDOWS })
+  window: LeaderboardWindow;
+
+  @ApiProperty({ enum: LEADERBOARD_METRICS })
+  metric: LeaderboardMetric;
+
   @ApiProperty({ type: [LeaderboardEntryDto] })
   data: LeaderboardEntryDto[];
 
@@ -91,6 +137,26 @@ export class PaginatedLeaderboardDto {
 
   @ApiProperty()
   totalPages: number;
+}
+
+export class PlayerRankDto {
+  @ApiProperty()
+  address: string;
+
+  @ApiProperty({ enum: LEADERBOARD_WINDOWS })
+  window: LeaderboardWindow;
+
+  @ApiProperty({ enum: LEADERBOARD_METRICS })
+  metric: LeaderboardMetric;
+
+  @ApiProperty({ description: '1-based position on the board' })
+  rank: number;
+
+  @ApiProperty({ description: 'Value of the requested metric' })
+  score: number;
+
+  @ApiProperty({ description: 'Number of players on the board' })
+  total: number;
 }
 
 export class PlayerStatsDto {
@@ -117,8 +183,14 @@ export class PlayerStatsDto {
   @ApiProperty({ description: 'Highest single-round score' })
   bestRoundScore: number;
 
-  @ApiProperty({ description: 'Current consecutive-win streak' })
-  currentStreak: number;
+  @ApiPropertyOptional({ description: 'Current consecutive-win streak' })
+  currentStreak?: number;
+
+  @ApiProperty()
+  correctAnswers: number;
+
+  @ApiProperty()
+  totalAnswers: number;
 }
 
 export class PlayerRecentRoundDto {
@@ -129,7 +201,7 @@ export class PlayerRecentRoundDto {
   genre: string;
 
   @ApiProperty({ description: 'Points earned in the round' })
-  score: number;
+  points: number;
 
   @ApiProperty({ description: 'Correct answers in the round' })
   correctAnswers: number;
@@ -140,11 +212,8 @@ export class PlayerRecentRoundDto {
   @ApiProperty({ description: 'Whether the player won the round' })
   won: boolean;
 
-  @ApiProperty({ description: 'Rank within the round, if available' })
-  rank: number;
-
-  @ApiProperty({ description: 'When the round completed (ISO 8601)' })
-  completedAt: string;
+  @ApiProperty({ description: 'When the round was played (ISO 8601)' })
+  playedAt: string;
 }
 
 export class PlayerBadgeDto {
@@ -180,6 +249,9 @@ export class PlayerProfileDto {
   address: string;
 
   @ApiPropertyOptional()
+  rank?: number | null;
+
+  @ApiPropertyOptional()
   username?: string;
 
   @ApiProperty({ type: PlayerStatsDto })
@@ -191,6 +263,6 @@ export class PlayerProfileDto {
   @ApiProperty({ type: [PlayerBadgeDto] })
   badges: PlayerBadgeDto[];
 
-  @ApiProperty({ type: UnclaimedWinningsDto })
-  unclaimedWinnings: UnclaimedWinningsDto;
+  @ApiProperty({ description: 'Total unclaimed amount, in stroops' })
+  unclaimedWinnings: string;
 }

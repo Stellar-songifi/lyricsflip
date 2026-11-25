@@ -23,6 +23,9 @@ export default () => ({
   },
   stellar: {
     network: process.env.STELLAR_NETWORK,
+    // LF-340: network passphrase for building read-only contract simulations
+    // (e.g. querying the escrow contract's token balance for reconciliation).
+    networkPassphrase: process.env.STELLAR_NETWORK_PASSPHRASE,
   },
   // Soroban RPC endpoint + deployed contracts, consumed by the event
   // indexer (indexer/services/indexer.service.ts). SOROBAN_RPC_URL takes
@@ -34,7 +37,17 @@ export default () => ({
     contractIds: [
       process.env.LYRICSFLIP_CONTRACT_ID,
       process.env.LYRICSFLIP_NFT_CONTRACT_ID,
+      // LF-340: the escrow contract is indexed alongside the game contract
+      // so its Deposited/Refunded/Settled/Claimed events drive wager records.
+      process.env.LYRICSFLIP_ESCROW_CONTRACT_ID,
     ].filter((id): id is string => Boolean(id)),
+    // LF-340: the escrow contract ID, used by the indexer to route escrow
+    // events to the wager projection and by the nightly reconciliation job.
+    escrowContractId: process.env.LYRICSFLIP_ESCROW_CONTRACT_ID,
+    // LF-340: SEP-41 token contract ID for the native asset, used by the
+    // nightly reconciliation job to read the escrow contract's on-chain
+    // balance.
+    nativeTokenContractId: process.env.SOROBAN_NATIVE_TOKEN_CONTRACT_ID,
     // Indexer tuning (indexer/services/indexer.service.ts). All optional;
     // defaults keep the poll loop cheap and the keeper off.
     pollIntervalMs: parseInt(process.env.INDEXER_POLL_INTERVAL_MS, 10) || 5_000,
@@ -59,6 +72,25 @@ export default () => ({
     rpcTimeoutMs: parseInt(process.env.RPC_HEALTH_TIMEOUT_MS, 10) || 3_000,
     indexerMaxLagLedgers:
       parseInt(process.env.INDEXER_MAX_LAG_LEDGERS, 10) || 100,
+  },
+  // LF-340: nightly wager reconciliation.
+  wager: {
+    // Tolerance (in base units / stroops) for the DB-vs-contract balance
+    // comparison. A delta within this threshold is not flagged as a mismatch.
+    reconciliationTolerance:
+      process.env.WAGER_RECONCILIATION_TOLERANCE ?? '0',
+  },
+  // Referral-reward tuning (LF-355).
+  referral: {
+    // Points credited to the referrer when a qualifying round completes.
+    rewardPoints: parseInt(process.env.REFERRAL_REWARD_POINTS, 10) || 50,
+    // Minimum ledger age for the referee's account (anti-sybil).
+    // 100 ledgers ≈ 8 minutes on Stellar mainnet (5-second ledger close).
+    minAccountAgeLedgers:
+      parseInt(process.env.REFERRAL_MIN_ACCOUNT_AGE_LEDGERS, 10) || 100,
+    // Max credits one referrer may earn per UTC calendar day.
+    maxCreditsPerDay:
+      parseInt(process.env.REFERRAL_MAX_CREDITS_PER_DAY, 10) || 10,
   },
   cors: {
     // Comma-separated list of allowed origins (main.ts). Must be explicit,

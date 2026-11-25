@@ -10,7 +10,7 @@ import jwtConfig from '../authConfig/jwt.config';
 import { ConfigType } from '@nestjs/config';
 import { User } from './../../user/user.entity';
 import { randomUUID } from 'crypto';
-import { RefreshTokenStore } from './refresh-token-store.provider';
+import { RefreshTokenStore } from './refresh-tokens';
 // import { User } from "./../../user/user.entity";
 
 export interface GenerateTokensOptions {
@@ -19,6 +19,10 @@ export interface GenerateTokensOptions {
    * omit it on login/sign-up to start a new family.
    */
   family?: string;
+  /**
+   * jti of the refresh token being rotated. When present the old jti is
+   * atomically replaced, so a replayed token is rejected.
+   */
   previousJti?: string;
 }
 
@@ -69,9 +73,13 @@ export class GenerateTokensProvider {
     const jti = randomUUID();
 
     const [accessToken, refreshToken] = await Promise.all([
-      // generate access token
+      // generate access token — include stellarAddress so WsAuthenticator
+      // can surface it as `identity.address` on WebSocket connections (LF-339).
       this.signToken(user.id, this.jwtConfiguration.ttl, {
         email: user.email,
+        // stellarAddress is null for email/password accounts; omit the key
+        // rather than including an explicit null to keep the token compact.
+        ...(user.stellarAddress ? { address: user.stellarAddress } : {}),
       }),
 
       // generate refresh token

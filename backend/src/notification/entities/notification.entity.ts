@@ -6,18 +6,8 @@ import {
   Index,
 } from 'typeorm';
 
-export enum NotificationType {
-  ROUND_JOINED = 'ROUND_JOINED',
-  ROUND_STARTED = 'ROUND_STARTED',
-  ROUND_COMPLETED = 'ROUND_COMPLETED',
-  ROUND_CANCELLED = 'ROUND_CANCELLED',
-  ACHIEVEMENT_UNLOCKED = 'ACHIEVEMENT_UNLOCKED',
-  FRIEND_REQUEST = 'FRIEND_REQUEST',
-  SYSTEM = 'SYSTEM',
-  NFT_MINTED = 'NFT_MINTED',
-  REWARD_CLAIMED = 'REWARD_CLAIMED',
-  REWARD_CLAIMABLE = 'REWARD_CLAIMABLE',
-}
+/** Re-exported so callers may import the enum from the same place as the entity. */
+export { NotificationType } from '../enums/notification-type.enum';
 
 @Entity('notifications')
 @Index(['userId', 'isRead'])
@@ -25,17 +15,23 @@ export class Notification {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  /** Recipient. */
+  /** Recipient user id. */
   @Column()
   userId: string;
 
-  /** Usually a `NotificationType`. */
+  /** One of the well-known NotificationType values (stored as a plain varchar). */
   @Column()
   type: string;
 
+  /** Short, human-readable heading shown in notification toasts and list items. */
+  @Column()
+  title: string;
+
+  /** Full notification body. */
   @Column('text')
   message: string;
 
+  /** Arbitrary JSON payload (roundId, position, tokenId, …). */
   @Column({ type: 'json', nullable: true })
   metadata: Record<string, any> | null;
 

@@ -11,9 +11,8 @@ import { UserDTO } from './../../user/dtos/create-user.dto';
 import { JwtService } from '@nestjs/jwt';
 import { RefreshTokenDto } from '../dtos/refresh-token.dto';
 import { PasswordResetProvider } from './password-reset.provider';
-import { RefreshTokensProvider } from './refresh-tokens.provider';
-import { ConfigType } from '@nestjs/config';
-import jwtConfig from '../authConfig/jwt.config';
+import { RefreshTokenStore } from './refresh-tokens';
+import { GenerateTokensProvider } from './generate-tokens-provider';
 
 @Injectable()
 export class AuthService {
@@ -22,9 +21,8 @@ export class AuthService {
     private readonly userService: UserService,
     private readonly jwtService: JwtService, // Inject JWT service
     private readonly passwordResetProvider: PasswordResetProvider,
-    private readonly refreshTokensProvider: RefreshTokensProvider,
-    @Inject(jwtConfig.KEY)
-    private readonly jwtConfiguration: ConfigType<typeof jwtConfig>,
+    private readonly refreshTokenStore: RefreshTokenStore,
+    private readonly generateTokensProvider: GenerateTokensProvider,
   ) {}
 
   /**
@@ -64,8 +62,43 @@ export class AuthService {
   }
 
   public async refreshToken(refreshTokenDto: RefreshTokenDto) {
-    const tokens =
-      await this.refreshTokensProvider.refreshTokens(refreshTokenDto);
+    const { refreshToken } = refreshTokenDto;
+
+    let decoded: { userId: string; family?: string; jti?: string };
+    try {
+      // Verify the refresh token
+      decoded = this.jwtService.verify(refreshToken, {
+        secret: process.env.JWT_REFRESH_SECRET,
+      });
+    } catch (error) {
+      throw new UnauthorizedException('Invalid refresh token');
+    }
+
+    const { userId, family, jti } = decoded;
+    if (!family || !jti) {
+      throw new UnauthorizedException('Invalid refresh token');
+    }
+
+    const [isRotated, isCurrent] = await Promise.all([
+      this.refreshTokenStore.isRotated(jti),
+      this.refreshTokenStore.isCurrent(family, jti),
+    ]);
+    if (isRotated || !isCurrent) {
+      await this.refreshTokenStore.revokeFamily(family);
+      throw new UnauthorizedException('Invalid refresh token');
+    }
+
+    const user = await this.userService.FindOneById(userId);
+    if (!user) {
+      await this.refreshTokenStore.revokeFamily(family);
+      throw new UnauthorizedException('Invalid refresh token');
+    }
+
+    const tokens = await this.generateTokensProvider.generateTokens(user, {
+      family,
+    });
+    await this.refreshTokenStore.rotate(family, jti, tokens.refreshTokenJti);
+
     return {
       accessToken: tokens.accessToken,
       refreshToken: tokens.refreshToken,
@@ -82,10 +115,8 @@ export class AuthService {
 
     let decoded: { family?: string };
     try {
-      decoded = await this.jwtService.verifyAsync(refreshToken, {
-        secret: this.jwtConfiguration.secret,
-        audience: this.jwtConfiguration.audience,
-        issuer: this.jwtConfiguration.issuer,
+      decoded = this.jwtService.verify(refreshToken, {
+        secret: process.env.JWT_REFRESH_SECRET,
       });
     } catch (error) {
       throw new UnauthorizedException('Invalid refresh token');
@@ -95,7 +126,7 @@ export class AuthService {
       throw new UnauthorizedException('Invalid refresh token');
     }
 
-    await this.refreshTokensProvider.revokeFamily(decoded.family);
+    await this.refreshTokenStore.revokeFamily(decoded.family);
     return { message: 'Logged out.' };
   }
 }

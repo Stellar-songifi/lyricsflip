@@ -20,8 +20,8 @@ export class FriendService {
 
   async sendFriendRequest(senderId: string, receiverId: string) {
     const request = this.friendRepository.create({
-      userId: senderId,
-      friendId: receiverId,
+      senderId,
+      receiverId,
       status: FriendStatus.PENDING,
     });
 
@@ -29,6 +29,7 @@ export class FriendService {
 
     await this.notificationService.sendToUser(receiverId, {
       type: NotificationType.FRIEND_REQUEST,
+      title: 'New friend request',
       message: 'You have a new friend request',
       metadata: { senderId },
     });
@@ -44,7 +45,7 @@ export class FriendService {
       throw new NotFoundException('Friend request not found');
     }
 
-    if (request.friendId !== userId) {
+    if (request.receiverId !== userId) {
       throw new ForbiddenException('Cannot accept this friend request');
     }
 
@@ -55,8 +56,8 @@ export class FriendService {
   async getFriends(userId: string) {
     return this.friendRepository.find({
       where: [
-        { userId, status: FriendStatus.ACCEPTED },
-        { friendId: userId, status: FriendStatus.ACCEPTED },
+        { senderId: userId, status: FriendStatus.ACCEPTED },
+        { receiverId: userId, status: FriendStatus.ACCEPTED },
       ],
       relations: ['profile'],
     });

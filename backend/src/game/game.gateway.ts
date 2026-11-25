@@ -10,9 +10,16 @@ import {
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { Logger, UseFilters, UseGuards } from '@nestjs/common';
+import { OnEvent } from '@nestjs/event-emitter';
 import { WsExceptionFilter } from '../filters/ws-exception.filter';
 import { WsAuthenticator } from '../auth/providers/ws-authenticator.provider';
-import { WsRateLimitGuard } from '../guards/ws-rate-limit.guard';
+import { WsJwtAuthGuard } from '../auth/guard/ws-jwt-auth.guard';
+import { WsRateLimitGuard } from '../common/guards/ws-rate-limit.guard';
+import { RoundPlayersRepository } from '../room/round-players.repository';
+import {
+  IndexerDomainEvents,
+  RoundCompletedEvent,
+} from '../indexer/services/indexer.service';
 import type {
   AnswerSubmittedPayload,
   Player,
@@ -24,11 +31,42 @@ import type {
   RoomReadyPayload,
   RoomState,
   ScoreUpdatePayload,
+  RoundCompletedPayload,
 } from './types/realtime';
 
 /**
- * `/game` namespace: Real-Time Multiplayer Protocol (LF-091 / LF-197).
+ * Socket data stored per authenticated connection.
+ */
+interface AuthenticatedSocketData {
+  /** JWT `sub` — DB user id. */
+  userId: string;
+  /** Stellar wallet address from the JWT `address` claim (wallet-auth users). */
+  address?: string;
+  /** Rooms (round ids) this socket has joined as a *player*. */
+  playerRooms: Set<string>;
+  /** Rooms (round ids) this socket has joined as a *spectator*. */
+  spectatorRooms: Set<string>;
+}
+
+type AuthenticatedSocket = Socket & { data: AuthenticatedSocketData };
+
+/**
+ * `/game` namespace — Real-Time Multiplayer Protocol (LF-091 / LF-197 / LF-339).
  * Source of truth: docs/realtime-protocol.md
+ *
+ * Security model (LF-339):
+ *  - Every connection MUST present a valid wallet JWT; unauthenticated sockets
+ *    are disconnected immediately in `handleConnection`.
+ *  - Every gameplay handler is protected by `WsJwtAuthGuard` so a handler
+ *    cannot run if the user object was somehow cleared after connect.
+ *  - `room:join` checks `chain_round_player` via the indexer projection.
+ *    A socket whose address/userId is in that table joins as a *player* and
+ *    may emit gameplay events.  Anyone else joins as a *spectator* and can
+ *    only receive broadcasts.
+ *  - `score:update` and `round:completed` are **server-only** events driven
+ *    by indexed on-chain data.  Client frames with those names are silently
+ *    dropped (no `@SubscribeMessage` handler registered).
+ *  - Per-socket rate limiting (60 messages / 10 s) is applied at class level.
  */
 @UseFilters(new WsExceptionFilter())
 @UseGuards(WsRateLimitGuard)
@@ -49,382 +87,346 @@ export class GameGateway
   @WebSocketServer() server: Server;
   private readonly logger = new Logger(GameGateway.name);
 
-  // Active rooms mapped by roomId
+  /**
+   * In-process room state keyed by roomId.  Used for waiting-room bookkeeping
+   * (player list, ready count).  On-chain events are the authoritative source
+   * for scoring and completion — the server never derives scores from client
+   * submissions.
+   */
   private activeRooms = new Map<string, RoomState>();
-  // Active socket connections mapped by socket.id
-  private connectedClients = new Map<
-    string,
-    {
-      userId: string;
-      socket: Socket;
-      roomId: string | null;
-      username?: string;
-    }
-  >();
 
   constructor(
     private readonly wsAuthenticator: WsAuthenticator,
     private readonly wsRateLimitGuard: WsRateLimitGuard,
+    private readonly roundPlayersRepository: RoundPlayersRepository,
   ) {}
 
   afterInit() {
-    this.logger.log('Game WebSocket Gateway initialized on /game');
+    this.logger.log('Game WebSocket Gateway initialised on /game');
   }
+
+  // ---------------------------------------------------------------------------
+  // Connection lifecycle
+  // ---------------------------------------------------------------------------
 
   async handleConnection(client: Socket) {
     try {
-      this.logger.log(`Client connected: ${client.id}`);
-
-      // Authenticate socket client
       const user = await this.wsAuthenticator.authenticate(client);
-      client.data.user = user;
 
-      this.connectedClients.set(client.id, {
-        userId: user?.sub || client.id,
-        socket: client,
-        roomId: null,
-      });
+      // Store the validated identity; handlers read from here — never from
+      // the message body — to prevent identity spoofing.
+      (client as AuthenticatedSocket).data = {
+        userId: user.sub,
+        address: user.address,
+        playerRooms: new Set(),
+        spectatorRooms: new Set(),
+      };
 
       this.logger.log(
-        `Client authenticated: ${client.id} (user: ${user?.sub})`,
+        `Socket ${client.id} connected as ${user.address ?? user.sub}`,
       );
     } catch (error) {
       this.logger.error(
-        `Connection auth failed for ${client.id}: ${error.message}`,
+        `Connection auth failed for ${client.id}: ${(error as Error).message}`,
       );
       client.emit('error', {
         code: 'UNAUTHORIZED',
-        message: error.message || 'Authentication failed',
+        message: (error as Error).message || 'Authentication failed',
         timestamp: new Date().toISOString(),
       });
-      client.disconnect();
+      client.disconnect(true);
     }
   }
 
   handleDisconnect(client: Socket) {
-    this.logger.log(`Client disconnected: ${client.id}`);
-    const clientRecord = this.connectedClients.get(client.id);
+    this.logger.log(`Socket ${client.id} disconnected`);
+    const data = (client as AuthenticatedSocket).data;
+    if (!data) return;
 
-    if (clientRecord && clientRecord.roomId) {
-      this.performLeaveRoom(client, clientRecord.roomId);
+    for (const roomId of [...data.playerRooms, ...data.spectatorRooms]) {
+      this._performLeaveRoom(client as AuthenticatedSocket, roomId);
     }
-
-    this.connectedClients.delete(client.id);
   }
 
-  // -------------------------------------------------------------
-  // SPEC PROTOCOL MESSAGES (docs/realtime-protocol.md)
-  // -------------------------------------------------------------
+  // ---------------------------------------------------------------------------
+  // Spec protocol handlers (docs/realtime-protocol.md)
+  // ---------------------------------------------------------------------------
 
+  /**
+   * `room:join` — the client requests entry to a round room.
+   *
+   * Membership check (LF-339):
+   *  - If the socket's address / userId appears in `chain_round_player` for
+   *    this round, they join as a **player** and may emit gameplay events.
+   *  - Otherwise they join as a **spectator**: they receive all room broadcasts
+   *    but any subsequent gameplay event from them is rejected.
+   */
+  @UseGuards(WsJwtAuthGuard)
   @SubscribeMessage('room:join')
   async handleRoomJoin(
-    @ConnectedSocket() client: Socket,
+    @ConnectedSocket() client: AuthenticatedSocket,
     @MessageBody() data: RoomJoinPayload,
   ) {
-    try {
-      if (!data?.roomId) {
-        return { success: false, error: 'roomId is required' };
-      }
-
-      const clientRecord = this.connectedClients.get(client.id);
-      const playerId = data.playerId || clientRecord?.userId || client.id;
-      const username = data.username || data.playerName || playerId;
-
-      let room = this.activeRooms.get(data.roomId);
-      if (!room) {
-        room = {
-          roomId: data.roomId,
-          status: 'waiting',
-          players: [],
-          currentRoundIndex: 0,
-          maxRounds: 5,
-          createdAt: new Date().toISOString(),
-          currentCard: null,
-        };
-        this.activeRooms.set(data.roomId, room);
-      }
-
-      // Add or update player
-      const existingPlayerIndex = room.players.findIndex(
-        (p) => p.playerId === playerId,
-      );
-      const playerObj: Player = {
-        playerId,
-        username,
-        id: playerId,
-        name: username,
-        isReady: false,
-        score:
-          existingPlayerIndex >= 0
-            ? room.players[existingPlayerIndex].score
-            : 0,
-        joinedAt: new Date().toISOString(),
-      };
-
-      if (existingPlayerIndex >= 0) {
-        room.players[existingPlayerIndex] = playerObj;
-      } else {
-        room.players.push(playerObj);
-      }
-
-      if (clientRecord) {
-        clientRecord.roomId = data.roomId;
-        clientRecord.username = username;
-      }
-
-      client.join(data.roomId);
-
-      // Broadcast player:joined to all room participants
-      const joinPayload: PlayerJoinedPayload = {
-        playerId,
-        username,
-        playerCount: room.players.length,
-        timestamp: new Date().toISOString(),
-      };
-      this.server.to(data.roomId).emit('player:joined', joinPayload);
-      // Also emit legacy player_joined / playerJoined
-      this.server.to(data.roomId).emit('playerJoined', {
-        playerId,
-        playerCount: room.players.length,
-      });
-
-      return { success: true, roomState: room };
-    } catch (error) {
-      this.logger.error(`room:join error: ${error.message}`);
-      return { success: false, error: error.message };
+    if (!data?.roomId) {
+      return { success: false, error: 'roomId is required' };
     }
-  }
 
-  @SubscribeMessage('room:leave')
-  async handleRoomLeave(
-    @ConnectedSocket() client: Socket,
-    @MessageBody() data: RoomLeavePayload,
-  ) {
-    try {
-      const roomId = data?.roomId;
-      if (!roomId) return { success: false, error: 'roomId is required' };
-      this.performLeaveRoom(client, roomId);
-      return { success: true };
-    } catch (error) {
-      this.logger.error(`room:leave error: ${error.message}`);
-      return { success: false, error: error.message };
-    }
-  }
+    const roomId = String(data.roomId);
+    const { userId, address } = client.data;
 
-  @SubscribeMessage('room:ready')
-  async handleRoomReady(
-    @ConnectedSocket() client: Socket,
-    @MessageBody() data: RoomReadyPayload,
-  ) {
-    try {
-      const roomId = data?.roomId;
-      const room = this.activeRooms.get(roomId);
-      if (!room) return { success: false, error: 'Room not found' };
+    // Check on-chain membership via the indexer projection.
+    const isPlayer = await this.roundPlayersRepository.isPlayerInRound(
+      roomId,
+      address,
+      userId,
+    );
 
-      const clientRecord = this.connectedClients.get(client.id);
-      const playerId = clientRecord?.userId || client.id;
+    const role: 'player' | 'spectator' = isPlayer ? 'player' : 'spectator';
 
-      const player = room.players.find((p) => p.playerId === playerId);
-      if (player) {
-        player.isReady = true;
-      }
-
-      const readyCount = room.players.filter((p) => p.isReady).length;
-      const readyPayload: PlayerReadyPayload = {
-        playerId,
-        readyCount,
-        totalPlayers: room.players.length,
-      };
-
-      this.server.to(roomId).emit('player:ready', readyPayload);
-      return { success: true };
-    } catch (error) {
-      this.logger.error(`room:ready error: ${error.message}`);
-      return { success: false, error: error.message };
-    }
-  }
-
-  @SubscribeMessage('answer:submitted')
-  async handleAnswerSubmitted(
-    @ConnectedSocket() client: Socket,
-    @MessageBody() data: AnswerSubmittedPayload,
-  ) {
-    try {
-      const roomId = data?.roomId;
-      const room = this.activeRooms.get(roomId);
-      if (!room) return { success: false, error: 'Room not found' };
-
-      const clientRecord = this.connectedClients.get(client.id);
-      const playerId = clientRecord?.userId || client.id;
-
-      const player = room.players.find((p) => p.playerId === playerId);
-      if (player) {
-        player.score = (player.score || 0) + 10;
-      }
-
-      const scorePayload: ScoreUpdatePayload = {
-        playerId,
-        score: player?.score || 10,
-        pointsGained: 10,
-        timestamp: new Date().toISOString(),
-      };
-
-      this.server.to(roomId).emit('score:update', scorePayload);
-      // Legacy score update
-      this.server.to(roomId).emit('scoreUpdate', {
-        playerId,
-        score: player?.score || 10,
-      });
-
-      return { success: true };
-    } catch (error) {
-      this.logger.error(`answer:submitted error: ${error.message}`);
-      return { success: false, error: error.message };
-    }
-  }
-
-  // -------------------------------------------------------------
-  // BACKWARDS-COMPATIBLE LEGACY EVENT HANDLERS
-  // -------------------------------------------------------------
-
-  @SubscribeMessage('createGame')
-  async handleCreateGame(
-    @ConnectedSocket() client: Socket,
-    @MessageBody() _data?: Record<string, unknown>,
-  ) {
-    try {
-      const gameId = this.generateGameId();
-      const clientRecord = this.connectedClients.get(client.id);
-      const userId = clientRecord?.userId || client.id;
-
-      const room: RoomState = {
-        roomId: gameId,
+    // Lazily initialise the in-process room state.
+    if (!this.activeRooms.has(roomId)) {
+      this.activeRooms.set(roomId, {
+        roomId,
         status: 'waiting',
-        players: [
-          {
-            playerId: userId,
-            username: userId,
-            id: userId,
-            name: userId,
-            isReady: false,
-            score: 0,
-            joinedAt: new Date().toISOString(),
-          },
-        ],
+        players: [],
         currentRoundIndex: 0,
         maxRounds: 5,
         createdAt: new Date().toISOString(),
         currentCard: null,
+      });
+    }
+    const room = this.activeRooms.get(roomId)!;
+
+    if (isPlayer) {
+      // Track the player in the in-process room state.
+      const existing = room.players.findIndex((p) => p.playerId === userId);
+      const playerObj: Player = {
+        playerId: userId,
+        username: address ?? userId,
+        id: userId,
+        name: address ?? userId,
+        isReady: false,
+        score: existing >= 0 ? room.players[existing].score : 0,
+        joinedAt: new Date().toISOString(),
       };
-
-      this.activeRooms.set(gameId, room);
-      if (clientRecord) {
-        clientRecord.roomId = gameId;
+      if (existing >= 0) {
+        room.players[existing] = playerObj;
+      } else {
+        room.players.push(playerObj);
       }
-      client.join(gameId);
 
-      return { success: true, gameId };
-    } catch (error) {
-      this.logger.error(`Create game error: ${error.message}`);
-      return { success: false, error: error.message };
-    }
-  }
+      client.data.playerRooms.add(roomId);
+      await client.join(roomId);
 
-  @UseGuards(WsRateLimitGuard)
-  @SubscribeMessage('joinGame')
-  async handleJoinGame(
-    @ConnectedSocket() client: Socket,
-    @MessageBody() data: { gameId: string },
-  ) {
-    return this.handleRoomJoin(client, { roomId: data.gameId });
-  }
-
-  // Game State Management
-  @UseGuards(WsRateLimitGuard)
-  @SubscribeMessage('startGame')
-  async handleStartGame(
-    @ConnectedSocket() client: Socket,
-    @MessageBody() data: { gameId: string },
-  ) {
-    try {
-      const room = this.activeRooms.get(data.gameId);
-      if (!room) throw new Error('Game not found');
-
-      room.status = 'playing';
-      const startTime = Date.now();
-      this.server.to(data.gameId).emit('gameStarted', { startTime });
-
-      return { success: true };
-    } catch (error) {
-      this.logger.error(`Start game error: ${error.message}`);
-      return { success: false, error: error.message };
-    }
-  }
-
-  @UseGuards(WsRateLimitGuard)
-  @SubscribeMessage('submitAnswer')
-  async handleAnswer(
-    @ConnectedSocket() client: Socket,
-    @MessageBody() data: { gameId: string; answer: string },
-  ) {
-    return this.handleAnswerSubmitted(client, {
-      roomId: data.gameId,
-      answer: data.answer,
-    });
-  }
-
-  @UseGuards(WsRateLimitGuard)
-  @SubscribeMessage('syncTimer')
-  handleSyncTimer(
-    @ConnectedSocket() client: Socket,
-    @MessageBody() data: { gameId: string; remainingMs: number },
-  ) {
-    const clientRecord = this.connectedClients.get(client.id);
-    if (!clientRecord || clientRecord.roomId !== data.gameId) {
-      return { success: false, error: 'Not in this game' };
-    }
-    client.to(data.gameId).emit('timerSynced', data);
-    return { success: true };
-  }
-
-  // -------------------------------------------------------------
-  // HELPER METHODS
-  // -------------------------------------------------------------
-
-  private performLeaveRoom(client: Socket, roomId: string) {
-    const room = this.activeRooms.get(roomId);
-    const clientRecord = this.connectedClients.get(client.id);
-    const playerId = clientRecord?.userId || client.id;
-    const username = clientRecord?.username || playerId;
-
-    if (room) {
-      room.players = room.players.filter((p) => p.playerId !== playerId);
-
-      const leavePayload: PlayerLeftPayload = {
-        playerId,
-        username,
+      // Broadcast player joined only for verified players.
+      const joinPayload: PlayerJoinedPayload = {
+        playerId: userId,
+        username: address ?? userId,
         playerCount: room.players.length,
         timestamp: new Date().toISOString(),
       };
-      this.server.to(roomId).emit('player:left', leavePayload);
-      this.server.to(roomId).emit('playerLeft', {
-        playerId,
-        playerCount: room.players.length,
-      });
+      this.server.to(roomId).emit('player:joined', joinPayload);
+    } else {
+      // Spectator: subscribe to room broadcasts but don't appear in player list.
+      client.data.spectatorRooms.add(roomId);
+      await client.join(roomId);
+      this.logger.debug(
+        `Socket ${client.id} joined ${roomId} as spectator (not in chain_round_player)`,
+      );
+    }
 
-      if (room.players.length === 0) {
-        this.activeRooms.delete(roomId);
+    return { success: true, role, roomState: room };
+  }
+
+  @UseGuards(WsJwtAuthGuard)
+  @SubscribeMessage('room:leave')
+  async handleRoomLeave(
+    @ConnectedSocket() client: AuthenticatedSocket,
+    @MessageBody() data: RoomLeavePayload,
+  ) {
+    const roomId = data?.roomId;
+    if (!roomId) return { success: false, error: 'roomId is required' };
+    this._performLeaveRoom(client, String(roomId));
+    return { success: true };
+  }
+
+  @UseGuards(WsJwtAuthGuard)
+  @SubscribeMessage('room:ready')
+  async handleRoomReady(
+    @ConnectedSocket() client: AuthenticatedSocket,
+    @MessageBody() data: RoomReadyPayload,
+  ) {
+    const roomId = String(data?.roomId ?? '');
+
+    // Only verified players may signal readiness.
+    if (!client.data.playerRooms.has(roomId)) {
+      return {
+        success: false,
+        error: 'You must join this room as a player first',
+      };
+    }
+
+    const room = this.activeRooms.get(roomId);
+    if (!room) return { success: false, error: 'Room not found' };
+
+    const player = room.players.find((p) => p.playerId === client.data.userId);
+    if (player) player.isReady = true;
+
+    const readyCount = room.players.filter((p) => p.isReady).length;
+    const payload: PlayerReadyPayload = {
+      playerId: client.data.userId,
+      readyCount,
+      totalPlayers: room.players.length,
+    };
+    this.server.to(roomId).emit('player:ready', payload);
+    return { success: true };
+  }
+
+  /**
+   * `answer:submitted` — the client notifies the server that they submitted an
+   * answer on-chain.  The server relays the event to the room for UI updates;
+   * actual scoring is derived from indexed on-chain events, NOT from this message.
+   *
+   * LF-339: only verified players (not spectators) may emit this event.
+   */
+  @UseGuards(WsJwtAuthGuard)
+  @SubscribeMessage('answer:submitted')
+  async handleAnswerSubmitted(
+    @ConnectedSocket() client: AuthenticatedSocket,
+    @MessageBody() data: AnswerSubmittedPayload,
+  ) {
+    const roomId = String(data?.roomId ?? '');
+
+    // Reject non-player sockets silently (don't leak room membership info).
+    if (!client.data.playerRooms.has(roomId)) {
+      return { success: false, error: 'Not a player in this room' };
+    }
+
+    const room = this.activeRooms.get(roomId);
+    if (!room) return { success: false, error: 'Room not found' };
+
+    // Relay the event so other clients can show "player answered" UI.
+    // Score is NOT updated here — it comes from indexed on-chain events.
+    this.server.to(roomId).emit('answer:submitted', {
+      playerId: client.data.userId,
+      player: client.data.address ?? client.data.userId,
+      roomId,
+      timestamp: new Date().toISOString(),
+    });
+
+    return { success: true };
+  }
+
+  // ---------------------------------------------------------------------------
+  // Server-only events driven by indexed on-chain data (LF-339)
+  //
+  // `score:update` and `round:completed` are NEVER handled as inbound client
+  // messages.  There is intentionally no @SubscribeMessage for them.  Any
+  // client frame with those names is silently dropped by Socket.IO.
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Emitted by the indexer when a round's results are known on-chain.
+   * Broadcasts `round:completed` and `score:update` to the room.
+   */
+  @OnEvent(IndexerDomainEvents.ROUND_COMPLETED)
+  handleRoundCompletedEvent(event: RoundCompletedEvent): void {
+    const roomId = String(event.roundId);
+    const room = this.activeRooms.get(roomId);
+
+    // Emit score:update for each player result sourced from indexed data.
+    for (const result of event.results) {
+      const payload: ScoreUpdatePayload = {
+        playerId: result.playerId,
+        score: result.score ?? 0,
+        pointsGained: result.score ?? 0,
+        timestamp: new Date().toISOString(),
+      };
+      this.server.to(roomId).emit('score:update', payload);
+    }
+
+    // Emit round:completed with the full result set.
+    const completedPayload: RoundCompletedPayload = {
+      roundIndex: room?.currentRoundIndex ?? 0,
+      correctAnswer: '',
+      playerResults: event.results.map((r) => ({
+        playerId: r.playerId,
+        answer: '',
+        isCorrect: r.won,
+        pointsEarned: r.score ?? 0,
+      })),
+      timestamp: new Date().toISOString(),
+    };
+    this.server.to(roomId).emit('round:completed', completedPayload);
+
+    if (room) room.status = 'completed';
+  }
+
+  // ---------------------------------------------------------------------------
+  // Backwards-compatible legacy handlers (kept for existing clients)
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Legacy `joinGame` — delegates to the spec-compliant `room:join`.
+   * Identity is taken from the validated JWT, not the message body.
+   */
+  @UseGuards(WsJwtAuthGuard)
+  @SubscribeMessage('joinGame')
+  async handleJoinGame(
+    @ConnectedSocket() client: AuthenticatedSocket,
+    @MessageBody() data: { gameId: string },
+  ) {
+    return this.handleRoomJoin(client, { roomId: data?.gameId });
+  }
+
+  @UseGuards(WsJwtAuthGuard)
+  @SubscribeMessage('room:sync')
+  handleSyncTimer(
+    @ConnectedSocket() client: AuthenticatedSocket,
+    @MessageBody() data: { roomId: string; remainingMs: number },
+  ) {
+    const roomId = String(data?.roomId ?? '');
+    // Only players in the room may push timer sync hints.
+    if (!client.data.playerRooms.has(roomId)) {
+      return { success: false, error: 'Not a player in this room' };
+    }
+    client.to(roomId).emit('timer:tick', {
+      roundIndex: this.activeRooms.get(roomId)?.currentRoundIndex ?? 0,
+      remainingMs: data.remainingMs,
+      timestamp: new Date().toISOString(),
+    });
+    return { success: true };
+  }
+
+  // ---------------------------------------------------------------------------
+  // Private helpers
+  // ---------------------------------------------------------------------------
+
+  private _performLeaveRoom(
+    client: AuthenticatedSocket,
+    roomId: string,
+  ): void {
+    const { userId, address, playerRooms, spectatorRooms } = client.data;
+    const wasPlayer = playerRooms.has(roomId);
+
+    playerRooms.delete(roomId);
+    spectatorRooms.delete(roomId);
+
+    if (wasPlayer) {
+      const room = this.activeRooms.get(roomId);
+      if (room) {
+        room.players = room.players.filter((p) => p.playerId !== userId);
+        const leavePayload: PlayerLeftPayload = {
+          playerId: userId,
+          username: address ?? userId,
+          playerCount: room.players.length,
+          timestamp: new Date().toISOString(),
+        };
+        this.server.to(roomId).emit('player:left', leavePayload);
+        if (room.players.length === 0) this.activeRooms.delete(roomId);
       }
     }
 
-    if (clientRecord && clientRecord.roomId === roomId) {
-      clientRecord.roomId = null;
-    }
-
-    client.leave(roomId);
-  }
-
-  private generateGameId(): string {
-    return Math.random().toString(36).substring(2, 9).toUpperCase();
+    void client.leave(roomId);
   }
 }

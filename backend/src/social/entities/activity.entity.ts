@@ -1,20 +1,8 @@
-import {
-  Entity,
-  PrimaryGeneratedColumn,
-  Column,
-  CreateDateColumn,
-  ManyToOne,
-  JoinColumn,
-} from 'typeorm';
+import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
 import { Profile } from './profile.entity';
 
-export enum ActivityType {
-  GAME_PLAYED = 'game_played',
-  ACHIEVEMENT_EARNED = 'achievement_earned',
-  FRIEND_ADDED = 'friend_added',
-  CHALLENGE_SENT = 'challenge_sent',
-  CHALLENGE_ACCEPTED = 'challenge_accepted',
-}
+export type ActivityType =
+  'round_joined' | 'round_completed' | 'friend_added' | 'reward_claimed';
 
 @Entity('activities')
 export class Activity {
@@ -24,16 +12,15 @@ export class Activity {
   @Column()
   userId: string;
 
-  @Column({ type: 'enum', enum: ActivityType })
+  @Column({
+    type: 'enum',
+    enum: ['round_joined', 'round_completed', 'friend_added', 'reward_claimed'],
+  })
   type: ActivityType;
 
-  @Column({ type: 'json', nullable: true })
+  @Column('jsonb', { default: {} })
   metadata: Record<string, unknown>;
 
-  @ManyToOne(() => Profile, (profile) => profile.activities, { nullable: true })
-  @JoinColumn({ name: 'userId' })
+  @ManyToOne(() => Profile, (profile) => profile.activities)
   profile: Profile;
-
-  @CreateDateColumn()
-  createdAt: Date;
 }

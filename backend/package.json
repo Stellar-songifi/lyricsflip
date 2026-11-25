@@ -16,16 +16,18 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
-    "test:e2e": "jest --config ./test/jest-e2e.json",
+    "test:e2e": "jest --config ./test/jest-e2e.json --runInBand",
     "seed": "ts-node src/database/seed-songs.ts",
+    "seed:unified": "ts-node src/database/seed-unified.ts",
     "migration:run": "typeorm-ts-node-commonjs migration:run -d src/database/data-source.ts",
     "migration:revert": "typeorm-ts-node-commonjs migration:revert -d src/database/data-source.ts",
     "migration:generate": "typeorm-ts-node-commonjs migration:generate -d src/database/data-source.ts",
+    "migration:check": "typeorm-ts-node-commonjs migration:generate -d src/database/data-source.ts src/migrations/DriftCheck --check",
     "migration:show": "typeorm-ts-node-commonjs migration:show -d src/database/data-source.ts",
     "openapi:export": "ts-node src/utility/export-openapi.ts",
     "issues:sync": "ts-node scripts/sync-issues.ts --file ../ISSUES.md",
-    "openapi:generate": "openapi-typescript ../openapi.json -o ../frontend/src/services/generated/openapi.d.ts",
-    "openapi:check": "npm run openapi:export && npm run openapi:generate && git diff --exit-code ../openapi.json ../frontend/src/services/generated"
+    "openapi:generate": "cd ../frontend && npm run generate:api",
+    "openapi:check": "npm run openapi:export && npm run openapi:generate && git diff --exit-code -- openapi.json ../frontend/src/services/generated/api.ts || (echo '' && echo 'ERROR: openapi.json or frontend/src/services/generated/api.ts is out of date. Fix: cd backend && npm run openapi:export && npm run openapi:generate && commit both files.' && false)"
   },
   "dependencies": {
     "@nestjs/cache-manager": "^2.2.2",
@@ -50,18 +52,18 @@
     "cache-manager-redis-yet": "^5.1.5",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.1",
+    "ioredis": "^5.11.1",
     "joi": "^17.13.3",
     "nanoid": "^3.3.7",
     "nodemailer": "^6.10.1",
-    "ioredis": "^5.4.1",
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",
-    "pg": "^8.11.3",
+    "pg": "^8.23.1",
     "reflect-metadata": "^0.2.1",
     "rxjs": "^7.8.1",
     "socket.io": "^4.7.5",
     "swagger-ui-express": "^5.0.0",
-    "typeorm": "^0.3.20"
+    "typeorm": "^0.3.31"
   },
   "devDependencies": {
     "@nestjs/cli": "^10.3.2",
@@ -97,32 +99,41 @@
       "json",
       "ts"
     ],
-    "rootDir": "src",
+    "rootDir": ".",
+    "roots": ["<rootDir>/src", "<rootDir>/scripts"],
     "testRegex": ".*\\.spec\\.ts$",
     "transform": {
       "^.+\\.(t|j)s$": [
         "ts-jest",
-        { "isolatedModules": true, "tsconfig": { "allowJs": true } }
+        {
+          "isolatedModules": true,
+          "tsconfig": {
+            "allowJs": true
+          }
+        }
       ]
     },
     "transformIgnorePatterns": [
       "/node_modules/(?!(@stellar|@noble|@exodus|uint8array-extras|smol-toml|feaxios)/)"
     ],
     "collectCoverageFrom": [
-      "**/*.(t|j)s"
+      "src/**/*.(t|j)s",
+      "scripts/**/*.(t|j)s"
     ],
-    "coverageDirectory": "../coverage",
+    "coverageDirectory": "coverage",
     "coverageThreshold": {
       "global": {
-        "branches": 20,
-        "functions": 20,
-        "lines": 30,
-        "statements": 30
+        "branches": 60,
+        "functions": 60,
+        "lines": 60,
+        "statements": 60
       }
     },
     "testEnvironment": "node",
+    "forceExit": true,
+    "testTimeout": 30000,
     "moduleNameMapper": {
-      "^@app/(.*)$": "<rootDir>/$1"
+      "^@app/(.*)$": "<rootDir>/src/$1"
     }
   },
   "engines": {

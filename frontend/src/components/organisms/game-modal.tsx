@@ -43,7 +43,7 @@ export function GameModal() {
 
         <div className="grid gap-2">
           <label htmlFor="difficulty" className="text-sm font-medium">
-            Difficulty Level
+            Difficulty
           </label>
           <Select value={difficulty} onValueChange={setDifficulty}>
             <SelectTrigger>
@@ -66,9 +66,9 @@ export function GameModal() {
               <SelectValue placeholder="Select duration" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="5min">5 minutes</SelectItem>
-              <SelectItem value="10min">10 minutes</SelectItem>
-              <SelectItem value="15min">15 minutes</SelectItem>
+              <SelectItem value="5min">5 min</SelectItem>
+              <SelectItem value="10min">10 min</SelectItem>
+              <SelectItem value="15min">15 min</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -78,10 +78,9 @@ export function GameModal() {
             <Info className="h-4 w-4 text-purple-600" />
           </div>
           <div className="text-sm">
-            <h4 className="font-medium text-purple-700 mb-1">INSTRUCTION</h4>
+            <h4 className="font-medium text-purple-700 mb-1">Instructions</h4>
             <p className="text-gray-700">
-              A card displaying a lyric from a song will appear along with a list of possible answers. Your goal is to
-              select the correct answer as quickly as possible.
+              A card displaying a lyric from a song will appear along with a list of possible answers. Your goal is to score the highest points.
             </p>
           </div>
         </div>

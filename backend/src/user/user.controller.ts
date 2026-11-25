@@ -13,6 +13,8 @@ import {
   DefaultValuePipe,
   ParseIntPipe,
   NotFoundException,
+  HttpCode,
+  HttpStatus,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -20,16 +22,19 @@ import {
   ApiResponse,
   ApiBody,
   ApiParam,
+  ApiBearerAuth,
 } from '@nestjs/swagger';
 import { UserService } from './providers/user.service';
 import { UserDTO } from './dtos/create-user.dto';
-import { UpdateProfileDto } from './dtos/update-profile.dto';
+import { ExportAccountDto } from './dtos/export-account.dto';
 import { AccessTokenGuard } from '@app/auth/guard/access-token/access-token.guard';
 import { RolesGuard } from '@app/common/guards/roles.guard';
 import { Roles } from '@app/common/decorators/roles.decorator';
 import { UserRole } from '@app/common/enums/role.enum';
 import { LeaderboardService } from '@app/leaderboard/providers/leaderboard.service';
 import { CurrentUser } from '@app/auth/decorators/current-user.decorator';
+import { ActiveUserData } from '@app/auth/interfaces/active-user-data.interface';
+import { AccountDataProvider } from './providers/account-data.provider';
 //import { SignInDTO } from './dtos/sign-in.dto';
 //import { UpdateProfileDTO } from './dtos/update-profile.dto';
 //import { RefreshTokenDTO } from './dtos/refresh-token.dto';
@@ -42,14 +47,16 @@ export class UserController {
   constructor(
     private readonly userService: UserService, //dependency injection of userService
     private readonly leaderboardService: LeaderboardService, // indexed leaderboard/profile data
+    private readonly accountDataProvider: AccountDataProvider,
   ) {}
 
   // Player profile built from indexed data (stats, recent rounds, badges, unclaimed winnings)
   @Get('players/:address')
   @ApiOperation({
-    summary: 'Get player profile',
+    summary: 'Get player profile (deprecated)',
     description:
-      'Returns indexed stats, recent rounds, badges and unclaimed winnings for a player address',
+      'Deprecated: use GET /players/:address. Returns indexed stats, recent rounds, badges and unclaimed winnings for a player address.',
+    deprecated: true,
   })
   @ApiParam({
     name: 'address',
@@ -262,38 +269,80 @@ export class UserController {
     status: 400,
     description: 'Invalid profile data',
   })
-  updateProfile(
-    @CurrentUser('sub') userId: string,
-    @Body() profileDto: UpdateProfileDto,
-  ) {
-    return this.userService.updateMyProfile(userId, profileDto);
+  updateProfile(@Body() profileDto: Record<string, unknown>) {
+    return this.userService.updateProfile(profileDto);
   }
 
-  // Update the authenticated user's profile (username, avatar)
+  // ─── Account data export ──────────────────────────────────────────────────
+
+  /**
+   * GET /api/v1/user/me/export
+   *
+   * Returns a JSON snapshot of all off-chain personal data held for the
+   * authenticated user: profile fields, notifications, and a privacy note
+   * explaining which data lives on the Stellar blockchain and cannot be erased.
+   */
   @UseGuards(AccessTokenGuard)
-  @Patch('me/profile')
+  @Get('me/export')
+  @ApiBearerAuth()
   @ApiOperation({
-    summary: 'Update current user profile',
+    summary: 'Export account data',
     description:
-      'Set a unique, case-insensitive username and optional avatar URL',
+      'Download a JSON copy of all off-chain personal data (profile, ' +
+      'notifications). Includes a privacy note about immutable on-chain records.',
   })
-  @ApiBody({ type: UpdateProfileDto })
   @ApiResponse({
     status: 200,
-    description: 'Profile successfully updated',
+    description: 'Account data export',
+    type: ExportAccountDto,
   })
-  @ApiResponse({
-    status: 400,
-    description: 'Invalid profile data',
-  })
-  @ApiResponse({
-    status: 409,
-    description: 'Username already taken',
-  })
-  updateMyProfile(
-    @CurrentUser('sub') userId: string,
-    @Body() updateProfileDto: UpdateProfileDto,
-  ) {
-    return this.userService.updateMyProfile(userId, updateProfileDto);
+  @ApiResponse({ status: 401, description: 'Unauthorised' })
+  @ApiResponse({ status: 404, description: 'User not found' })
+  exportAccountData(@CurrentUser('sub') userId: string): Promise<ExportAccountDto> {
+    return this.accountDataProvider.exportAccountData(userId);
   }
+
+  // ─── Account deletion ─────────────────────────────────────────────────────
+
+  /**
+   * DELETE /api/v1/user/me
+   *
+   * Anonymises the authenticated user's account and hard-deletes all
+   * off-chain personal data (email, notifications, password reset tokens).
+   * The `users` row is kept with a randomised username so existing foreign-key
+   * references (e.g. game-history) are not broken.
+   *
+   * On-chain data (game results, scores, wagers on Stellar) is public and
+   * immutable — it is not affected by this operation.
+   */
+  @UseGuards(AccessTokenGuard)
+  @Delete('me')
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Delete account',
+    description:
+      'Anonymises the account and permanently deletes all off-chain personal ' +
+      'data: email address, username, notifications, and password reset tokens. ' +
+      'On-chain records (game results, scores, wager transactions on the Stellar ' +
+      'blockchain) are public and immutable and cannot be erased.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Account successfully anonymised and personal data deleted',
+    schema: {
+      properties: {
+        message: { type: 'string' },
+        privacyNote: { type: 'string' },
+      },
+    },
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorised' })
+  @ApiResponse({ status: 404, description: 'User not found' })
+  deleteAccount(
+    @CurrentUser('sub') userId: string,
+  ): Promise<{ message: string; privacyNote: string }> {
+    return this.accountDataProvider.deleteAccountData(userId);
+  }
+
 }

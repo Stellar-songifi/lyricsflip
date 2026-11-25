@@ -46,11 +46,12 @@ function findEntityFiles(dir: string, out: string[] = []): string[] {
  * CLI and the running app agree on one migration history.
  *
  * This is also what the `migrations` CI job diffs against: after
- * `migration:run` it runs `migration:generate --dryrun` (via
- * `npm run migration:check`) and fails if any SQL is produced. Because
+ * `migration:run` it runs `npm run migration:check`, which uses TypeORM's
+ * `migration:generate --check`. That exits 0 only when the migrated database
+ * matches these entities, and 1 when SQL would still be generated. Because
  * `synchronize` is off and the entity set here is the same one the app
- * loads, an entity change that ships without a migration shows up as a
- * pending diff and fails CI instead of breaking at runtime.
+ * loads, an entity change that ships without a migration fails CI instead of
+ * breaking at runtime.
  */
 export default new DataSource({
   type: 'postgres',

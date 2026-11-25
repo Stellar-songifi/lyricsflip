@@ -1,11 +1,5 @@
-import {
-  ConflictException,
-  forwardRef,
-  Inject,
-  Injectable,
-  Logger,
-  NotFoundException,
-} from '@nestjs/common';
+import { forwardRef, Inject, Injectable, Logger } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { AuthService } from './../../auth/providers/auth.service';
 import { FindOneUserByEmailProvider } from './find-one-user-by-email.provider';
 import { User } from '../user.entity';
@@ -13,7 +7,6 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { CreateUserProvider } from './create-user.services';
 import { UserDTO } from '../dtos/create-user.dto';
-import { UpdateProfileDto } from '../dtos/update-profile.dto';
 // Service responsible for handling user operations.
 @Injectable()
 export class UserService {
@@ -33,6 +26,8 @@ export class UserService {
 
     //Inject create user provider
     private readonly createUserProvider: CreateUserProvider,
+
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   public async getAll(limit: number, page: number): Promise<User[]> {
@@ -68,13 +63,18 @@ export class UserService {
    * Finds the user tied to a Stellar wallet address, creating one on first
    * sign-in. Used by wallet-based auth (auth/providers/wallet-auth.provider.ts),
    * which never collects an email/password.
+   *
+   * When `referralCode` is supplied and the address is brand new, emits
+   * `'referral.signup'` so ReferralService can link the pending referral
+   * without creating a circular dependency (LF-355).
    */
   public async findOrCreateByStellarAddress(
     stellarAddress: string,
-  ): Promise<User> {
+    referralCode?: string,
+  ): Promise<{ user: User; isNew: boolean }> {
     const existing = await this.userRepository.findOneBy({ stellarAddress });
     if (existing) {
-      return existing;
+      return { user: existing, isNew: false };
     }
 
     const newUser = this.userRepository.create({
@@ -83,7 +83,18 @@ export class UserService {
       // unlike a name derived from a slice of the address.
       username: `wallet_${stellarAddress}`,
     });
-    return this.userRepository.save(newUser);
+    const saved = await this.userRepository.save(newUser);
+
+    if (referralCode) {
+      // Emit asynchronously so ReferralService can process the signup without
+      // blocking the auth response or creating a DI cycle.
+      this.eventEmitter.emit('referral.signup', {
+        newUserId: saved.id,
+        referralCode,
+      });
+    }
+
+    return { user: saved, isNew: true };
   }
   //update password
 
@@ -122,33 +133,10 @@ export class UserService {
     // Implement token refresh logic
     return 'userService: Refresh token logic placeholder';
   }
-  public async updateMyProfile(
-    userId: string,
-    profile: UpdateProfileDto,
-  ): Promise<User> {
-    const user = await this.userRepository.findOneBy({ id: userId });
-    if (!user) {
-      throw new NotFoundException(`User ${userId} was not found`);
-    }
-
-    if (profile.username !== undefined) {
-      const username = profile.username.trim();
-      const existingUser = await this.userRepository
-        .createQueryBuilder('user')
-        .where('LOWER(user.username) = LOWER(:username)', { username })
-        .andWhere('user.id != :userId', { userId })
-        .getOne();
-      if (existingUser) {
-        throw new ConflictException('Username already taken');
-      }
-      user.username = username;
-    }
-
-    if (profile.avatarUrl !== undefined) {
-      user.avatar = profile.avatarUrl;
-    }
-
-    return this.userRepository.save(user);
+  // Update user profile.
+  updateProfile(_profileDto?: Record<string, unknown>) {
+    // Implement profile update logic
+    return 'userService: Update profile logic placeholder';
   }
 
   //Reward system integration

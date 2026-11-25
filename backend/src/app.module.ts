@@ -1,69 +1,49 @@
-import { Module } from '@nestjs/common';
+import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { CacheModule } from '@nestjs/cache-manager';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { ThrottlerModule } from '@nestjs/throttler';
+import { APP_GUARD } from '@nestjs/core';
 import { Redis } from 'ioredis';
 import { redisStore } from 'cache-manager-redis-yet';
-
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { AuthModule } from './auth/auth.module';
-import { SongsModule } from './songs/songs.module';
-import { ScoringModule } from './scoring/scoring.module';
-import { QuestionsModule } from './questions/questions.module';
-import { QuickGameModule } from './quick-game/quick-game.module';
-import { GameModule } from './game/game.module';
-import { AchievementModule } from './achievement/achievement.module';
-import { RoomModule } from './room/room.module';
-import { SocialModule } from './social/social.module';
 import { PaginationModule } from './common/pagination/pagination.module';
-import { IndexerModule } from './indexer/indexer.module';
-import { HealthModule } from './health/health.module';
-import { RedisModule } from './redis/redis.module';
-import { AnalyticsModule } from './analytics/analytics.module';
-import { GameSessionModule } from './game-session/game-session.module';
-import { WagerModule } from './wager/wager.module';
-import { RewardModule } from './reward/reward.module';
-import { LeaderboardModule } from './leaderboard/leaderboard.module';
-import { NotificationModule } from './notification/notification.module';
-import { LoggerModule } from './logger/logger.module';
-import { UserModule } from './user/user.module';
 import { RedisThrottlerStorage } from './common/throttler/redis-throttler.storage';
 import { DEFAULT_THROTTLE } from './common/throttler/throttle-limits';
+import { CustomThrottlerGuard } from './auth/guard/throttler.guard';
+import { AppConfigModule } from './config/config.module';
+import { HealthModule } from './health/health.module';
+import { LoggerModule } from './logger/logger.module';
+import { RequestLoggerMiddleware } from './logger/request-logger.middleware';
+import { RedisModule } from './redis/redis.module';
+import {
+  AdminModule,
+  CatalogueModule,
+  IdentityModule,
+  RealtimeModule,
+  RewardsModule,
+  RoundsModule,
+  SocialModule,
+} from './domains';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
-    TypeOrmModule.forRootAsync({
-      inject: [ConfigService],
-      useFactory: (config: ConfigService) => ({
-        type: 'postgres',
-        url: config.get<string>('DATABASE_URL') ?? process.env.DATABASE_URL,
-        autoLoadEntities: true,
-        synchronize: false,
-        migrations: [__dirname + '/migrations/*{.ts,.js}'],
-        migrationsRun: process.env.DB_MIGRATIONS_RUN !== 'false',
-      }),
+    AppConfigModule,
+    TypeOrmModule.forRoot({
+      type: 'postgres',
+      url: process.env.DATABASE_URL,
+      autoLoadEntities: true,
+      synchronize: false,
+      migrations: [__dirname + '/migrations/*{.ts,.js}'],
+      migrationsRun: process.env.DB_MIGRATIONS_RUN !== 'false',
     }),
     RedisModule,
-    AuthModule,
-    UserModule,
-    GameSessionModule,
-    WagerModule,
-    RewardModule,
-    LeaderboardModule,
-    NotificationModule,
     LoggerModule,
-    GameModule,
     PaginationModule,
     EventEmitterModule.forRoot(),
-    // Global limit for general reads; /auth/* and answer submission apply
-    // stricter per-route limits (see common/throttler/throttle-limits.ts).
-    // Redis-backed storage keeps counts consistent across instances. Window
-    // and limit come from configuration.ts (RATE_LIMIT_TTL/RATE_LIMIT_LIMIT),
-    // falling back to DEFAULT_THROTTLE's values when unset.
     ThrottlerModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
@@ -82,12 +62,6 @@ import { DEFAULT_THROTTLE } from './common/throttler/throttle-limits';
         ),
       }),
     }),
-    QuestionsModule,
-    QuickGameModule,
-    // cache-manager-redis-yet targets the cache-manager v5 API (unlike
-    // cache-manager-redis-store@3, which silently fails on v5). The Redis
-    // connection is described by the single `redis.url` setting, shared with
-    // the throttler storage above.
     CacheModule.registerAsync({
       inject: [ConfigService],
       isGlobal: true,
@@ -98,16 +72,31 @@ import { DEFAULT_THROTTLE } from './common/throttler/throttle-limits';
         }),
       }),
     }),
-    SongsModule,
-    AnalyticsModule,
-    ScoringModule,
-    AchievementModule,
+    IdentityModule,
+    CatalogueModule,
+    RoundsModule,
+    RealtimeModule,
     SocialModule,
-    RoomModule,
-    IndexerModule,
+    RewardsModule,
+    AdminModule,
     HealthModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    AppService,
+    // Register CustomThrottlerGuard globally so every HTTP handler is covered
+    // without needing an explicit @UseGuards() on each controller.
+    // Per-route @Throttle() overrides (SearchThrottle, LeaderboardThrottle,
+    // etc.) still take effect — NestJS resolves the most-specific metadata.
+    { provide: APP_GUARD, useClass: CustomThrottlerGuard },
+  ],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  /**
+   * Apply RequestLoggerMiddleware to all routes so every request gets an
+   * x-request-id and an access-log line (LF-349).
+   */
+  configure(consumer: MiddlewareConsumer) {
+    consumer.apply(RequestLoggerMiddleware).forRoutes('*');
+  }
+}

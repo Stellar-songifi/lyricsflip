@@ -13,16 +13,12 @@ import { Friend } from './entities/friend.entity';
 import { Profile } from './entities/profile.entity';
 import { Activity } from './entities/activity.entity';
 import { Challenge } from './entities/challenge.entity';
+import { Referral } from './entities/referral.entity';
 import { NotificationModule } from '../notification/notification.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([
-      Friend,
-      Profile,
-      Activity,
-      Challenge,
-    ]),
+    TypeOrmModule.forFeature([Friend, Profile, Activity, Challenge, Referral]),
     NotificationModule,
   ],
   controllers: [
@@ -31,11 +27,6 @@ import { NotificationModule } from '../notification/notification.module';
     ActivityController,
     ChallengeController,
   ],
-  providers: [
-    FriendService,
-    ProfileService,
-    ActivityService,
-    ChallengeService,
-  ],
+  providers: [FriendService, ProfileService, ActivityService, ChallengeService],
 })
-export class SocialModule {}
+export class SocialFeatureModule {}

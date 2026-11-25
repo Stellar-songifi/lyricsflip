@@ -4,33 +4,37 @@ NestJS API and WebSocket server for **LyricsFlip**, a lyrics-guessing game with 
 
 ## Module map
 
-Each concern has exactly one module. Entities are owned by the module listed
-here; other modules import that module (or its entity) instead of redefining it.
+`AppModule` imports exactly seven public domain modules from `src/domains/`.
+Each domain is the sole owner of its tables, HTTP prefixes and WebSocket
+namespaces; folders inside a domain are implementation details. The full
+inventory, including deprecated aliases and removed modules, is in
+[`docs/architecture.md`](../docs/architecture.md#backend-module-map-lf-348).
 
-| Concern | Module | Owns | HTTP | WebSocket namespace |
+| Domain | Public module | Owns | HTTP | WebSocket namespace |
 | --- | --- | --- | --- | --- |
-| Auth | `auth/` | JWT issue/verify, `AccessTokenGuard` (global), `JwtAuthGuard`, `WsAuthenticator`, `@CurrentUser()` | `/auth` | — |
-| Users | `user/` | `User` (`users`, incl. `stellarAddress` for wallet login) | `/user` | — |
-| Players | `player/` | `Player` (`players`), `PlayerStatus` | — | — |
-| Songs | `songs/` | `Song` (`songs`, mirrors the contract `Card`), `Tag`, `UserGenrePreference`, `Genre` enum | `/songs`, `/songs/genres` | — |
-| Rooms | `room/` | `Room` (`rooms`), `PlayerRoom`; room CRUD, join/leave, player presence | `/rooms` | `/rooms` |
-| Game | `game/` | Built-in game modes, scoring strategies, matchmaking, stats, `CustomGameMode` | `/game-modes` | `/game` |
-| Game sessions | `game-session/` | `GameSession` (`game_sessions`) for every mode, tournaments and insights | `/game-session` | — |
-| Notifications | `notification/` | `Notification` (`notifications`); also pushes achievement and progression events | `/notifications` | `/notifications` |
-| Chain indexer | `indexer/` | Soroban event indexing | — | `/indexer` |
-| Lesson progress | `music-education/` | `LessonProgress` (`lesson_progress`) | `/lessons/progress` | — |
-| Practice progress | `practice/` | `PracticeProgress` (`practice_progress`) | `/practice/progress` | — |
-| Health | `health/` | Postgres, Redis and Stellar RPC checks | `/health` | — |
+| Identity | `IdentityModule` | Auth, `User`, `Player`, session tokens | `/auth`, `/user` | — |
+| Catalogue | `CatalogueModule` | `Song`, `Tag`, `UserGenrePreference`, `Question` | `/songs`, `/questions` | — |
+| Rounds (chain mirror) | `RoundsModule` | Game modes, sessions, results, scoring, wagers, rooms, all chain entities | `/rounds`, `/game-modes`, `/game-results`, `/wagers`, `/scoring`; legacy `/game-session`, `/quick-game/rounds`, `/rooms` | `/game`, `/rooms`, `/indexer`; `/rounds` relay |
+| Realtime | `RealtimeModule` | `Notification`, chat rooms | `/notifications` | `/notifications` |
+| Social | `SocialModule` | Profiles, friends, activity, challenges, referrals, leaderboards | `/players`, `/leaderboard`, `/profile`, `/friends`, `/activity`, `/challenge`, `/referrals` | — |
+| Rewards | `RewardsModule` | Achievements and progression | `/rewards`, `/achievements`, `/progression`; legacy `/reward` | — |
+| Admin | `AdminModule` | Analytics metrics and song curation | `/analytics`, `/admin/songs` | — |
 
 Rules of thumb:
 
-- One WebSocket namespace per concern. Server-to-user pushes go through
-  `/notifications`, which joins each authenticated socket to a `user:<id>` room.
-  Emit an `EventEmitter2` event and handle it in `NotificationGateway` rather than
-  adding a new gateway.
+- `src/domains/domain-map.ts` is the ownership manifest. Add a folder or route to
+  exactly one domain; `src/domains/domain-map.spec.ts` fails on duplicate or
+  unmapped prefixes/tables, and `src/entity-metadata.spec.ts` fails on duplicate
+  `@Entity` table names.
+- Legacy prefixes remain mounted for existing clients but are marked
+  `deprecated: true` in Swagger. New clients use the canonical routes above.
+- Server-to-user pushes go through `/notifications`, which joins each
+  authenticated socket to a `user:<id>` room. Emit an `EventEmitter2` event and
+  handle it in `NotificationGateway` rather than adding a new gateway.
+- Run `npm run knip:backend` from the repository root to find unused files and
+  unresolved imports before adding a new feature module.
 - The only genre enum is `songs/enums/genre.enum.ts`. It must match the contract's
   `Genre` and the frontend's `GENRE_VALUES`.
-- `src/entity-metadata.spec.ts` fails if two `@Entity` classes map to the same table.
 
 Cross-cutting HTTP behaviour is configured once in `src/config/app-setup.ts`:
 
@@ -48,30 +52,55 @@ Cross-cutting HTTP behaviour is configured once in `src/config/app-setup.ts`:
 
 ## Environment variables
 
-Copy `.env.example` to `backend/.env` (or `.env.development`):
+Copy `.env.example` to `backend/.env` (or `.env.development`).
+
+All variables are validated by Joi at boot (`src/config/validation.schema.ts`). A missing required
+variable, or an unsafe value in production, exits immediately with a clear message listing every
+violation — no silent late failures.
 
 | Variable | Required | Default | Description |
 | --- | --- | --- | --- |
-| `NODE_ENV` | no | `development` | Enables Swagger; schema changes always go through migrations, in every environment |
+| `NODE_ENV` | no | `development` | `development`, `production`, `test` or `staging`; enables Swagger outside production |
 | `LOG_LEVEL` | no | `info` | `error`, `warn`, `info`, `debug` or `verbose` |
-| `PORT` | no | `3000` | HTTP/WebSocket port |
+| `PORT` | no | `4000` | HTTP/WebSocket port |
 | `DATABASE_URL` | **yes** | — | e.g. `postgres://postgres:postgres@localhost:5432/lyricsflip` |
 | `DB_MIGRATIONS_RUN` | no | `true` | Run pending migrations on startup |
-| `JWT_SECRET` | **yes** | — | Access-token signing secret |
-| `JWT_REFRESH_SECRET` | yes | — | Refresh-token signing secret |
-| `JWT_ACCESS_TOKEN_TTL` / `JWT_REFRESH_TOKEN_TTL` | no | — | Token lifetimes (seconds) |
-| `JWT_TOKEN_AUDIENCE` / `JWT_TOKEN_ISSUER` | no | — | JWT `aud` / `iss` claims |
+| `JWT_SECRET` | **yes** | — | Access-token signing secret. In production must be ≥ 32 chars and not a known placeholder. |
+| `JWT_REFRESH_SECRET` | **yes** | — | Refresh-token signing secret. Same production rules as `JWT_SECRET`. |
+| `JWT_ACCESS_TOKEN_TTL` | no | `3600` | Access-token lifetime in seconds |
+| `JWT_REFRESH_TOKEN_TTL` | no | `7776000` | Refresh-token lifetime in seconds (90 days) |
+| `JWT_TOKEN_AUDIENCE` | no | — | JWT `aud` claim |
+| `JWT_TOKEN_ISSUER` | no | — | JWT `iss` claim |
+| `CORS_ORIGINS` | no | `http://localhost:3000` | Comma-separated allowed origins. In production `*` is rejected — list explicit origins. |
 | `STELLAR_NETWORK` | **yes** | — | `testnet`, `futurenet` or `mainnet` |
-| `SOROBAN_RPC_URL` | no | — | Soroban RPC used by the indexer and `/health`; validated at boot |
+| `SOROBAN_RPC_URL` | no | — | Soroban RPC used by the indexer and `/health`; validated as a URI at boot |
+| `STELLAR_RPC_URL` | no | — | Fallback Soroban RPC when `SOROBAN_RPC_URL` is unset; validated as a URI |
 | `LYRICSFLIP_CONTRACT_ID` | no | — | LyricsFlip game contract ID indexed by the indexer; validated with `StrKey.isValidContract` |
 | `LYRICSFLIP_NFT_CONTRACT_ID` | no | — | NFT contract ID indexed alongside `LYRICSFLIP_CONTRACT_ID` (so `NftMinted` events are indexed); validated with `StrKey.isValidContract` |
+| `SOROBAN_ADMIN_SECRET_KEY` | no | — | Admin account secret key used by `POST /admin/songs/sync` |
+| `SOROBAN_ADMIN_PUBLIC_KEY` | no | — | Admin account public key for building unsigned `add_card` transactions |
+| `WALLET_AUTH_ALLOW_RAW_SIGNATURES` | no | `false` | Accept legacy raw-byte signatures. Must be `false` in production. |
 | `REDIS_URL` | no | `redis://127.0.0.1:6379` | Throttler storage and health check |
-| `REDIS_HOST` / `REDIS_PORT` | no | `localhost` / `6379` | Cache store |
-| `RATE_LIMIT_TTL` / `RATE_LIMIT_LIMIT` | no | `60` / `10` | Default rate limit |
-| `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASS` | no | `localhost` / `1025` | Outgoing email (Mailpit in docker compose) |
+| `REDIS_HOST` / `REDIS_PORT` | no | `localhost` / `6379` | Cache store host and port |
+| `RATE_LIMIT_TTL` | no | `60000` | Rate-limit window in milliseconds |
+| `RATE_LIMIT_LIMIT` | no | `60` | Max requests per window |
+| `SMTP_HOST` | no | `localhost` | Outgoing SMTP host (Mailpit in docker compose) |
+| `SMTP_PORT` | no | `1025` | Outgoing SMTP port |
+| `SMTP_SECURE` | no | `false` | Use TLS for SMTP |
+| `SMTP_USER` / `SMTP_PASS` | no | — | SMTP credentials |
 | `MAIL_FROM` | no | `LyricsFlip <no-reply@lyricsflip.local>` | Sender address |
-| `PASSWORD_RESET_TTL_MINUTES` | no | `15` | Password-reset link lifetime |
-| `APP_URL` | no | `http://localhost:3000` | Public URL used in emails/links |
+| `APP_URL` | no | `http://localhost:3000` | Public URL used in emails and links |
+| `PASSWORD_RESET_TTL_MINUTES` | no | `15` | Password-reset link lifetime in minutes |
+| `ANALYTICS_API_KEY` | no | — | Shared secret expected in the `x-analytics-key` header |
+| `INDEXER_POLL_INTERVAL_MS` | no | `5000` | Indexer ledger-poll interval in milliseconds |
+| `INDEXER_EVENT_LIMIT` | no | `100` | Max events fetched per poll |
+| `INDEXER_KEEPER_ENABLED` | no | `false` | Enable the indexer keeper process |
+| `INDEXER_RETENTION_DAYS` | no | `7` | Soroban event-retention window (days); used to detect stale cursors |
+| `INDEXER_START_LEDGER` | no | — | Starting ledger when no cursor has been persisted |
+| `INDEXER_BACKOFF_BASE_MS` | no | `1000` | Exponential-backoff base delay on RPC errors (ms) |
+| `INDEXER_BACKOFF_MAX_MS` | no | `60000` | Exponential-backoff maximum delay on RPC errors (ms) |
+| `INDEXER_MAX_LAG_LEDGERS` | no | `100` | Max ledgers the indexer may lag behind the RPC before `/health/ready` reports unhealthy |
+| `RPC_HEALTH_TIMEOUT_MS` | no | `5000` | Timeout for the RPC `getLatestLedger` health probe |
 
 Both contract IDs and `SOROBAN_RPC_URL` are validated at boot (Joi and a runtime `StrKey.isValidContract`
 check). An invalid value stops the app with a clear message; in production, boot fails fast when the
@@ -117,20 +146,26 @@ npm run migration:run              # apply pending migrations
 npm run migration:revert           # roll back the last migration
 npm run migration:show             # list applied/pending migrations
 npm run migration:generate -- src/migrations/DescriptiveName   # generate one from entity changes
+npm run migration:check            # fail if entities still differ from the migrated database
 ```
 
 Workflow for a schema change:
 
 1. Edit or add the entity.
-2. Generate the migration from the diff:
+2. Apply the current migrations to a fresh local database with `npm run migration:run`.
+3. Generate the migration from the diff:
    `npm run migration:generate -- src/migrations/DescriptiveName`.
-3. Review the generated SQL (it is committed alongside the entity change).
-4. Apply it locally with `npm run migration:run`; `npm run migration:show` lists applied/pending
-   migrations and `npm run migration:revert` rolls back the last one.
+4. Review the generated SQL (it is committed alongside the entity change).
+5. Re-run `npm run migration:run` and `npm run migration:check`; both must pass with no diff.
+   `npm run migration:show` lists applied/pending migrations and `npm run migration:revert`
+   rolls back the last one.
 
-CI enforces this: the `migrations` job runs `migration:run` and then a drift check
-(`migration:generate --dryrun`, or a `schema:log` diff). If the check produces any SQL, the job
-fails — so a PR that adds an entity column without a migration cannot merge.
+CI enforces this: the `migrations` job runs the migrations against the service Postgres, then
+`npm run migration:check`. That command uses TypeORM's `migration:generate --check`, which exits
+0 only when no SQL would be generated and 1 when entities and migrations have drifted. A PR that
+adds an entity column without a migration therefore fails CI. The check uses the same entity set
+as the app (except the quarantined files listed in `src/database/data-source.ts` that still have
+missing imports); enabling one of those requires adding its migration at the same time.
 
 ## API docs and health
 
@@ -150,10 +185,33 @@ of truth.
 
 Real-time multiplayer uses Socket.IO on the same port. Events, payloads and error codes are documented in [`docs/realtime-protocol.md`](../docs/realtime-protocol.md); the namespace map above is the only event summary kept here.
 
+## Syncing the issue backlog
+
+`scripts/sync-issues.ts` turns `### LF-xxx · Title` blocks into GitHub issues. By default it reads the
+repository's `ISSUES.md`; pass another Markdown backlog as the first argument (or with `--file`):
+
+```bash
+# Preview the labels without creating anything
+npm run issues:sync -- --dry-run
+
+# Preview or create issues from a backlog named BACKLOG.md at the repository root
+npm run issues:sync -- --dry-run ../BACKLOG.md
+npm run issues:sync -- ../BACKLOG.md
+
+# The --file form works too
+npm run issues:sync -- --dry-run --file ../BACKLOG.md
+```
+
+Paths are relative to the current working directory (normally `backend/`), so a root-level
+`BACKLOG.md` is `../BACKLOG.md`. Requires an authenticated `gh` CLI with issue-creation permissions;
+`--repo owner/name` targets a different repository. Only exact shorthands (`s`/`m`/`l`/`xl`, `p0`–`p3`
+and the supported type names) are rewritten; every other label — including `security`,
+`help wanted` and `area:onchain` — is preserved exactly as written.
+
 ## Tests
 
 ```bash
-npm test          # unit tests (src/**/*.spec.ts)
+npm test          # unit tests (src/** and scripts/**/*.spec.ts)
 npm run test:cov  # unit tests with coverage (enforces the Jest coverage threshold)
 npm run test:e2e  # e2e tests (test/*.e2e-spec.ts) — no live database required
 ```
@@ -165,6 +223,7 @@ npm run test:e2e  # e2e tests (test/*.e2e-spec.ts) — no live database required
 | `npm run build` | Compile to `dist/` |
 | `npm run start:prod` | Run the compiled build |
 | `npm run lint` / `npm run format` | ESLint / Prettier |
+| `npm run issues:sync -- --dry-run [FILE]` | Preview the GitHub issues generated from a backlog Markdown file |
 
 ## Logging
 
@@ -172,3 +231,11 @@ There is one logger, `AppLogger` (`src/logger`). Use Nest's `new Logger(MyServic
 it routes through `AppLogger`. Production writes JSON lines; other environments write readable lines.
 Every HTTP request gets an `x-request-id` and exactly one access log line. Known secret fields
 (passwords, tokens, authorization headers, JWTs) are redacted. Set `LOG_LEVEL` to `error`, `warn`, `info`, `debug` or `verbose`.
+
+## Wallet auth (LF-337)
+
+`POST /auth/challenge` issues a single-use challenge containing the domain (`APP_URL`), the Stellar network passphrase (`STELLAR_NETWORK`), a nonce, `issuedAt` and `expiresAt`. The wallet signs it with SEP-53 `signMessage`; `POST /auth/verify` checks the signature and re-checks the domain/network/expiry binding.
+
+- Raw-byte signatures are accepted only when `NODE_ENV=test`; there is no environment flag to enable them.
+- Challenge issuance is limited per IP (route throttle) and per address (5/min, Redis counter).
+- **Contract accounts (`C...`, passkey wallets) are not supported.** They require SEP-45 (web authentication for contract accounts), which is not implemented; challenge requests for them are rejected with 400.

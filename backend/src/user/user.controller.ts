@@ -27,6 +27,8 @@ import {
 import { UserService } from './providers/user.service';
 import { UserDTO } from './dtos/create-user.dto';
 import { ExportAccountDto } from './dtos/export-account.dto';
+import { SetUsernameDto } from './dtos/set-username.dto';
+import { BatchLookupDto } from './dtos/batch-lookup.dto';
 import { AccessTokenGuard } from '@app/auth/guard/access-token/access-token.guard';
 import { RolesGuard } from '@app/common/guards/roles.guard';
 import { Roles } from '@app/common/decorators/roles.decorator';
@@ -345,4 +347,94 @@ export class UserController {
     return this.accountDataProvider.deleteAccountData(userId);
   }
 
+  // ─── LF-341: Username / wallet endpoints ───────────────────────────────
+
+  /**
+   * PATCH /user/me/username
+   *
+   * Sets or replaces the caller's display name.  Requires a valid access
+   * token (issued by wallet-auth or email/password sign-in).  The name must
+   * be 3–20 characters, [a-z0-9_], not reserved, and not already taken
+   * (case-insensitively).
+   */
+  @UseGuards(AccessTokenGuard)
+  @Patch('me/username')
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Set or update the authenticated user\'s username',
+    description:
+      'Reserves a unique, case-insensitive display name for the wallet-linked account. ' +
+      'Names must be 3–20 characters ([a-z0-9_]), cannot be reserved words, and cannot ' +
+      'impersonate another account.',
+  })
+  @ApiBody({ type: SetUsernameDto })
+  @ApiResponse({ status: 200, description: 'Username updated.' })
+  @ApiResponse({ status: 400, description: 'Invalid or reserved username.' })
+  @ApiResponse({ status: 401, description: 'Missing or invalid access token.' })
+  @ApiResponse({ status: 409, description: 'Username already taken.' })
+  async setUsername(
+    @CurrentUser('sub') userId: string,
+    @Body() dto: SetUsernameDto,
+  ) {
+    return this.userService.setUsername(userId, dto.username);
+  }
+
+  /**
+   * GET /user/by-address/:address
+   *
+   * Returns the public profile of the user registered to a specific Stellar
+   * wallet address.  Used by scoreboards to resolve G… addresses to names.
+   */
+  @Get('by-address/:address')
+  @ApiOperation({
+    summary: 'Get user profile by Stellar wallet address',
+    description:
+      'Looks up the account associated with a Stellar G… public key and returns its ' +
+      'public profile (id, username, totalScore, gamesPlayed, gamesWon).',
+  })
+  @ApiParam({
+    name: 'address',
+    description: 'Stellar Ed25519 public key (G… format)',
+    example: 'GABCDEFGHIJKLMNOPQRSTUVWXYZ234567ABCDEFGHIJKLMNOPQRSTUV',
+  })
+  @ApiResponse({ status: 200, description: 'User profile returned.' })
+  @ApiResponse({ status: 404, description: 'No account for that address.' })
+  async getUserByAddress(@Param('address') address: string) {
+    return this.userService.findByAddress(address);
+  }
+
+  /**
+   * POST /user/by-addresses
+   *
+   * Batch lookup of display names for a list of Stellar addresses.  Intended
+   * for scoreboards that need to show human-readable names instead of raw
+   * G… addresses.  Returns a map of address → username; addresses with no
+   * registered account are omitted.
+   */
+  @Post('by-addresses')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Batch lookup of usernames by Stellar address (scoreboards)',
+    description:
+      'Accepts up to 100 Stellar addresses and returns a { address: username } map ' +
+      'for all addresses that have a registered account.',
+  })
+  @ApiBody({ type: BatchLookupDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Address → username map returned.',
+    schema: {
+      type: 'object',
+      additionalProperties: { type: 'string' },
+      example: {
+        'GABCDE...1': 'stellar_wizard',
+        'GABCDE...2': 'crypto_bard',
+      },
+    },
+  })
+  @ApiResponse({ status: 400, description: 'Validation error on address list.' })
+  async batchLookupByAddresses(@Body() dto: BatchLookupDto) {
+    return this.userService.findByAddresses(dto.addresses);
+  }
 }

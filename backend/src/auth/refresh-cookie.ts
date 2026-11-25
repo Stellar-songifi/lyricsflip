@@ -10,24 +10,30 @@ import jwtConfig from './authConfig/jwt.config';
 export const REFRESH_COOKIE = 'refreshToken';
 const REFRESH_COOKIE_PATH = '/api/v1/auth';
 
+function cookieOptions() {
+  return {
+    httpOnly: true,
+    // Never send the cookie over cleartext in production. Local development
+    // runs over HTTP, where browsers ignore Secure cookies.
+    secure: process.env.NODE_ENV === 'production',
+    // Lax blocks most cross-site request forgery while still allowing the
+    // cookie on top-level navigations; refresh/logout are also CSRF-guarded
+    // by assertCsrfHeader().
+    sameSite: 'lax' as const,
+    path: REFRESH_COOKIE_PATH,
+  };
+}
+
 export function setRefreshCookie(res: Response, refreshToken: string) {
   res.cookie(REFRESH_COOKIE, refreshToken, {
-    httpOnly: true,
-    secure: true,
-    sameSite: 'lax',
-    path: REFRESH_COOKIE_PATH,
+    ...cookieOptions(),
     // Matches the refresh token's own lifetime.
     maxAge: jwtConfig().refreshttl * 1000,
   });
 }
 
 export function clearRefreshCookie(res: Response) {
-  res.clearCookie(REFRESH_COOKIE, {
-    httpOnly: true,
-    secure: true,
-    sameSite: 'lax',
-    path: REFRESH_COOKIE_PATH,
-  });
+  res.clearCookie(REFRESH_COOKIE, cookieOptions());
 }
 
 export function readRefreshCookie(req: Request): string | undefined {

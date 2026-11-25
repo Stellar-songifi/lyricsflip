@@ -2,6 +2,7 @@ import { IoAdapter } from '@nestjs/platform-socket.io';
 import { ServerOptions } from 'socket.io';
 import { INestApplication } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { isOriginAllowed, resolveCorsOrigins } from './cors';
 
 const DEFAULT_MAX_HTTP_BUFFER_SIZE = 1e5;
 
@@ -16,7 +17,14 @@ export class SocketIOAdapter extends IoAdapter {
   }
 
   createIOServer(port: number, options?: ServerOptions) {
-    const corsOrigins = this.configService.get<string>('cors.origin') ?? '*';
+    const corsOrigins = resolveCorsOrigins(
+      this.configService.get<string | string[]>('cors.origin'),
+      {
+        credentials: true,
+        nodeEnv:
+          this.configService.get<string>('nodeEnv') ?? process.env.NODE_ENV,
+      },
+    );
 
     const configuredBufferSize = this.configService.get<number>(
       'socket.maxHttpBufferSize',
@@ -29,7 +37,13 @@ export class SocketIOAdapter extends IoAdapter {
     const server = super.createIOServer(port, {
       ...options,
       cors: {
-        origin: corsOrigins,
+        origin: (origin, callback) => {
+          if (isOriginAllowed(origin, corsOrigins)) {
+            callback(null, true);
+            return;
+          }
+          callback(null, false);
+        },
         methods: ['GET', 'POST'],
         credentials: true,
       },

@@ -95,9 +95,13 @@ export default () => ({
   cors: {
     // Comma-separated list of allowed origins (main.ts). Must be explicit,
     // not `*`: the refresh-token cookie (LF-202) needs `credentials: true`,
-    // which browsers refuse for a wildcard origin.
+    // which browsers refuse for a wildcard origin. LF-359: when credentials
+    // are enabled we reject '*' at boot in production and refuse it at runtime.
     origin: process.env.CORS_ORIGINS
-      ? process.env.CORS_ORIGINS.split(',').map((origin) => origin.trim())
+      ? process.env.CORS_ORIGINS
+          .split(',')
+          .map((origin) => origin.trim())
+          .filter(Boolean)
       : (process.env.FRONTEND_URL ?? 'http://localhost:3000'),
   },
   redis: {

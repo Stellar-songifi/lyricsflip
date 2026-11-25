@@ -451,7 +451,7 @@ be valid Stellar contract StrKeys; a configured escrow ID is validated too.
 | `REDIS_HOST`, `REDIS_PORT` | no | Redis (defaults `localhost:6379`) |
 | `REDIS_URL` | no | Redis connection URL (cache/throttler storage) |
 | `RATE_LIMIT_TTL`, `RATE_LIMIT_LIMIT` | no | Global throttling window (ms) and limit |
-| `CORS_ORIGINS` | no | Comma-separated allowed origins, or `*` |
+| `CORS_ORIGINS` | no (required in production) | `http://localhost:3000` | Comma-separated explicit allowed origins. `*` is rejected because credentialed requests require it; unlisted origins are refused. |
 | `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASS`, `MAIL_FROM` | no | Outgoing email (password reset) |
 | `APP_URL` | no | Public base URL, used to build shareable links |
 | `ANALYTICS_API_KEY` | no | Shared secret for the `x-analytics-key` header |

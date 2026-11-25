@@ -55,18 +55,32 @@ export const validationSchema = Joi.object({
   JWT_TOKEN_ISSUER: Joi.string().optional(),
 
   // ── CORS ──────────────────────────────────────────────────────────────────
-  // In production a wildcard origin is incompatible with credentialed requests
-  // (the refresh-token cookie requires credentials: true) and is a security
-  // risk. Reject it explicitly so the misconfiguration fails at boot rather
-  // than at the first cross-origin request.
+  // The refresh-token cookie requires credentials: true, which is incompatible
+  // with a wildcard origin. Production must list explicit origins; fail at boot
+  // instead of leaving the API open to every site. Runtime enforcement lives
+  // in config/cors.ts (LF-359).
   CORS_ORIGINS: Joi.string()
     .optional()
     .when('NODE_ENV', {
       is: 'production',
-      then: Joi.string().invalid('*').messages({
-        'any.invalid':
-          'CORS_ORIGINS must not be "*" in production — list explicit allowed origins.',
-      }),
+      then: Joi.string()
+        .required()
+        .custom((value: string, helpers) => {
+          const origins = value
+            .split(',')
+            .map((origin) => origin.trim())
+            .filter(Boolean);
+          if (origins.length === 0 || origins.includes('*')) {
+            return helpers.error('any.invalid');
+          }
+          return value;
+        })
+        .messages({
+          'any.required':
+            'CORS_ORIGINS must list explicit allowed origins in production.',
+          'any.invalid':
+            'CORS_ORIGINS must not be "*" or empty in production — list explicit allowed origins.',
+        }),
     }),
 
   // ── Rate limiting ─────────────────────────────────────────────────────────
@@ -131,6 +145,11 @@ export const validationSchema = Joi.object({
   INDEXER_BACKOFF_MAX_MS: Joi.number().integer().min(0).optional(),
 
   // Health check tuning - see configuration.ts for the defaults applied when unset.
+  INDEXER_MAX_LAG_LEDGERS: Joi.number()
+    .integer()
+    .min(0)
+    .optional()
+    .default(100),
   INDEXER_MAX_LAG_LEDGERS: Joi.number().integer().min(0).optional().default(100),
   RPC_HEALTH_TIMEOUT_MS: Joi.number().integer().min(1).optional().default(5000),
   // LF-340: wager reconciliation config.

@@ -123,13 +123,17 @@ The old `/notifications/notifications` path redirects to `/notifications`.
 - The **access token** is kept in memory only (`frontend/src/services/api.ts`)
   and sent as a `Bearer` header. On a `401` the client refreshes it once and
   retries the request.
-- The **refresh token** is an `HttpOnly; Secure; SameSite=Lax` cookie, scoped to
-  `/api/v1/auth`, set by `verify` and rotated by `refresh`. `logout` revokes its
-  token family and clears it. No auth token is stored in `localStorage` or
-  `sessionStorage`.
-- CORS allows credentials only from the configured origins (`CORS_ORIGINS`,
-  defaulting to `FRONTEND_URL` or `http://localhost:3000`). A wildcard origin
-  can't be used with credentials.
+- The **refresh token** is an `HttpOnly; SameSite=Lax` cookie (also `Secure` in
+  production), scoped to `/api/v1/auth`, set by `verify` and rotated by
+  `refresh`. `logout` revokes its token family and clears it. No auth token is
+  stored in `localStorage` or `sessionStorage`.
+- Every response carries Helmet's security headers (`X-Content-Type-Options`,
+  `X-Frame-Options`, `Referrer-Policy`, etc.); CSP and COEP are disabled for the
+  JSON API surface.
+- CORS allows credentials only from the explicit configured origins
+  (`CORS_ORIGINS`, defaulting to `FRONTEND_URL` or `http://localhost:3000`).
+  A wildcard origin can't be used with credentials, production requires an
+  allowlist, and requests from unlisted origins are refused with 403.
 - **CSRF:** the cookie-authenticated routes (`refresh`, `logout`) require the
   `X-Requested-With: XMLHttpRequest` header, which the API client always sends.
   Cross-site forms can't set it, and cross-origin scripts fail the CORS

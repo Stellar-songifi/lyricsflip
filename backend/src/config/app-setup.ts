@@ -1,4 +1,9 @@
-import { INestApplication, ValidationPipe, VersioningType } from '@nestjs/common';
+import {
+  INestApplication,
+  ValidationPipe,
+  VersioningType,
+} from '@nestjs/common';
+import helmet from 'helmet';
 import { AllExceptionsFilter } from '../filters/all-exceptions.filter';
 import { LoggingInterceptor } from '../interceptors/logging.interceptor';
 import { AppLogger } from '../logger/app-logger.service';
@@ -15,6 +20,16 @@ import { AppLogger } from '../logger/app-logger.service';
  * round_id, address, and tx_hash alongside the request id.
  */
 export function configureApp(app: INestApplication): INestApplication {
+  // Security headers for the API surface. CSP is disabled because this is a
+  // JSON API (Swagger is served separately in non-production) and the default
+  // CSP would block legitimate API consumers without providing value here.
+  app.use(
+    helmet({
+      contentSecurityPolicy: false,
+      crossOriginEmbedderPolicy: false,
+    }),
+  );
+
   app.setGlobalPrefix('api', { exclude: ['health'] });
   app.enableVersioning({
     type: VersioningType.URI,

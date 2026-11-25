@@ -91,11 +91,13 @@ jobs:
           cache: npm
           cache-dependency-path: backend/package-lock.json
       - run: npm ci
+      - name: Export openapi.json
+        run: npm run openapi:export
       - name: Install frontend dependencies (needed for generate:api)
         run: npm ci
         working-directory: frontend
-      - name: Export openapi.json and regenerate frontend API client
-        run: npm run openapi:export && npm run openapi:generate
+      - name: Regenerate frontend API client
+        run: npm run openapi:generate
       - name: Verify openapi.json is committed and up to date
         run: |
           if ! git diff --quiet -- openapi.json; then

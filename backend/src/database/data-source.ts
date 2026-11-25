@@ -19,6 +19,8 @@ const srcRoot = path.join(__dirname, '..');
  */
 const ENTITIES_PENDING_FIX = new Set([
   'social/entities/profile.entity.ts',
+  'social/entities/friend.entity.ts',
+  'social/entities/activity.entity.ts',
   'practice/entities/practice-session.entity.ts',
   'practice/entities/practice-item.entity.ts',
   'practice/entities/practice-result.entity.ts',

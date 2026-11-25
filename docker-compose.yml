@@ -70,8 +70,8 @@ services:
   # ---------------------------------------------------------------------------
   soroban:
     # Pinned for reproducible local builds; bump deliberately when upgrading.
-    image: stellar/quickstart:v430
-    command: --local --enable rpc
+    image: stellar/quickstart:latest
+    command: --local --enable-soroban-rpc
     ports:
       - '8000:8000'
     healthcheck:

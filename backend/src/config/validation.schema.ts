@@ -150,6 +150,7 @@ export const validationSchema = Joi.object({
     .min(0)
     .optional()
     .default(100),
+  INDEXER_MAX_LAG_LEDGERS: Joi.number().integer().min(0).optional().default(100),
   RPC_HEALTH_TIMEOUT_MS: Joi.number().integer().min(1).optional().default(5000),
   // LF-340: wager reconciliation config.
   SOROBAN_NATIVE_TOKEN_CONTRACT_ID: contractIdSchema.optional(),

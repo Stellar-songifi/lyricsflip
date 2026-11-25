@@ -104,7 +104,9 @@ export class SongChainSyncService {
   }
 
   private getAdminPublicKey(): string {
-    const publicKey = this.configService.get<string>('SOROBAN_ADMIN_PUBLIC_KEY');
+    const publicKey = this.configService.get<string>(
+      'SOROBAN_ADMIN_PUBLIC_KEY',
+    );
     if (!publicKey) {
       throw new Error(
         'SOROBAN_ADMIN_PUBLIC_KEY is not configured (the API must not hold the admin secret key)',
@@ -137,5 +139,10 @@ export class SongChainSyncService {
       rpcUrl,
       publicKey,
     });
+  }
+
+  /** Alias for buildAddCardsTransaction — used in tests and sync flows. */
+  async addCards(songs: Song[]): Promise<string> {
+    return this.buildAddCardsTransaction(songs);
   }
 }

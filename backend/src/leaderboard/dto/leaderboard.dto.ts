@@ -70,33 +70,33 @@ export class LeaderboardEntryDto {
   @ApiProperty({ description: 'Stellar address of the player' })
   address: string;
 
-  @ApiProperty({ description: 'Value of the requested metric' })
-  score: number;
-  @ApiProperty()
-  username: string;
+  @ApiPropertyOptional({ description: 'Value of the requested metric' })
+  score?: number;
+  @ApiPropertyOptional()
+  username?: string;
 
-  @ApiProperty({ description: 'Total points accumulated in the period' })
-  totalPoints: number;
+  @ApiPropertyOptional({ description: 'Total points accumulated in the period' })
+  totalPoints?: number;
 
-  @ApiProperty()
-  roundsWon: number;
+  @ApiPropertyOptional()
+  roundsWon?: number;
 
-  @ApiProperty()
-  roundsPlayed: number;
+  @ApiPropertyOptional()
+  roundsPlayed?: number;
 
-  @ApiProperty({ description: 'roundsWon / roundsPlayed, in [0, 1]' })
-  winRate: number;
+  @ApiPropertyOptional({ description: 'roundsWon / roundsPlayed, in [0, 1]' })
+  winRate?: number;
 
-  @ApiProperty({
+  @ApiPropertyOptional({
     description: 'Correct answers / total answers, in [0, 1]',
   })
-  accuracy: number;
+  accuracy?: number;
 
-  @ApiProperty({ description: 'Highest single-round score in the period' })
-  bestRoundScore: number;
+  @ApiPropertyOptional({ description: 'Highest single-round score in the period' })
+  bestRoundScore?: number;
 
-  @ApiProperty()
-  maxStreak: number;
+  @ApiPropertyOptional()
+  maxStreak?: number;
 
   /**
    * Moderation status of the address.
@@ -113,7 +113,7 @@ export class LeaderboardEntryDto {
       'Anti-cheat moderation status. Null = no flags. ' +
       "'hidden'/'banned' entries are suppressed on public leaderboards.",
   })
-  flagStatus: string | null;
+  flagStatus?: string | null;
 }
 
 export class PaginatedLeaderboardDto {

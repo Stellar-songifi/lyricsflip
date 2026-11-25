@@ -50,3 +50,26 @@ jobs:
             exit 1
           fi
           echo "✅ No stray frontend TypeScript files found."
+
+  no-rust-outside-onchain:
+    name: No .rs/Cargo.toml outside onchain/
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Reject Rust sources and Cargo manifests outside onchain/
+        shell: bash
+        run: |
+          # Find any .rs file or Cargo.toml that is NOT under onchain/.
+          mapfile -t stray < <(
+            git ls-files '*.rs' 'Cargo.toml' '*/Cargo.toml' \
+              | grep -Ev '^onchain/'
+          )
+          if [[ ${#stray[@]} -gt 0 ]]; then
+            echo "::error::Rust sources or Cargo manifests found outside onchain/:"
+            printf '  %s\n' "${stray[@]}"
+            echo ""
+            echo "All *.rs files and Cargo.toml manifests must live under onchain/."
+            exit 1
+          fi
+          echo "✅ No stray Rust files found."

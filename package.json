@@ -24,7 +24,7 @@
     "test:e2e:frontend": "npm --prefix frontend run test:e2e",
     "check:contracts": "cd onchain && cargo fmt --check && cargo clippy --all-targets -- -D warnings && cargo test",
     "check:frontend": "npm --prefix frontend run lint && npm --prefix frontend run typecheck && npm --prefix frontend run test -- --passWithNoTests",
-    "check:backend": "npm --prefix backend run lint && npm --prefix backend exec -- tsc --noEmit && npm --prefix backend run test",
+    "check:backend": "npm --prefix backend run lint && npm --prefix backend run build && npm --prefix backend run test",
     "knip:backend": "npm exec --yes --package=knip@6 -- knip --directory backend",
     "check:all": "npm run check:contracts && npm run check:frontend && npm run check:backend",
     "prepare": "husky || true"
@@ -49,7 +49,7 @@
     ],
     "backend/**/*.ts": [
       "npm --prefix backend exec -- prettier --write",
-      "npm --prefix backend exec -- tsc --noEmit"
+      "bash -c 'cd backend && npx tsc --noEmit -p tsconfig.build.json'"
     ],
     "onchain/**/*.rs": [
       "bash -c 'cd onchain && cargo fmt'",

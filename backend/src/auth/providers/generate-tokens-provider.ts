@@ -1,4 +1,9 @@
-import { forwardRef, Inject, Injectable } from '@nestjs/common';
+import {
+  forwardRef,
+  Inject,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { UserService } from './../../user/providers/user.service';
 import jwtConfig from '../authConfig/jwt.config';
@@ -14,6 +19,11 @@ export interface GenerateTokensOptions {
    * omit it on login/sign-up to start a new family.
    */
   family?: string;
+  /**
+   * jti of the refresh token being rotated. When present the old jti is
+   * atomically replaced, so a replayed token is rejected.
+   */
+  previousJti?: string;
 }
 
 @Injectable()
@@ -80,7 +90,18 @@ export class GenerateTokensProvider {
     ]);
 
     // Register the new jti so it can be validated and revoked later.
-    await this.refreshTokenStore.storeToken(family, jti);
+    if (options.previousJti) {
+      const rotated = await this.refreshTokenStore.rotate(
+        family,
+        options.previousJti,
+        jti,
+      );
+      if (!rotated) {
+        throw new UnauthorizedException('Invalid refresh token');
+      }
+    } else {
+      await this.refreshTokenStore.storeToken(family, jti);
+    }
 
     return {
       accessToken,

@@ -1,12 +1,20 @@
-import { forwardRef, Inject, Injectable, Logger } from '@nestjs/common';
+import {
+  ConflictException,
+  forwardRef,
+  Inject,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { AuthService } from './../../auth/providers/auth.service';
 import { FindOneUserByEmailProvider } from './find-one-user-by-email.provider';
 import { User } from '../user.entity';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, QueryFailedError, Repository } from 'typeorm';
 import { CreateUserProvider } from './create-user.services';
 import { UserDTO } from '../dtos/create-user.dto';
+import { UsernameValidatorService } from './username-validator.service';
 // Service responsible for handling user operations.
 @Injectable()
 export class UserService {
@@ -28,6 +36,9 @@ export class UserService {
     private readonly createUserProvider: CreateUserProvider,
 
     private readonly eventEmitter: EventEmitter2,
+
+    // LF-341: username validation (reserved words, profanity, uniqueness)
+    private readonly usernameValidatorService: UsernameValidatorService,
   ) {}
 
   public async getAll(limit: number, page: number): Promise<User[]> {
@@ -134,7 +145,7 @@ export class UserService {
     return 'userService: Refresh token logic placeholder';
   }
   // Update user profile.
-  updateProfile() {
+  updateProfile(_profileDto?: Record<string, unknown>) {
     // Implement profile update logic
     return 'userService: Update profile logic placeholder';
   }
@@ -144,5 +155,89 @@ export class UserService {
     const user = await this.userRepository.findOne({ where: { id: userId } });
     user.points += 10;
     return this.userRepository.save(user);
+  }
+
+  // ─── LF-341: Username / wallet endpoints ─────────────────────────────────
+
+  /**
+   * PATCH /api/v1/users/me/username
+   *
+   * Sets or updates the display name for the authenticated user.  Validation
+   * (reserved words, profanity, case-insensitive uniqueness) is delegated to
+   * UsernameValidatorService.
+   */
+  public async setUsername(userId: string, username: string): Promise<User> {
+    // Lowercasing is enforced at the DTO layer by the [a-z0-9_] regex; we
+    // normalise here as a defence-in-depth measure.
+    const normalized = username.toLowerCase();
+
+    await this.usernameValidatorService.validate(normalized, userId);
+
+    try {
+      await this.userRepository.update(userId, { username: normalized });
+    } catch (error) {
+      // The pre-check above is racy: two concurrent requests for the same
+      // name can both pass it. The functional unique index is the final
+      // authority, so translate its violation into a 409 for the caller.
+      if (
+        error instanceof QueryFailedError &&
+        (error.driverError as { code?: string })?.code === '23505'
+      ) {
+        throw new ConflictException(
+          `The username "${normalized}" is already taken.`,
+        );
+      }
+      throw error;
+    }
+
+    return this.userRepository.findOneByOrFail({ id: userId });
+  }
+
+  /**
+   * GET /api/v1/users/by-address/:address
+   *
+   * Returns the public profile of the user tied to a Stellar wallet address.
+   * Throws NotFoundException if the address has not been seen before.
+   */
+  public async findByAddress(stellarAddress: string): Promise<User> {
+    const user = await this.userRepository.findOneBy({ stellarAddress });
+    if (!user) {
+      throw new NotFoundException(
+        `No account found for address ${stellarAddress}.`,
+      );
+    }
+    return user;
+  }
+
+  /**
+   * POST /api/v1/users/by-addresses
+   *
+   * Batch lookup of display names for a list of Stellar addresses.  Used by
+   * scoreboards to replace raw G… addresses with human-readable names.
+   *
+   * Returns a map of address → username (addresses with no registered account
+   * are omitted from the result). Placeholder names generated for wallet-only
+   * accounts (`wallet_G…`) are also omitted so scoreboards can fall back to
+   * the shortened address until the player picks a real name.
+   */
+  public async findByAddresses(
+    addresses: string[],
+  ): Promise<Record<string, string>> {
+    if (addresses.length === 0) {
+      return {};
+    }
+
+    const users = await this.userRepository.find({
+      where: { stellarAddress: In(addresses) },
+      select: ['stellarAddress', 'username'],
+    });
+
+    return users.reduce<Record<string, string>>((acc, u) => {
+      const isPlaceholder = /^wallet_G[A-Z0-9]{55}$/.test(u.username ?? '');
+      if (u.stellarAddress && u.username && !isPlaceholder) {
+        acc[u.stellarAddress] = u.username;
+      }
+      return acc;
+    }, {});
   }
 }

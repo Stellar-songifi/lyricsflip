@@ -1,9 +1,25 @@
 // dto/create-challenge.dto.ts
-import { IsString, IsArray, IsDate, IsEnum, ValidateNested } from 'class-validator';
+import {
+  IsString,
+  IsArray,
+  IsDate,
+  IsEnum,
+  ValidateNested,
+  IsOptional,
+} from 'class-validator';
 import { Type } from 'class-transformer';
+import { ChallengeType } from '../entities/challenge.entity';
+
+export class RewardDto {
+  @IsString()
+  type: string;
+
+  @IsOptional()
+  amount?: number;
+}
 
 export class CreateChallengeDto {
-  @IsString()
+  @IsEnum(ChallengeType)
   type: ChallengeType;
 
   @IsArray()

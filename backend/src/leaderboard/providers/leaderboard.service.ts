@@ -6,16 +6,36 @@ import { RedisService } from '../../redis/redis.service';
 import { LeaderboardRoundResult } from '../entities/leaderboard-round-result.entity';
 import { LeaderboardBoardService } from './leaderboard-board.service';
 import {
+  LeaderboardEntryDto,
+} from '../dto/leaderboard.dto';
+import {
   PlayerBadgeDto,
   PlayerProfileDto,
   PlayerRecentRoundDto,
 } from '../dto/player-profile.dto';
+import type { LeaderboardWindow } from '../dto/leaderboard.dto';
+
+export interface PeriodLeaderboardQuery {
+  period?: LeaderboardWindow;
+  genre?: string;
+  page?: number;
+  limit?: number;
+}
+
+export interface PeriodLeaderboardPage {
+  data: LeaderboardEntryDto[];
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+}
 import { ModerationService } from '../../anti-cheat/providers/moderation.service';
 
 // Short TTL: the leaderboard is meant to reflect the last few completed
 // rounds fairly promptly, and cache invalidation on 'round.completed'
 // already clears it on write, so this mostly protects against read bursts.
 const CACHE_TTL_SECONDS = 30;
+const CACHE_KEY_PREFIX = 'leaderboard';
 const PROFILE_CACHE_KEY_PREFIX = 'player-profile';
 const RECENT_ROUNDS_LIMIT = 20;
 
@@ -39,8 +59,6 @@ export class LeaderboardService {
     private readonly roundResultRepository: Repository<LeaderboardRoundResult>,
     private readonly redisService: RedisService,
     private readonly boardService: LeaderboardBoardService,
-  ) {}
-
     private readonly moderationService: ModerationService,
   ) {}
 
@@ -51,8 +69,8 @@ export class LeaderboardService {
   // a running total, so any period/genre combination can be served without a
   // separate job per bucket.
   async getLeaderboard(
-    query: LeaderboardQueryDto,
-  ): Promise<PaginatedLeaderboardDto> {
+    query: PeriodLeaderboardQuery,
+  ): Promise<PeriodLeaderboardPage> {
     const period = query.period ?? 'all';
     const genre = query.genre;
     const page = query.page ?? 1;
@@ -131,7 +149,7 @@ export class LeaderboardService {
           entry.flagStatus !== 'hidden' && entry.flagStatus !== 'banned',
       );
 
-    const result: PaginatedLeaderboardDto = {
+    const result: PeriodLeaderboardPage = {
       data,
       page,
       limit,
@@ -291,7 +309,32 @@ export class LeaderboardService {
     await this.invalidateCache();
   }
 
+  private cacheKey(
+    period: LeaderboardWindow,
+    genre: string | undefined,
+    page: number,
+    limit: number,
+  ): string {
+    return `${CACHE_KEY_PREFIX}:${period}:${genre ?? 'all'}:${page}:${limit}`;
+  }
+
+  private periodStart(period: LeaderboardWindow): Date | null {
+    const now = new Date();
+    if (period === 'daily') {
+      return new Date(
+        Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()),
+      );
+    }
+    if (period === 'weekly') {
+      const start = new Date(now);
+      start.setUTCDate(start.getUTCDate() - 7);
+      return start;
+    }
+    return null;
+  }
+
   private async invalidateCache(): Promise<void> {
+    // Ranked boards are refreshed separately by LeaderboardBoardService.
     await this.redisService.delPattern(`${PROFILE_CACHE_KEY_PREFIX}:*`);
   }
 }

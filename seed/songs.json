@@ -4,6 +4,7 @@
     "artist": "Public Domain Artist",
     "title": "Hip Hop Classic One",
     "year": 1995,
+    "difficulty": 1,
     "lyrics": "Verse one, check the mic, the beat drops hard tonight",
     "source": "Original demo lyrics written for LyricsFlip (CC0)",
     "license": "CC0-1.0"
@@ -13,6 +14,7 @@
     "artist": "MC Original",
     "title": "Rhyme Time",
     "year": 1997,
+    "difficulty": 2,
     "lyrics": "Flow like water, spit bars, the crowd goes wild",
     "source": "Original demo lyrics written for LyricsFlip (CC0)",
     "license": "CC0-1.0"
@@ -22,6 +24,7 @@
     "artist": "Street Poet",
     "title": "Corner Block Anthem",
     "year": 1999,
+    "difficulty": 3,
     "lyrics": "From the block to the booth, we speak the truth tonight",
     "source": "Original demo lyrics written for LyricsFlip (CC0)",
     "license": "CC0-1.0"
@@ -31,6 +34,7 @@
     "artist": "Verse Master",
     "title": "16 Bars",
     "year": 2001,
+    "difficulty": 1,
     "lyrics": "Sixteen bars, that is all I need, plant the seed",
     "source": "Original demo lyrics written for LyricsFlip (CC0)",
     "license": "CC0-1.0"
@@ -40,6 +44,7 @@
     "artist": "Beat Rider",
     "title": "Drum Machine Dreams",
     "year": 2003,
+    "difficulty": 2,
     "lyrics": "Kick and snare, hi-hat, let the music breathe and float",
     "source": "Original demo lyrics written for LyricsFlip (CC0)",
     "license": "CC0-1.0"
@@ -49,6 +54,7 @@
     "artist": "Melody Lane",
     "title": "Summer Sky",
     "year": 1985,
+    "difficulty": 3,
     "lyrics": "Under the summer sky, we dance until the morning light",
     "source": "Original demo lyrics written for LyricsFlip (CC0)",
     "license": "CC0-1.0"
@@ -58,6 +64,7 @@
     "artist": "Pop Star Gold",
     "title": "Bright Neon City",
     "year": 1990,
+    "difficulty": 1,
     "lyrics": "Neon lights flash bright, the city sings all night long",
     "source": "Original demo lyrics written for LyricsFlip (CC0)",
     "license": "CC0-1.0"
@@ -67,6 +74,7 @@
     "artist": "Chorus Queen",
     "title": "Sing Along Now",
     "year": 1993,
+    "difficulty": 2,
     "lyrics": "Everybody sing along, raise your voice to the song",
     "source": "Original demo lyrics written for LyricsFlip (CC0)",
     "license": "CC0-1.0"
@@ -76,6 +84,7 @@
     "artist": "Radio Wave",
     "title": "Turn It Up",
     "year": 1998,
+    "difficulty": 3,
     "lyrics": "Turn it up, feel the beat, move your feet to the groove",
     "source": "Original demo lyrics written for LyricsFlip (CC0)",
     "license": "CC0-1.0"
@@ -85,6 +94,7 @@
     "artist": "Studio Spark",
     "title": "Chart Topper",
     "year": 2002,
+    "difficulty": 1,
     "lyrics": "We climb the chart together, making music forever",
     "source": "Original demo lyrics written for LyricsFlip (CC0)",
     "license": "CC0-1.0"
@@ -94,6 +104,7 @@
     "artist": "Power Chord",
     "title": "Electric Storm",
     "year": 1978,
+    "difficulty": 2,
     "lyrics": "Electric storm rolling in, the guitar screams and cries",
     "source": "Original demo lyrics written for LyricsFlip (CC0)",
     "license": "CC0-1.0"
@@ -103,6 +114,7 @@
     "artist": "Iron Riff",
     "title": "Heavy Road",
     "year": 1982,
+    "difficulty": 3,
     "lyrics": "Heavy road beneath our wheels, the engine roars ahead",
     "source": "Original demo lyrics written for LyricsFlip (CC0)",
     "license": "CC0-1.0"
@@ -112,6 +124,7 @@
     "artist": "Stage Dive",
     "title": "Crowd Surfer",
     "year": 1986,
+    "difficulty": 1,
     "lyrics": "Hands in the air, crowd surfer flies, a thousand voices rise",
     "source": "Original demo lyrics written for LyricsFlip (CC0)",
     "license": "CC0-1.0"
@@ -121,6 +134,7 @@
     "artist": "Fret Flame",
     "title": "Solo Night",
     "year": 1991,
+    "difficulty": 2,
     "lyrics": "Fingers blaze the solo, strings ignite the night on fire",
     "source": "Original demo lyrics written for LyricsFlip (CC0)",
     "license": "CC0-1.0"
@@ -130,6 +144,7 @@
     "artist": "Amp Stack",
     "title": "Distortion Love",
     "year": 1994,
+    "difficulty": 3,
     "lyrics": "Distortion wraps around my love, a fuzzy warm embrace",
     "source": "Original demo lyrics written for LyricsFlip (CC0)",
     "license": "CC0-1.0"
@@ -139,6 +154,7 @@
     "artist": "Soul Smooth",
     "title": "Midnight Groove",
     "year": 1992,
+    "difficulty": 1,
     "lyrics": "Midnight groove, the rhythm moves my soul all through the night",
     "source": "Original demo lyrics written for LyricsFlip (CC0)",
     "license": "CC0-1.0"
@@ -148,6 +164,7 @@
     "artist": "Velvet Voice",
     "title": "Silk and Rain",
     "year": 1995,
+    "difficulty": 2,
     "lyrics": "Silk and rain on a window pane, you haunt my dreams tonight",
     "source": "Original demo lyrics written for LyricsFlip (CC0)",
     "license": "CC0-1.0"
@@ -157,6 +174,7 @@
     "artist": "Deep Cut",
     "title": "Feels Like Home",
     "year": 1998,
+    "difficulty": 3,
     "lyrics": "Feels like home when you are near, the warmth you always bring",
     "source": "Original demo lyrics written for LyricsFlip (CC0)",
     "license": "CC0-1.0"
@@ -166,6 +184,7 @@
     "artist": "Harmony Bridge",
     "title": "Two Hearts",
     "year": 2000,
+    "difficulty": 1,
     "lyrics": "Two hearts beating as one, walking under the morning sun",
     "source": "Original demo lyrics written for LyricsFlip (CC0)",
     "license": "CC0-1.0"
@@ -175,6 +194,7 @@
     "artist": "Bass Line Blue",
     "title": "Slow Burn",
     "year": 2004,
+    "difficulty": 2,
     "lyrics": "Slow burn, every lesson learned brings me closer to you",
     "source": "Original demo lyrics written for LyricsFlip (CC0)",
     "license": "CC0-1.0"
@@ -184,6 +204,7 @@
     "artist": "Sync Pulse",
     "title": "4/4 World",
     "year": 2005,
+    "difficulty": 3,
     "lyrics": "Four on the floor, the synths soar, we lose ourselves in sound",
     "source": "Original demo lyrics written for LyricsFlip (CC0)",
     "license": "CC0-1.0"
@@ -193,6 +214,7 @@
     "artist": "Wave Form",
     "title": "Bass Drop",
     "year": 2008,
+    "difficulty": 1,
     "lyrics": "The bass drops low, the crowd glows, we rise above the noise",
     "source": "Original demo lyrics written for LyricsFlip (CC0)",
     "license": "CC0-1.0"
@@ -202,6 +224,7 @@
     "artist": "Grid Lock",
     "title": "Binary Sunset",
     "year": 2010,
+    "difficulty": 2,
     "lyrics": "Binary code paints the sunset, algorithms of light",
     "source": "Original demo lyrics written for LyricsFlip (CC0)",
     "license": "CC0-1.0"
@@ -211,6 +234,7 @@
     "artist": "Circuit Dream",
     "title": "Neon Rave",
     "year": 2012,
+    "difficulty": 3,
     "lyrics": "Neon rave, the speakers cave, the dancefloor swells like tides",
     "source": "Original demo lyrics written for LyricsFlip (CC0)",
     "license": "CC0-1.0"
@@ -220,6 +244,7 @@
     "artist": "Signal Path",
     "title": "Frequency",
     "year": 2015,
+    "difficulty": 1,
     "lyrics": "Tune the frequency, find the channel where our spirits meet",
     "source": "Original demo lyrics written for LyricsFlip (CC0)",
     "license": "CC0-1.0"
@@ -229,6 +254,7 @@
     "artist": "Ensemble Classique",
     "title": "Nocturne in D",
     "year": 1840,
+    "difficulty": 2,
     "lyrics": "Moonlight falls upon the keys, a gentle nocturne fills the air",
     "source": "Original demo lyrics written for LyricsFlip (CC0)",
     "license": "CC0-1.0"
@@ -238,6 +264,7 @@
     "artist": "String Quartet No Name",
     "title": "Adagio for Seasons",
     "year": 1890,
+    "difficulty": 3,
     "lyrics": "Seasons turn, the strings mourn, the bow glides soft and slow",
     "source": "Original demo lyrics written for LyricsFlip (CC0)",
     "license": "CC0-1.0"
@@ -247,6 +274,7 @@
     "artist": "Piano Grande",
     "title": "Sonata Opus One",
     "year": 1905,
+    "difficulty": 1,
     "lyrics": "Allegro breaks the morning hush, the piano sings its truth",
     "source": "Original demo lyrics written for LyricsFlip (CC0)",
     "license": "CC0-1.0"
@@ -256,6 +284,7 @@
     "artist": "Chamber Winds",
     "title": "Minuet in G",
     "year": 1880,
+    "difficulty": 2,
     "lyrics": "One two three, the minuet turns, gliding across the hall",
     "source": "Original demo lyrics written for LyricsFlip (CC0)",
     "license": "CC0-1.0"
@@ -265,6 +294,7 @@
     "artist": "Orchestra Lumière",
     "title": "Overture Dawn",
     "year": 1920,
+    "difficulty": 3,
     "lyrics": "Dawn rises over the orchestra, brass and woodwind intertwine",
     "source": "Original demo lyrics written for LyricsFlip (CC0)",
     "license": "CC0-1.0"
@@ -274,6 +304,7 @@
     "artist": "Sax and Blues",
     "title": "Rainy Avenue",
     "year": 1955,
+    "difficulty": 1,
     "lyrics": "Rainy avenue, the saxophone cries a lonesome tune tonight",
     "source": "Original demo lyrics written for LyricsFlip (CC0)",
     "license": "CC0-1.0"
@@ -283,6 +314,7 @@
     "artist": "Piano Trio",
     "title": "Late Night Set",
     "year": 1960,
+    "difficulty": 2,
     "lyrics": "Late night set in a smoky room, the piano finds its groove",
     "source": "Original demo lyrics written for LyricsFlip (CC0)",
     "license": "CC0-1.0"
@@ -292,6 +324,7 @@
     "artist": "Bebop Crew",
     "title": "Swing and Sway",
     "year": 1948,
+    "difficulty": 3,
     "lyrics": "Swing and sway, the tempo climbs, the bassist walks in time",
     "source": "Original demo lyrics written for LyricsFlip (CC0)",
     "license": "CC0-1.0"
@@ -301,6 +334,7 @@
     "artist": "Vibraphone King",
     "title": "Mallet Dreams",
     "year": 1965,
+    "difficulty": 1,
     "lyrics": "Mallet strikes the metal bar, each note hangs in the air",
     "source": "Original demo lyrics written for LyricsFlip (CC0)",
     "license": "CC0-1.0"
@@ -310,6 +344,7 @@
     "artist": "Cool School",
     "title": "West Coast Blue",
     "year": 1957,
+    "difficulty": 2,
     "lyrics": "West coast blue, the Pacific breeze carries the melody home",
     "source": "Original demo lyrics written for LyricsFlip (CC0)",
     "license": "CC0-1.0"
@@ -319,6 +354,7 @@
     "artist": "Fiddle Road",
     "title": "Backroads Ballad",
     "year": 1975,
+    "difficulty": 3,
     "lyrics": "Backroads open wide, the fiddle sings of heartache and pride",
     "source": "Original demo lyrics written for LyricsFlip (CC0)",
     "license": "CC0-1.0"
@@ -328,6 +364,7 @@
     "artist": "Pedal Steel Dreams",
     "title": "Honky Tonk Heaven",
     "year": 1980,
+    "difficulty": 1,
     "lyrics": "Honky tonk heaven, cold beer and the steel guitar weeping",
     "source": "Original demo lyrics written for LyricsFlip (CC0)",
     "license": "CC0-1.0"
@@ -337,6 +374,7 @@
     "artist": "Barn Dancer",
     "title": "Sawdust Floor",
     "year": 1985,
+    "difficulty": 2,
     "lyrics": "Sawdust floor, two-step more, we spin until the sun comes up",
     "source": "Original demo lyrics written for LyricsFlip (CC0)",
     "license": "CC0-1.0"
@@ -346,6 +384,7 @@
     "artist": "Lonesome Pine",
     "title": "Dirt Road Home",
     "year": 1990,
+    "difficulty": 3,
     "lyrics": "Dirt road home through golden fields, the truck radio sings",
     "source": "Original demo lyrics written for LyricsFlip (CC0)",
     "license": "CC0-1.0"
@@ -355,6 +394,7 @@
     "artist": "Bluegrass Mountain",
     "title": "River Run",
     "year": 1995,
+    "difficulty": 1,
     "lyrics": "River run down from the mountain, cold and clear and free",
     "source": "Original demo lyrics written for LyricsFlip (CC0)",
     "license": "CC0-1.0"
@@ -364,6 +404,7 @@
     "artist": "Delta Deep",
     "title": "Muddy Bottom",
     "year": 1945,
+    "difficulty": 2,
     "lyrics": "Muddy bottom river, the blues roll in with every tide",
     "source": "Original demo lyrics written for LyricsFlip (CC0)",
     "license": "CC0-1.0"
@@ -373,6 +414,7 @@
     "artist": "Twelve Bar King",
     "title": "Crossroads Lament",
     "year": 1950,
+    "difficulty": 3,
     "lyrics": "Stood at the crossroads, the devil made his deal with me",
     "source": "Original demo lyrics written for LyricsFlip (CC0)",
     "license": "CC0-1.0"
@@ -382,6 +424,7 @@
     "artist": "Slide Guitar Sam",
     "title": "Bottleneck Blues",
     "year": 1958,
+    "difficulty": 1,
     "lyrics": "Bottleneck slides the string, the note bends like my broken heart",
     "source": "Original demo lyrics written for LyricsFlip (CC0)",
     "license": "CC0-1.0"
@@ -391,6 +434,7 @@
     "artist": "Chicago Electric",
     "title": "Windy City Wail",
     "year": 1965,
+    "difficulty": 2,
     "lyrics": "Windy city wail, the harmonica howls through the rain",
     "source": "Original demo lyrics written for LyricsFlip (CC0)",
     "license": "CC0-1.0"
@@ -400,6 +444,7 @@
     "artist": "Front Porch Grit",
     "title": "Porch Light On",
     "year": 1970,
+    "difficulty": 3,
     "lyrics": "Porch light burning low, the screen door swings in the breeze",
     "source": "Original demo lyrics written for LyricsFlip (CC0)",
     "license": "CC0-1.0"
@@ -409,6 +454,7 @@
     "artist": "Roots Island",
     "title": "One Love Riddim",
     "year": 1972,
+    "difficulty": 1,
     "lyrics": "One love riddim carry us, the skank rolls on and on",
     "source": "Original demo lyrics written for LyricsFlip (CC0)",
     "license": "CC0-1.0"
@@ -418,6 +464,7 @@
     "artist": "Dub Foundation",
     "title": "Bass Heavy Peace",
     "year": 1978,
+    "difficulty": 2,
     "lyrics": "Bass heavy peace, the reverb echoes through the night air",
     "source": "Original demo lyrics written for LyricsFlip (CC0)",
     "license": "CC0-1.0"
@@ -427,6 +474,7 @@
     "artist": "Yard Vibes",
     "title": "Irie Morning",
     "year": 1983,
+    "difficulty": 3,
     "lyrics": "Irie morning, the sun rises over the blue mountains again",
     "source": "Original demo lyrics written for LyricsFlip (CC0)",
     "license": "CC0-1.0"
@@ -436,6 +484,7 @@
     "artist": "Trench Town Sound",
     "title": "Rude Boy Shuffle",
     "year": 1969,
+    "difficulty": 1,
     "lyrics": "Rude boy shuffle, the offbeat guitar marks the time",
     "source": "Original demo lyrics written for LyricsFlip (CC0)",
     "license": "CC0-1.0"
@@ -445,6 +494,7 @@
     "artist": "Sound System",
     "title": "Dance Hall Night",
     "year": 1987,
+    "difficulty": 2,
     "lyrics": "Dance hall night, the selector drops the plate, crowd reacts",
     "source": "Original demo lyrics written for LyricsFlip (CC0)",
     "license": "CC0-1.0"
@@ -454,6 +504,7 @@
     "artist": "Lagos Swing",
     "title": "Highlife Sunrise",
     "year": 1970,
+    "difficulty": 3,
     "lyrics": "Highlife sunrise, the guitar weeps sweet over the talking drum",
     "source": "Original demo lyrics written for LyricsFlip (CC0)",
     "license": "CC0-1.0"
@@ -463,6 +514,7 @@
     "artist": "Jùjú Master",
     "title": "Talking Drum Circle",
     "year": 1975,
+    "difficulty": 1,
     "lyrics": "Talking drum circle, the spirits gather to the rhythm",
     "source": "Original demo lyrics written for LyricsFlip (CC0)",
     "license": "CC0-1.0"
@@ -472,6 +524,7 @@
     "artist": "Afro Groove",
     "title": "Polyrhythm Train",
     "year": 1980,
+    "difficulty": 2,
     "lyrics": "Polyrhythm train rolls through, crossing, weaving, intertwining",
     "source": "Original demo lyrics written for LyricsFlip (CC0)",
     "license": "CC0-1.0"
@@ -481,6 +534,7 @@
     "artist": "West African Beat",
     "title": "Kora Lament",
     "year": 1985,
+    "difficulty": 3,
     "lyrics": "Kora strings carry the ancestors home across the river",
     "source": "Original demo lyrics written for LyricsFlip (CC0)",
     "license": "CC0-1.0"
@@ -490,6 +544,7 @@
     "artist": "Pan African Sound",
     "title": "Ubuntu Song",
     "year": 1990,
+    "difficulty": 1,
     "lyrics": "Ubuntu song, I am because we are, together we rise",
     "source": "Original demo lyrics written for LyricsFlip (CC0)",
     "license": "CC0-1.0"
@@ -499,6 +554,7 @@
     "artist": "Choir Eternal",
     "title": "Amazing Light",
     "year": 1960,
+    "difficulty": 2,
     "lyrics": "Amazing light shines through the stained glass, the chorus swells",
     "source": "Original demo lyrics written for LyricsFlip (CC0)",
     "license": "CC0-1.0"
@@ -508,6 +564,7 @@
     "artist": "Spirit Lift",
     "title": "Hallelujah Morning",
     "year": 1968,
+    "difficulty": 3,
     "lyrics": "Hallelujah morning, the congregation rises in one voice",
     "source": "Original demo lyrics written for LyricsFlip (CC0)",
     "license": "CC0-1.0"
@@ -517,6 +574,7 @@
     "artist": "Hand Clap Heaven",
     "title": "Sanctuary Song",
     "year": 1975,
+    "difficulty": 1,
     "lyrics": "Sanctuary song, clap your hands and feel the Spirit move",
     "source": "Original demo lyrics written for LyricsFlip (CC0)",
     "license": "CC0-1.0"
@@ -526,6 +584,7 @@
     "artist": "Praise Team",
     "title": "Glory Shout",
     "year": 1982,
+    "difficulty": 2,
     "lyrics": "Glory shout breaks the walls down, every chain is loosed",
     "source": "Original demo lyrics written for LyricsFlip (CC0)",
     "license": "CC0-1.0"
@@ -535,6 +594,7 @@
     "artist": "Organ Gospel",
     "title": "Sunday Best",
     "year": 1990,
+    "difficulty": 3,
     "lyrics": "Sunday best, the organ swells, we lay our burdens down",
     "source": "Original demo lyrics written for LyricsFlip (CC0)",
     "license": "CC0-1.0"
@@ -544,6 +604,7 @@
     "artist": "Banjo Creek",
     "title": "Autumn Leaves Fall",
     "year": 1968,
+    "difficulty": 1,
     "lyrics": "Autumn leaves fall on the creek bank, the banjo picks a reel",
     "source": "Original demo lyrics written for LyricsFlip (CC0)",
     "license": "CC0-1.0"
@@ -553,6 +614,7 @@
     "artist": "Porch Singer",
     "title": "Old Growth Song",
     "year": 1972,
+    "difficulty": 2,
     "lyrics": "Old growth trees have seen it all, I sing beneath their shade",
     "source": "Original demo lyrics written for LyricsFlip (CC0)",
     "license": "CC0-1.0"
@@ -562,6 +624,7 @@
     "artist": "Campfire Tales",
     "title": "Wayward Traveler",
     "year": 1978,
+    "difficulty": 3,
     "lyrics": "Wayward traveler, the road stretches on beyond the horizon",
     "source": "Original demo lyrics written for LyricsFlip (CC0)",
     "license": "CC0-1.0"
@@ -571,6 +634,7 @@
     "artist": "Acoustic Root",
     "title": "River Song",
     "year": 1983,
+    "difficulty": 1,
     "lyrics": "River song, carry my voice down to the delta and the sea",
     "source": "Original demo lyrics written for LyricsFlip (CC0)",
     "license": "CC0-1.0"
@@ -580,6 +644,7 @@
     "artist": "Handmade Tune",
     "title": "Wool and Wood",
     "year": 1990,
+    "difficulty": 2,
     "lyrics": "Wool and wood, handmade sounds, the simplest song is truest",
     "source": "Original demo lyrics written for LyricsFlip (CC0)",
     "license": "CC0-1.0"

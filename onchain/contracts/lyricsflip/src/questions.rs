@@ -122,7 +122,7 @@ impl LyricsFlip {
             let needed = core::cmp::min(cards_count, 10);
             let shuffled_all = Self::get_random_numbers(env, needed, cards_count, false);
             for id in shuffled_all.iter() {
-                if !candidates.contains(&id) {
+                if !candidates.contains(id) {
                     candidates.push_back(id);
                 }
             }

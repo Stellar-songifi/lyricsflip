@@ -263,7 +263,9 @@ jobs:
         with:
           node-version-file: .nvmrc
       - name: Install Stellar CLI
-        uses: taiki-e/install-action@stellar-cli
+        uses: taiki-e/install-action@v2
+        with:
+          tool: stellar-cli
       - name: Check TypeScript bindings are fresh
         run: bash onchain/scripts/check-bindings-fresh.sh
 

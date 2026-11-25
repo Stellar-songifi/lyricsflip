@@ -55,7 +55,7 @@ fn setup_full_round(
     cards_per_round: u32,
 ) -> (u64, std::vec::Vec<Address>) {
     client.set_cards_per_round(owner, &cards_per_round);
-    let round_id = client.create_round(owner, &Some(Genre::Pop), &Vec::new(&env), &None, &0i128);
+    let round_id = client.create_round(owner, &Some(Genre::Pop), &Vec::new(env), &None, &0i128);
 
     let mut joiners = std::vec::Vec::new();
     for _ in 1..MAX_ROUND_PLAYERS {

@@ -328,9 +328,9 @@ fn tokens_of_owner_returns_minted_tokens() {
 
     let tokens = client.tokens_of_owner(&alice, &0, &50);
     assert_eq!(tokens.len(), 3);
-    assert!(tokens.contains(&t1));
-    assert!(tokens.contains(&t2));
-    assert!(tokens.contains(&t3));
+    assert!(tokens.contains(t1));
+    assert!(tokens.contains(t2));
+    assert!(tokens.contains(t3));
 }
 
 #[test]
@@ -394,7 +394,7 @@ fn balance_matches_tokens_of_owner_count() {
 
     let tokens = client.tokens_of_owner(&alice, &0, &50);
     assert_eq!(
-        tokens.len() as u32,
+        tokens.len(),
         client.balance(&alice),
         "tokens_of_owner count must equal balance"
     );
@@ -414,11 +414,11 @@ fn multiple_owners_have_independent_indexes() {
     let bob_tokens = client.tokens_of_owner(&bob, &0, &50);
 
     assert_eq!(alice_tokens.len(), 2);
-    assert!(alice_tokens.contains(&t1));
-    assert!(alice_tokens.contains(&t3));
+    assert!(alice_tokens.contains(t1));
+    assert!(alice_tokens.contains(t3));
 
     assert_eq!(bob_tokens.len(), 1);
-    assert!(bob_tokens.contains(&t2));
+    assert!(bob_tokens.contains(t2));
 }
 
 // ---------------------------------------------------------------------------

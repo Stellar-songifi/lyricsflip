@@ -4,3 +4,7 @@ https://figma.com/.*
 https://notion.so/.*
 https://www.notion.so/.*
 https://t.me/.*
+http://localhost.*
+http://127.0.0.1.*
+https://soroban-testnet.stellar.org/.*
+https://developers.stellar.org/docs/tools/stellar-cli.*

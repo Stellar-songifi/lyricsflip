@@ -31,14 +31,14 @@ impl LyricsFlip {
         } else {
             now
         };
-        set_persistent(&env, &DataKey::Round(round_id), &round);
+        set_persistent(env, &DataKey::Round(round_id), &round);
 
         // LF-272: a player who let a card time out without submitting never
         // gets a `RoundPlayerAnswered` entry, so the streak reset that a
         // wrong answer performs never fires. Reset it here for every player
         // that left at least one card unanswered.
-        let round_cards = Self::read_round_cards(&env, round_id);
-        for player in Self::read_round_players(&env, round_id).iter() {
+        let round_cards = Self::read_round_cards(env, round_id);
+        for player in Self::read_round_players(env, round_id).iter() {
             let mut has_unanswered = false;
             for card_id in round_cards.iter() {
                 let answered: bool = env
@@ -58,18 +58,18 @@ impl LyricsFlip {
             if has_unanswered {
                 let mut stats = Self::get_player_stat(env.clone(), player.clone());
                 stats.current_streak = 0;
-                set_persistent(&env, &DataKey::PlayerStats(player.clone()), &stats);
+                set_persistent(env, &DataKey::PlayerStats(player.clone()), &stats);
             }
         }
 
         // LF-271: tied winners are co-winners; each gets `rounds_won += 1`.
         // Zero-score rounds have no winners. Players who left the round are
         // no longer in `RoundPlayers`, so they are never selected here.
-        let winners = Self::determine_round_winners(&env, round_id);
+        let winners = Self::determine_round_winners(env, round_id);
         for winner in winners.iter() {
             let mut stats = Self::get_player_stat(env.clone(), winner.clone());
             stats.rounds_won += 1;
-            set_persistent(&env, &DataKey::PlayerStats(winner.clone()), &stats);
+            set_persistent(env, &DataKey::PlayerStats(winner.clone()), &stats);
         }
 
         // Wagered rounds: pay winners from escrow, or refund everyone when
@@ -94,22 +94,22 @@ impl LyricsFlip {
             winners: winners.clone(),
             scores,
         }
-        .publish(&env);
+        .publish(env);
 
         // LF-278: reveal which card sat at each index now that the round is over.
-        for (index, card_id) in Self::read_round_cards(&env, round_id).iter().enumerate() {
+        for (index, card_id) in Self::read_round_cards(env, round_id).iter().enumerate() {
             CardRevealed {
                 round_id,
                 index: index as u32,
                 card_id,
             }
-            .publish(&env);
+            .publish(env);
         }
 
-        set_persistent(&env, &DataKey::RoundFinalized(round_id), &true);
+        set_persistent(env, &DataKey::RoundFinalized(round_id), &true);
         // LF-176: the round no longer constrains `update_card` on its cards.
-        Self::clear_live_rounds(&env, round_id);
-        bump_instance(&env);
+        Self::clear_live_rounds(env, round_id);
+        bump_instance(env);
     }
 
     /// LF-164: auth-free body of `next_card` so `answer_and_next` can draw the
@@ -241,7 +241,7 @@ impl LyricsFlip {
 
         for player in players.iter() {
             let score = scores.get(player.clone()).unwrap_or(0u64);
-            if score == 0 && max_score == 0 && winners.len() == 0 {
+            if score == 0 && max_score == 0 && winners.is_empty() {
                 continue;
             }
 

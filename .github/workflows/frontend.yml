@@ -116,7 +116,9 @@ jobs:
         with:
           workspaces: onchain
       - name: Install Stellar CLI
-        uses: taiki-e/install-action@stellar-cli
+        uses: taiki-e/install-action@v2
+        with:
+          tool: stellar-cli
       # Fails when a contract signature changes without regenerating
       # src/lib/stellar/generated (LF-296).
       - run: npm run check:bindings

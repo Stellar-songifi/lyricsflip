@@ -390,7 +390,7 @@ pub(crate) fn set_nft_contract(env: Env, caller: Address, nft_contract: Address)
 pub(crate) fn set_answer_window(env: Env, caller: Address, value: u64) {
     caller.require_auth();
     LyricsFlip::assert_owner(&env, &caller);
-    if value < MIN_ANSWER_WINDOW_SECONDS || value > MAX_ANSWER_WINDOW_SECONDS {
+    if !(MIN_ANSWER_WINDOW_SECONDS..=MAX_ANSWER_WINDOW_SECONDS).contains(&value) {
         panic_with_error!(env, Error::InvalidAnswerWindow);
     }
     env.storage().instance().set(&DataKey::AnswerWindow, &value);
@@ -401,7 +401,7 @@ pub(crate) fn set_answer_window(env: Env, caller: Address, value: u64) {
 pub(crate) fn set_lobby_timeout(env: Env, caller: Address, value: u64) {
     caller.require_auth();
     LyricsFlip::assert_owner(&env, &caller);
-    if value < MIN_LOBBY_TIMEOUT_SECONDS || value > MAX_LOBBY_TIMEOUT_SECONDS {
+    if !(MIN_LOBBY_TIMEOUT_SECONDS..=MAX_LOBBY_TIMEOUT_SECONDS).contains(&value) {
         panic_with_error!(env, Error::InvalidLobbyTimeout);
     }
     env.storage().instance().set(&DataKey::LobbyTimeout, &value);
@@ -414,7 +414,7 @@ pub(crate) fn set_round_duration(env: Env, caller: Address, value: Option<u64>) 
     LyricsFlip::assert_owner(&env, &caller);
     match value {
         Some(v) if v > 0 => {
-            if v < MIN_ROUND_DURATION_SECONDS || v > MAX_ROUND_DURATION_SECONDS {
+            if !(MIN_ROUND_DURATION_SECONDS..=MAX_ROUND_DURATION_SECONDS).contains(&v) {
                 panic_with_error!(env, Error::InvalidRoundDuration);
             }
             env.storage().instance().set(&DataKey::RoundDuration, &v);
@@ -432,7 +432,7 @@ pub(crate) fn set_round_duration(env: Env, caller: Address, value: Option<u64>) 
 pub(crate) fn set_round_buffer(env: Env, caller: Address, value: u64) {
     caller.require_auth();
     LyricsFlip::assert_owner(&env, &caller);
-    if value < MIN_ROUND_BUFFER_SECONDS || value > MAX_ROUND_BUFFER_SECONDS {
+    if !(MIN_ROUND_BUFFER_SECONDS..=MAX_ROUND_BUFFER_SECONDS).contains(&value) {
         panic_with_error!(env, Error::InvalidRoundDuration);
     }
     env.storage().instance().set(&DataKey::RoundBuffer, &value);

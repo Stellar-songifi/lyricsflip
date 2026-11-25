@@ -13,8 +13,6 @@ no-default-features = false
 [advisories]
 # Advisory database configuration (cargo-deny v2 schema).
 version = 2
-# Fail the build on any vulnerability advisory affecting a dependency.
-vulnerability = "deny"
 # Unmaintained crates scope ("all", "workspace", "transitive", "none").
 unmaintained = "none"
 # Do not fail on yanked crates; they are still usable and often unavoidable.

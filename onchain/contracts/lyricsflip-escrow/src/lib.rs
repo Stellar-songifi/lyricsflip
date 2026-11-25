@@ -144,7 +144,7 @@ impl EscrowContract {
             return Err(Error::InvalidRoundTransition);
         }
         let client = token::Client::new(&env, &round.token);
-        client.transfer(&caller, &env.current_contract_address(), &amount);
+        client.transfer(&caller, env.current_contract_address(), &amount);
         let existing = round.deposits.get(caller.clone()).unwrap_or(0);
         round.deposits.set(caller.clone(), existing + amount);
         round.pot += amount;

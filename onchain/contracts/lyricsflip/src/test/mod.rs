@@ -484,5 +484,5 @@ fn parse_all_year_options(q: &crate::QuestionCard) -> std::vec::Vec<u64> {
         q.option_three.clone(),
         q.option_four.clone(),
     ];
-    opts.iter().map(|o| parse_year_u64(o)).collect()
+    opts.iter().map(parse_year_u64).collect()
 }

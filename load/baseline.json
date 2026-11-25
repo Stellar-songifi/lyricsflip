@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "source": "local mock harness bootstrap (10 VUs solo/wager, 5 VUs reconcile, 200 pending wagers)",
+  "generatedAt": "2026-11-25T12:33:21.129Z",
+  "commit": "pre-commit working tree",
+  "environment": "local-mock",
+  "scenarios": {
+    "solo_play": {
+      "p95_ms": 15.67,
+      "p99_ms": 16.61,
+      "error_rate": 0,
+      "success_rate": 1,
+      "rps": 790.88
+    },
+    "head_to_head_staking": {
+      "p95_ms": 15.67,
+      "p99_ms": 16.62,
+      "error_rate": 0,
+      "success_rate": 1,
+      "rps": 780.16
+    },
+    "reconcile_backlog": {
+      "p95_ms": 60.55,
+      "p99_ms": 65.31,
+      "error_rate": 0,
+      "success_rate": 1,
+      "rps": 137.21
+    }
+  }
+}

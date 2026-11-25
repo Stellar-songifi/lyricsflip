@@ -1,0 +1,118 @@
+name: Load tests
+
+on:
+  schedule:
+    - cron: '23 3 * * 1'
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: 'Staging API base URL (leave empty for the local mock harness)'
+        required: false
+        type: string
+      vus:
+        description: 'Peak VUs for the solo and wager scenarios'
+        required: false
+        default: '10'
+        type: string
+      duration:
+        description: 'Steady-state duration, e.g. 20s or 5m'
+        required: false
+        default: '20s'
+        type: string
+      update_baseline:
+        description: 'Skip regression check and upload the summary as a candidate baseline'
+        required: false
+        default: false
+        type: boolean
+
+concurrency:
+  group: load-test-${{ github.workflow }}-${{ github.event_name }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  k6:
+    name: k6 load scenarios
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    if: github.event_name != 'schedule' || vars.LOAD_TEST_SCHEDULE_ENABLED != 'false'
+    env:
+      TARGET_BASE_URL: ${{ inputs.base_url || secrets.LOAD_TEST_BASE_URL }}
+      LOAD_VUS: ${{ inputs.vus || '10' }}
+      LOAD_DURATION: ${{ inputs.duration || '20s' }}
+      SUMMARY_EXPORT: load-summary.json
+      K6_VERSION: '2.4.0'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - uses: grafana/setup-k6-action@v1.3.0
+        with:
+          k6-version: ${{ env.K6_VERSION }}
+
+      - name: Validate k6 scripts
+        run: |
+          for script in load/all.js load/solo-play.js load/head-to-head.js load/reconcile-backlog.js; do
+            k6 inspect "$script" >/dev/null
+          done
+
+      - name: Start local mock settlement harness
+        if: env.TARGET_BASE_URL == ''
+        run: |
+          node load/mock-settlement-server.js > "$RUNNER_TEMP/load-harness.log" 2>&1 &
+          echo $! > "$RUNNER_TEMP/load-harness.pid"
+          for i in $(seq 1 50); do
+            if curl -sf http://127.0.0.1:4555/health/live >/dev/null; then
+              exit 0
+            fi
+            sleep 0.2
+          done
+          cat "$RUNNER_TEMP/load-harness.log"
+          exit 1
+
+      - name: Warm up target
+        run: curl -fsS "${TARGET_BASE_URL:-http://127.0.0.1:4555}/health/live"
+
+      - name: Run k6 scenarios
+        env:
+          BASE_URL: ${{ env.TARGET_BASE_URL || 'http://127.0.0.1:4555' }}
+          LOAD_AUTH_TOKEN: ${{ secrets.LOAD_TEST_AUTH_TOKEN }}
+          ENVIRONMENT: ${{ env.TARGET_BASE_URL != '' && 'staging' || 'local-mock' }}
+          GITHUB_SHA: ${{ github.sha }}
+        run: k6 run --quiet load/all.js
+
+      - name: Compare with baseline
+        if: ${{ !inputs.update_baseline }}
+        run: node load/compare-baseline.js "$SUMMARY_EXPORT" load/baseline.json
+
+      - name: Note candidate baseline
+        if: ${{ inputs.update_baseline }}
+        run: |
+          {
+            echo '## Candidate k6 baseline'
+            echo ''
+            echo 'Regression check skipped because `update_baseline` was requested.'
+            echo 'Review the uploaded summary before promoting it with `node load/update-baseline.js`.'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload k6 summary
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: load-summary-${{ github.run_id }}
+          path: |
+            load-summary.json
+            ${{ runner.temp }}/load-harness.log
+          if-no-files-found: warn
+
+      - name: Stop local mock settlement harness
+        if: always() && env.TARGET_BASE_URL == ''
+        run: |
+          if [ -f "$RUNNER_TEMP/load-harness.pid" ]; then
+            kill "$(cat "$RUNNER_TEMP/load-harness.pid")" 2>/dev/null || true
+          fi

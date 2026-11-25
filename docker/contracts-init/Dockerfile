@@ -37,14 +37,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
       jq \
     && rm -rf /var/lib/apt/lists/*
 
-# Install the Stellar CLI.  Pin the version to match the quickstart image
-# (stellar/quickstart ships protocol 22 / CLI ~22.x).
-ARG STELLAR_CLI_VERSION="22.4.1"
-RUN curl -fsSL \
-      "https://github.com/stellar/stellar-cli/releases/download/v${STELLAR_CLI_VERSION}/stellar-cli-${STELLAR_CLI_VERSION}-x86_64-unknown-linux-gnu.tar.gz" \
-      -o /tmp/stellar-cli.tar.gz \
-    && tar -xzf /tmp/stellar-cli.tar.gz -C /usr/local/bin stellar \
-    && rm /tmp/stellar-cli.tar.gz \
+# Install the Stellar CLI via the official install script
+RUN curl -fsSL https://github.com/stellar/stellar-cli/raw/main/install.sh | sh \
+    && cp -f ~/.cargo/bin/stellar /usr/local/bin/ 2>/dev/null || true \
     && stellar --version
 
 # Copy compiled WASMs from the builder stage.

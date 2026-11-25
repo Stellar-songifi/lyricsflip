@@ -149,6 +149,11 @@ jobs:
         with:
           node-version: 20
 
+      - uses: dtolnay/rust-toolchain@stable
+        if: steps.specs.outputs.present == 'true'
+        with:
+          targets: wasm32v1-none
+
       - run: npm ci
         if: steps.specs.outputs.present == 'true'
 

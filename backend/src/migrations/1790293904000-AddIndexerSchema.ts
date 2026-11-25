@@ -633,7 +633,8 @@ export class AddIndexerSchema1790293904000 implements MigrationInterface {
     //   tx_hash   -> tx_hash
     // ---------------------------------------------------------------------
     const hasLeaderboardTable = await queryRunner.hasTable('leaderboard_round_results');
-    if (hasLeaderboardTable) {
+    const hasRoundIdCol = hasLeaderboardTable && (await queryRunner.hasColumn('leaderboard_round_results', 'round_id'));
+    if (hasRoundIdCol) {
       await queryRunner.query(`
         INSERT INTO "leaderboard_round_results" (
           "round_id", "player", "score", "rank", "reward", "ledger", "tx_hash"

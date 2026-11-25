@@ -144,8 +144,6 @@ describe('WagerService', () => {
 
   describe('sumEscrowedAmounts', () => {
     it('sums escrowed wager amounts grouped by asset', async () => {
-      const qb = (repository.createQueryBuilder as jest.Mock)();
-      (qb.getRawMany as jest.Mock).mockResolvedValue([
       const qb = repository.createQueryBuilder();
       qb.getRawMany.mockResolvedValue([
         { asset: 'native', total: '1500000000' },

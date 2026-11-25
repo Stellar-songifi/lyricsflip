@@ -39,8 +39,6 @@ export class LeaderboardService {
     private readonly roundResultRepository: Repository<LeaderboardRoundResult>,
     private readonly redisService: RedisService,
     private readonly boardService: LeaderboardBoardService,
-  ) {}
-
     private readonly moderationService: ModerationService,
   ) {}
 

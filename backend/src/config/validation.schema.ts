@@ -138,7 +138,6 @@ export const validationSchema = Joi.object({
   // LF-340: wager reconciliation config.
   SOROBAN_NATIVE_TOKEN_CONTRACT_ID: contractIdSchema.optional(),
   WAGER_RECONCILIATION_TOLERANCE: Joi.string().optional(),
-});
   // ── Health-check tuning ───────────────────────────────────────────────────
   INDEXER_MAX_LAG_LEDGERS: Joi.number()
     .integer()

@@ -83,8 +83,8 @@ describe('AppLogger — JSON output', () => {
 
   it('error entries go to stderr, info/debug go to stdout', () => {
     const logger = makeLogger({ level: 'debug' });
-    let errLines: string[] = [];
-    let outLines: string[] = [];
+    const errLines: string[] = [];
+    const outLines: string[] = [];
     const spyErr = jest.spyOn(process.stderr, 'write').mockImplementation((c: any) => { errLines.push(c); return true; });
     const spyOut = jest.spyOn(process.stdout, 'write').mockImplementation((c: any) => { outLines.push(c); return true; });
     try {

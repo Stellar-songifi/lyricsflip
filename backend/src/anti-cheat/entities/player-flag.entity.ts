@@ -8,6 +8,21 @@ import {
 } from 'typeorm';
 
 /**
+ * Lifecycle of a flag in the moderation queue.
+ *
+ * PENDING  → initial state; awaiting admin review
+ * REVIEWED → admin has examined and deemed legitimate (no action)
+ * HIDDEN   → admin has hidden the entry from public leaderboards
+ * BANNED   → address is blocked from new rounds (future enforcement hook)
+ */
+export enum ModerationStatus {
+  PENDING = 'pending',
+  REVIEWED = 'reviewed',
+  HIDDEN = 'hidden',
+  BANNED = 'banned',
+}
+
+/**
  * Persistence of every heuristic flag raised against a Stellar address.
  *
  * One row is written per round evaluation when any heuristic fires, so the
@@ -104,21 +119,6 @@ export class PlayerFlag {
 
   @UpdateDateColumn({ name: 'updated_at', type: 'timestamptz' })
   updatedAt: Date;
-}
-
-/**
- * Lifecycle of a flag in the moderation queue.
- *
- * PENDING  → initial state; awaiting admin review
- * REVIEWED → admin has examined and deemed legitimate (no action)
- * HIDDEN   → admin has hidden the entry from public leaderboards
- * BANNED   → address is blocked from new rounds (future enforcement hook)
- */
-export enum ModerationStatus {
-  PENDING = 'pending',
-  REVIEWED = 'reviewed',
-  HIDDEN = 'hidden',
-  BANNED = 'banned',
 }
 
 /**

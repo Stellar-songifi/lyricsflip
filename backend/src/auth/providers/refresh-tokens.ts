@@ -1,11 +1,16 @@
-import { forwardRef, Inject, Injectable } from "@nestjs/common"
-import { JwtService } from "@nestjs/jwt"
-import { UserService } from "./../../user/providers/user.service"
-import jwtConfig from "../authConfig/jwt.config"
-import { ConfigType } from "@nestjs/config"
-import { GenerateTokensProvider } from "./generate-tokens-provider"
-import { RefreshTokenDto } from "../dtos/refresh-token.dto"
-import { RedisService } from "./../../redis/redis.service"
+import {
+  forwardRef,
+  Inject,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
+import { UserService } from './../../user/providers/user.service';
+import jwtConfig from '../authConfig/jwt.config';
+import { ConfigType } from '@nestjs/config';
+import { GenerateTokensProvider } from './generate-tokens-provider';
+import { RefreshTokenDto } from '../dtos/refresh-token.dto';
+import { RedisService } from './../../redis/redis.service';
 
 /**
  * Redis-backed store for refresh-token rotation and revocation.
@@ -20,19 +25,19 @@ export class RefreshTokenStore {
     private readonly redisService: RedisService,
 
     @Inject(jwtConfig.KEY)
-    private readonly jwtConfiguration: ConfigType<typeof jwtConfig>
+    private readonly jwtConfiguration: ConfigType<typeof jwtConfig>,
   ) {}
 
   private get ttlSeconds(): number {
-    return this.jwtConfiguration.refreshTokenTtl
+    return this.jwtConfiguration.refreshttl;
   }
 
   private familyKey(familyId: string): string {
-    return `refresh:family:${familyId}`
+    return `refresh:family:${familyId}`;
   }
 
   private jtiKey(jti: string): string {
-    return `refresh:jti:${jti}`
+    return `refresh:jti:${jti}`;
   }
 
   /**
@@ -40,32 +45,32 @@ export class RefreshTokenStore {
    * current (valid) jti for that family.
    */
   public async storeToken(familyId: string, jti: string): Promise<void> {
-    const client = this.redisService.getClient()
-    const ttl = this.ttlSeconds
+    const client = this.redisService.getClient();
+    const ttl = this.ttlSeconds;
 
-    await client.set(this.familyKey(familyId), jti, "EX", ttl)
+    await client.set(this.familyKey(familyId), jti, 'EX', ttl);
     await client.set(
       this.jtiKey(jti),
       JSON.stringify({ familyId, rotated: false }),
-      "EX",
-      ttl
-    )
+      'EX',
+      ttl,
+    );
   }
 
   /**
    * Returns the family id associated with a jti, or null if unknown.
    */
   public async getFamilyIdForJti(jti: string): Promise<string | null> {
-    const client = this.redisService.getClient()
-    const raw = await client.get(this.jtiKey(jti))
+    const client = this.redisService.getClient();
+    const raw = await client.get(this.jtiKey(jti));
     if (!raw) {
-      return null
+      return null;
     }
     try {
-      const parsed = JSON.parse(raw) as { familyId?: string }
-      return parsed.familyId ?? null
+      const parsed = JSON.parse(raw) as { familyId?: string };
+      return parsed.familyId ?? null;
     } catch {
-      return null
+      return null;
     }
   }
 
@@ -73,16 +78,16 @@ export class RefreshTokenStore {
    * Returns true if the jti has already been rotated (i.e. reused).
    */
   public async isRotated(jti: string): Promise<boolean> {
-    const client = this.redisService.getClient()
-    const raw = await client.get(this.jtiKey(jti))
+    const client = this.redisService.getClient();
+    const raw = await client.get(this.jtiKey(jti));
     if (!raw) {
-      return false
+      return false;
     }
     try {
-      const parsed = JSON.parse(raw) as { rotated?: boolean }
-      return parsed.rotated === true
+      const parsed = JSON.parse(raw) as { rotated?: boolean };
+      return parsed.rotated === true;
     } catch {
-      return false
+      return false;
     }
   }
 
@@ -90,9 +95,9 @@ export class RefreshTokenStore {
    * Returns true if the jti is the current (valid) token for its family.
    */
   public async isCurrent(familyId: string, jti: string): Promise<boolean> {
-    const client = this.redisService.getClient()
-    const current = await client.get(this.familyKey(familyId))
-    return current === jti
+    const client = this.redisService.getClient();
+    const current = await client.get(this.familyKey(familyId));
+    return current === jti;
   }
 
   /**
@@ -102,24 +107,32 @@ export class RefreshTokenStore {
   public async rotate(
     familyId: string,
     oldJti: string,
-    newJti: string
-  ): Promise<void> {
-    const client = this.redisService.getClient()
-    const ttl = this.ttlSeconds
+    newJti: string,
+  ): Promise<boolean> {
+    const client = this.redisService.getClient();
+    const ttl = this.ttlSeconds;
 
-    await client.set(
+    const result = await client.eval(
+      `local current = redis.call('GET', KEYS[1])
+      if current ~= ARGV[1] then return 0 end
+      local raw = redis.call('GET', KEYS[2])
+      if not raw then return 0 end
+      local ok, token = pcall(cjson.decode, raw)
+      if not ok or token.familyId ~= ARGV[2] or token.rotated then return 0 end
+      redis.call('SET', KEYS[2], cjson.encode({ familyId = ARGV[2], rotated = true }), 'EX', ARGV[4])
+      redis.call('SET', KEYS[1], ARGV[3], 'EX', ARGV[4])
+      redis.call('SET', KEYS[3], cjson.encode({ familyId = ARGV[2], rotated = false }), 'EX', ARGV[4])
+      return 1`,
+      3,
+      this.familyKey(familyId),
       this.jtiKey(oldJti),
-      JSON.stringify({ familyId, rotated: true }),
-      "EX",
-      ttl
-    )
-    await client.set(this.familyKey(familyId), newJti, "EX", ttl)
-    await client.set(
       this.jtiKey(newJti),
-      JSON.stringify({ familyId, rotated: false }),
-      "EX",
-      ttl
-    )
+      oldJti,
+      familyId,
+      newJti,
+      String(ttl),
+    );
+    return result === 1;
   }
 
   /**
@@ -127,19 +140,19 @@ export class RefreshTokenStore {
    * known jtis for the family as rotated so they can never be used again.
    */
   public async revokeFamily(familyId: string): Promise<void> {
-    const client = this.redisService.getClient()
-    const currentJti = await client.get(this.familyKey(familyId))
+    const client = this.redisService.getClient();
+    const currentJti = await client.get(this.familyKey(familyId));
 
     if (currentJti) {
       await client.set(
         this.jtiKey(currentJti),
         JSON.stringify({ familyId, rotated: true }),
-        "EX",
-        this.ttlSeconds
-      )
+        'EX',
+        this.ttlSeconds,
+      );
     }
 
-    await client.del(this.familyKey(familyId))
+    await client.del(this.familyKey(familyId));
   }
 }
 
@@ -163,7 +176,7 @@ export class RefreshTokensProvider {
     @Inject(jwtConfig.KEY)
     private readonly jwtConfiguration: ConfigType<typeof jwtConfig>,
 
-    /* 
+    /*
      * inject generateTokenProvider
      */
     private readonly generateTokenProvider: GenerateTokensProvider,
@@ -171,22 +184,62 @@ export class RefreshTokensProvider {
     /*
      * inject refresh token store
      */
-    private readonly refreshTokenStore: RefreshTokenStore
+    private readonly refreshTokenStore: RefreshTokenStore,
   ) {}
   public async refreshTokens(refreshTokenDto: RefreshTokenDto) {
-    // validate the refresh token using jwt
-   const { sub } = await this.jwtService.verifyAsync(
-        refreshTokenDto.refreshToken, 
+    let decoded: { sub: string; family?: string; jti?: string };
+    try {
+      decoded = await this.jwtService.verifyAsync(
+        refreshTokenDto.refreshToken,
         {
-        secret: this.jwtConfiguration.secret,
-        audience: this.jwtConfiguration.audience,
-        issuer: this.jwtConfiguration.issuer,
-    })
+          secret: this.jwtConfiguration.secret,
+          audience: this.jwtConfiguration.audience,
+          issuer: this.jwtConfiguration.issuer,
+        },
+      );
+    } catch {
+      throw new UnauthorizedException('Invalid refresh token');
+    }
 
-    // grab the user from the database
-    const user = await this.userService.FindOneById(sub)
+    const { sub, family, jti } = decoded;
+    if (!family || !jti || !(await this.isTokenUsable(family, jti))) {
+      if (family) await this.revokeFamily(family);
+      throw new UnauthorizedException('Invalid refresh token');
+    }
 
-    // generate the token
-    return await this.generateTokenProvider.generateTokens(user)
+    const user = await this.userService.FindOneById(sub);
+    if (!user) {
+      await this.revokeFamily(family);
+      throw new UnauthorizedException('Invalid refresh token');
+    }
+
+    try {
+      return await this.generateTokenProvider.generateTokens(user, {
+        family,
+        previousJti: jti,
+      });
+    } catch (error) {
+      if (error instanceof UnauthorizedException) {
+        await this.revokeFamily(family);
+        throw new UnauthorizedException('Invalid refresh token');
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Returns true if jti is current (not rotated) for the given family.
+   */
+  public async isTokenUsable(familyId: string, jti: string): Promise<boolean> {
+    const isRotated = await this.refreshTokenStore.isRotated(jti);
+    if (isRotated) return false;
+    return this.refreshTokenStore.isCurrent(familyId, jti);
+  }
+
+  /**
+   * Revokes the entire refresh-token family.
+   */
+  public async revokeFamily(familyId: string): Promise<void> {
+    return this.refreshTokenStore.revokeFamily(familyId);
   }
 }

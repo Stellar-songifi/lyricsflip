@@ -134,7 +134,7 @@ export class UserService {
     return 'userService: Refresh token logic placeholder';
   }
   // Update user profile.
-  updateProfile() {
+  updateProfile(_profileDto?: Record<string, unknown>) {
     // Implement profile update logic
     return 'userService: Update profile logic placeholder';
   }

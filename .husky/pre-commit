@@ -1,7 +1,7 @@
 #!/usr/bin/env sh
 . "$(dirname -- "$0")/_/husky.sh"
 
-# Run lint-staged, which type-checks staged frontend/backend TypeScript files
-# (tsc --noEmit) and formats staged Rust files (cargo fmt). Any failure here
-# exits non-zero and blocks the commit.
+# Run lint-staged, which formats staged TypeScript files, builds the backend
+# with its project config, and formats staged Rust files. Any failure blocks
+# the commit.
 npx --no -- lint-staged

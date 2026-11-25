@@ -79,6 +79,7 @@ export default () => ({
     // comparison. A delta within this threshold is not flagged as a mismatch.
     reconciliationTolerance:
       process.env.WAGER_RECONCILIATION_TOLERANCE ?? '0',
+  },
   // Referral-reward tuning (LF-355).
   referral: {
     // Points credited to the referrer when a qualifying round completes.

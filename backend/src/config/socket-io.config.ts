@@ -5,6 +5,8 @@ import { ConfigService } from '@nestjs/config';
 
 const DEFAULT_MAX_HTTP_BUFFER_SIZE = 1e5;
 
+export const WS_MAX_HTTP_BUFFER_SIZE = DEFAULT_MAX_HTTP_BUFFER_SIZE;
+
 export class SocketIOAdapter extends IoAdapter {
   constructor(
     private app: INestApplication,

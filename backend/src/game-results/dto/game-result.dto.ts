@@ -1,4 +1,10 @@
-import { IsNotEmpty, IsNumber, IsObject, IsOptional, IsUUID } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsNumber,
+  IsObject,
+  IsOptional,
+  IsUUID,
+} from 'class-validator';
 
 export class CreateGameResultDto {
   @IsNotEmpty()
@@ -22,4 +28,12 @@ export class CreateGameResultDto {
 
   @IsOptional()
   achievements?: any[];
+
+  @IsNumber()
+  @IsOptional()
+  correctAnswers?: number;
+
+  @IsNumber()
+  @IsOptional()
+  totalAnswers?: number;
 }

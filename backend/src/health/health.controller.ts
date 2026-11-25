@@ -7,10 +7,8 @@ import {
 } from '@nestjs/terminus';
 import { Public } from '../auth/decorators/public.decorator';
 import { RedisHealthIndicator } from './redis.health';
-import {
-  IndexerLagHealthIndicator,
-  StellarRpcHealthIndicator,
-} from './stellar-rpc.health';
+import { StellarRpcHealthIndicator } from './stellar-rpc.health';
+import { IndexerLagHealthIndicator } from './indexer-lag.health';
 
 @ApiTags('health')
 @Public()

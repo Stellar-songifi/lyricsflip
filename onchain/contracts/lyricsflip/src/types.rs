@@ -179,10 +179,6 @@ pub struct LegacyRound {
     pub genre: Genre,
     pub wager_amount: i128,
     pub start_time: u64,
-    /// Per-round snapshot of the answer window (seconds), taken at creation
-    /// time. Admins can change the configured default via `set_answer_window`
-    /// (LF-307); each round keeps the window it was created with.
-    pub answer_window: u64,
     pub is_started: bool,
     pub is_completed: bool,
     pub end_time: u64,

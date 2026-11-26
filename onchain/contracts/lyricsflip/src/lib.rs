@@ -134,9 +134,12 @@ pub const MIN_CARD_YEAR: u64 = 1900;
 pub const MAX_LYRICS_LEN: u32 = 1000;
 const SECONDS_PER_YEAR: u64 = 31_556_952;
 
-/// Maximum number of cards accepted by one `add_cards` call. See
-/// `onchain/README.md` and `test::add_cards_max_batch_fits_budget`.
-pub const MAX_CARDS_PER_BATCH: u32 = 20;
+/// Maximum number of cards accepted by one `add_cards` call. Each card writes
+/// seven index entries plus its own record, position and key entries, so 18 is
+/// the largest batch that stays inside the Mainnet per-transaction ledger-entry
+/// limits (200 writes / 400 total). See `onchain/README.md` and
+/// `test::add_cards_max_batch_fits_budget`.
+pub const MAX_CARDS_PER_BATCH: u32 = 18;
 /// LF-267: bounded number of draw attempts when a filtered round has to
 /// reject non-matching cards. Each attempt costs one PRNG draw plus a card
 /// read, so the loop stays within budget even at 10k cards.

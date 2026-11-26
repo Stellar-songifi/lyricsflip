@@ -37,9 +37,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
       jq \
     && rm -rf /var/lib/apt/lists/*
 
-# Install the Stellar CLI via the official install script
-RUN curl -fsSL https://github.com/stellar/stellar-cli/raw/main/install.sh | sh \
-    && cp -f ~/.cargo/bin/stellar /usr/local/bin/ 2>/dev/null || true \
+# Install a pinned Stellar CLI release and verify it against the published
+# SHA-256 before extracting, so the build never pipes remote code into a shell.
+ARG STELLAR_CLI_VERSION=30.0.1
+ARG STELLAR_CLI_SHA256=48c70074020e09af0a3ebbd2bf62d53c9aec47935e49a112d3cd90fb4e37658f
+RUN curl -fsSL -o /tmp/stellar-cli.tar.gz \
+      "https://github.com/stellar/stellar-cli/releases/download/v${STELLAR_CLI_VERSION}/stellar-cli-${STELLAR_CLI_VERSION}-x86_64-unknown-linux-gnu.tar.gz" \
+    && echo "${STELLAR_CLI_SHA256}  /tmp/stellar-cli.tar.gz" | sha256sum -c - \
+    && tar -xzf /tmp/stellar-cli.tar.gz -C /usr/local/bin \
+    && rm -f /tmp/stellar-cli.tar.gz \
     && stellar --version
 
 # Copy compiled WASMs from the builder stage.

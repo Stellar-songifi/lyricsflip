@@ -331,7 +331,6 @@ fn lf158_legacy_round_fallback_and_migration() {
         genre: Genre::Pop,
         wager_amount: 100,
         start_time: NOW,
-        answer_window: 15,
         is_started: true,
         is_completed: false,
         end_time: NOW + 300,

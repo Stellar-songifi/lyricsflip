@@ -290,32 +290,36 @@ fn update_and_remove_card_require_admin() {
 }
 
 #[test]
-fn add_cards_batch_of_20_returns_sequential_ids() {
+fn add_cards_max_batch_returns_sequential_ids() {
     let (env, client, owner) = setup();
     client.add_card(&owner, &card_n(&env, Genre::Rock, 100));
 
     let mut cards = Vec::new(&env);
-    for n in 0..20 {
+    for n in 0..MAX_CARDS_PER_BATCH as u64 {
         cards.push_back(card_n(&env, Genre::Pop, n));
     }
     let ids = client.add_cards(&owner, &cards);
-    assert_eq!(ids.len(), 20);
+    assert_eq!(ids.len(), MAX_CARDS_PER_BATCH);
     for (i, id) in ids.iter().enumerate() {
         assert_eq!(id, i as u64 + 2);
     }
 
-    assert_eq!(client.get_cards_count(), 21);
-    assert_eq!(client.get_genre_card_count(&Genre::Pop), 20);
+    assert_eq!(client.get_cards_count(), MAX_CARDS_PER_BATCH as u64 + 1);
+    assert_eq!(client.get_genre_card_count(&Genre::Pop), MAX_CARDS_PER_BATCH);
     assert_eq!(
         genre_ids(&client, &owner, Genre::Pop),
-        (2..=21).collect::<std::vec::Vec<u64>>()
+        (2..=MAX_CARDS_PER_BATCH as u64 + 1).collect::<std::vec::Vec<u64>>()
     );
 
-    client.set_cards_per_round(&owner, &7);
+    // 18 sequential cards hit artist `n % 3 == 0` six times and year
+    // `1990 + n % 5 == 1990` four times.
+    let artist_zero = (MAX_CARDS_PER_BATCH + 2) / 3;
+    client.set_cards_per_round(&owner, &artist_zero);
     let artist0 = String::from_str(&env, "Artist 0");
-    assert_eq!(client.get_cards_of_artist(&artist0).len(), 7);
-    client.set_cards_per_round(&owner, &4);
-    assert_eq!(client.get_cards_of_a_year(&1990).len(), 4);
+    assert_eq!(client.get_cards_of_artist(&artist0).len(), artist_zero);
+    let year_1990 = (MAX_CARDS_PER_BATCH + 4) / 5;
+    client.set_cards_per_round(&owner, &year_1990);
+    assert_eq!(client.get_cards_of_a_year(&1990).len(), year_1990);
 }
 
 #[test]

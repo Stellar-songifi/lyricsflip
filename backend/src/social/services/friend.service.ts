@@ -8,7 +8,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Friend, FriendStatus } from '../entities/friend.entity';
 import { NotificationService } from '../../notification/providers/notification.service';
-import { NotificationType } from '../../notification/enums/notification-type.enum';
+import { NotificationType } from '../../notification/entities/notification.entity';
 
 @Injectable()
 export class FriendService {
@@ -29,6 +29,7 @@ export class FriendService {
 
     await this.notificationService.sendToUser(receiverId, {
       type: NotificationType.FRIEND_REQUEST,
+      title: 'New friend request',
       message: 'You have a new friend request',
       metadata: { senderId },
     });
@@ -37,7 +38,9 @@ export class FriendService {
   }
 
   async acceptFriendRequest(userId: string, requestId: string) {
-    const request = await this.friendRepository.findOne(requestId);
+    const request = await this.friendRepository.findOne({
+      where: { id: requestId },
+    });
     if (!request) {
       throw new NotFoundException('Friend request not found');
     }

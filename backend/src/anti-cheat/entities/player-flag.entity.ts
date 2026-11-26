@@ -23,29 +23,6 @@ export enum ModerationStatus {
 }
 
 /**
- * Individual heuristic reasons that can appear in `PlayerFlag.reasons`.
- * These extend the existing `AntiCheatFlag` values in quick-game/anti-cheat.ts
- * with cross-round analytics-level signals.
- */
-export enum AntiCheatFlagReason {
-  /** Any correct answer arrived faster than 400 ms (sub-human). */
-  IMPOSSIBLE_RESPONSE_TIME = 'impossible_response_time',
-  /** 10+ consecutive correct answers all averaging under 1 500 ms. */
-  PERFECT_STREAK = 'perfect_streak',
-  /**
-   * Accuracy > 95 % AND median answer time < 6 s across ≥ 20 cards.
-   * Primary bot heuristic from the LF-357 spec.
-   */
-  HIGH_ACCURACY_LOW_LATENCY = 'high_accuracy_low_latency',
-  /**
-   * First answer in the round was submitted within the first ledger
-   * (~5 s) of the round starting — consistent with reading the catalogue
-   * from ledger state before the question is displayed.
-   */
-  FIRST_LEDGER_ANSWER = 'first_ledger_answer',
-}
-
-/**
  * Persistence of every heuristic flag raised against a Stellar address.
  *
  * One row is written per round evaluation when any heuristic fires, so the
@@ -142,4 +119,27 @@ export class PlayerFlag {
 
   @UpdateDateColumn({ name: 'updated_at', type: 'timestamptz' })
   updatedAt: Date;
+}
+
+/**
+ * Individual heuristic reasons that can appear in `PlayerFlag.reasons`.
+ * These extend the existing `AntiCheatFlag` values in quick-game/anti-cheat.ts
+ * with cross-round analytics-level signals.
+ */
+export enum AntiCheatFlagReason {
+  /** Any correct answer arrived faster than 400 ms (sub-human). */
+  IMPOSSIBLE_RESPONSE_TIME = 'impossible_response_time',
+  /** 10+ consecutive correct answers all averaging under 1 500 ms. */
+  PERFECT_STREAK = 'perfect_streak',
+  /**
+   * Accuracy > 95 % AND median answer time < 6 s across ≥ 20 cards.
+   * Primary bot heuristic from the LF-357 spec.
+   */
+  HIGH_ACCURACY_LOW_LATENCY = 'high_accuracy_low_latency',
+  /**
+   * First answer in the round was submitted within the first ledger
+   * (~5 s) of the round starting — consistent with reading the catalogue
+   * from ledger state before the question is displayed.
+   */
+  FIRST_LEDGER_ANSWER = 'first_ledger_answer',
 }

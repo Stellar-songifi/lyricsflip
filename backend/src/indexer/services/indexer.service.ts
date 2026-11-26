@@ -172,9 +172,6 @@ export class IndexerService implements OnModuleInit {
         await this.pollAndProcessEvents(rpcServerUrl, contractId);
       }
 
-      if (this.configService.get<boolean>('soroban.keeperEnabled')) {
-        await this.runKeeper();
-      }
     } catch (error) {
       this.logger.error(
         `Error during event indexing: ${error.message}`,

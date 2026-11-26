@@ -1,8 +1,14 @@
 // interceptors/activity.interceptor.ts
-import { Injectable, NestInterceptor, ExecutionContext, CallHandler } from '@nestjs/common';
+import {
+  Injectable,
+  NestInterceptor,
+  ExecutionContext,
+  CallHandler,
+} from '@nestjs/common';
 import { Observable } from 'rxjs';
-import { tap } from 'rxjs/operators';
+import { concatMap } from 'rxjs/operators';
 import { ActivityService } from '../services/activity.service';
+import { ActivityType } from '../entities/activity.entity';
 
 @Injectable()
 export class ActivityInterceptor implements NestInterceptor {
@@ -10,27 +16,28 @@ export class ActivityInterceptor implements NestInterceptor {
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
     return next.handle().pipe(
-      tap(async () => {
+      concatMap(async (response) => {
         const request = context.switchToHttp().getRequest();
-        const userId = request.user.id;
+        const userId = request.user?.id;
         const activityType = this.getActivityType(request);
-        
-        if (activityType) {
-          await this.activityService.create({
+
+        if (activityType && userId) {
+          await this.activityService.createActivity({
             type: activityType,
             userId,
             data: this.getActivityData(request),
           });
         }
+        return response;
       }),
     );
   }
 
-  private getActivityType(request: any): ActivityType {
-    // Logic to determine activity type based on request
+  protected getActivityType(_request: any): ActivityType | null {
+    return null; // subclasses override this
   }
 
-  private getActivityData(request: any): any {
-    // Logic to extract relevant activity data from request
+  protected getActivityData(_request: any): Record<string, unknown> {
+    return {}; // subclasses override this
   }
 }

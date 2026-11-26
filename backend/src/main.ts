@@ -8,6 +8,7 @@ import { Logger } from '@nestjs/common';
 import { AppLogger } from './logger/app-logger.service';
 import { configureApp } from './config/app-setup';
 import { ConfigService } from '@nestjs/config';
+import { configureCors } from './config/cors';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { bufferLogs: true });
@@ -21,12 +22,9 @@ async function bootstrap() {
   // prefix elsewhere to avoid duplicate/conflicting configuration.
   configureApp(app);
 
-  const corsOrigin =
-    config.get<string | string[]>('cors.origin') ?? 'http://localhost:3000';
-  app.enableCors({
-    origin: corsOrigin,
-    credentials: true,
-  });
+  // Strict CORS: wildcards are rejected with credentials, production requires
+  // explicit origins, and requests from unlisted origins are refused.
+  configureCors(app, config);
 
   // WebSocket adapter is unaffected by the HTTP global prefix.
   app.useWebSocketAdapter(new SocketIOAdapter(app, config));

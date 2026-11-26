@@ -6,6 +6,7 @@ import { FindOneUserByEmailProvider } from './providers/find-one-user-by-email.p
 import { CreateUserProvider } from './providers/create-user.services';
 import { HashingProvider } from './providers/hashing.provider';
 import { AccountDataProvider } from './providers/account-data.provider';
+import { UsernameValidatorService } from './providers/username-validator.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { User } from './user.entity';
 import { Notification } from '../notification/entities/notification.entity';
@@ -23,6 +24,7 @@ import { LeaderboardModule } from '../leaderboard/leaderboard.module';
     CreateUserProvider,
     HashingProvider,
     AccountDataProvider,
+    UsernameValidatorService,
   ],
   imports: [
     TypeOrmModule.forFeature([User, Notification, PasswordResetToken]),

@@ -71,7 +71,7 @@ violation — no silent late failures.
 | `JWT_REFRESH_TOKEN_TTL` | no | `7776000` | Refresh-token lifetime in seconds (90 days) |
 | `JWT_TOKEN_AUDIENCE` | no | — | JWT `aud` claim |
 | `JWT_TOKEN_ISSUER` | no | — | JWT `iss` claim |
-| `CORS_ORIGINS` | no | `http://localhost:3000` | Comma-separated allowed origins. In production `*` is rejected — list explicit origins. |
+| `CORS_ORIGINS` | no (required in production) | `http://localhost:3000` | Comma-separated explicit allowed origins. `*` is rejected with `credentials: true`; requests from unlisted origins are refused with 403. |
 | `STELLAR_NETWORK` | **yes** | — | `testnet`, `futurenet` or `mainnet` |
 | `SOROBAN_RPC_URL` | no | — | Soroban RPC used by the indexer and `/health`; validated as a URI at boot |
 | `STELLAR_RPC_URL` | no | — | Fallback Soroban RPC when `SOROBAN_RPC_URL` is unset; validated as a URI |

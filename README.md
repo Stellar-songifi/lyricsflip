@@ -151,7 +151,7 @@ The contracts live in a Cargo workspace under [`onchain/`](onchain/) and use **s
 
 | Type | Fields | Notes |
 |---|---|---|
-| `Card` | `card_id: u64`, `genre: Genre`, `artist: String`, `title: String`, `year: u64`, `lyrics: String` | One lyric card. The id is assigned by `add_card` |
+| `Card` | `card_id: u64`, `genre: Genre`, `artist: String`, `title: String`, `year: u64`, `difficulty: u32`, `lyrics: String` | One lyric card. The id is assigned by `add_card`; `difficulty` must be 1 (easy), 2 (medium), or 3 (hard) |
 | `Genre` | `HipHop=0, Pop=1, Rock=2, RnB=3, Electronic=4, Classical=5, Jazz=6, Country=7, Blues=8, Reggae=9, Afrobeat=10, Gospel=11, Folk=12` | Encoded as a plain `u32`. Keep in sync with `frontend/src/lib/stellar/types.ts` → `GENRE_VALUES` |
 | `Round` | `round_id`, `admin`, `genre`, `wager_amount: i128`, `start_time`, `is_started`, `is_completed`, `end_time`, `next_card_index: u32` | One game round |
 | `QuestionCard` | `lyric`, `timestamp`, `option_one` … `option_four` | What the player sees: the lyric plus 4 shuffled title options |
@@ -335,7 +335,15 @@ make deploy-local   # build WASM, deploy both contracts, write frontend/.env.loc
 make seed-local     # add the cards from seed/songs.json
 ```
 
-For a testnet deployment instead, see [Deploy to testnet](#deploy-to-testnet) below.
+For a testnet deployment instead, see [Deploy to testnet](#deploy-to-testnet) below. The seeder sends the catalogue in batches of 20 through `add_cards` and skips duplicates, so it is safe to re-run.
+
+For a single card added by hand, note that `difficulty` (1 = easy, 2 = medium, 3 = hard) is required:
+
+```bash
+stellar contract invoke --id <LYRICSFLIP_CONTRACT_ID> --source me --network testnet \
+  -- add_card --caller $(stellar keys address me) \
+  --card '{"card_id":0,"genre":1,"artist":"Demo Artist","title":"Demo Song","year":1999,"difficulty":2,"lyrics":"Demo lyric line"}'
+```
 
 > `build_question_card` needs **at least 4 distinct titles** (3 wrong options plus the right one); `create_round` needs at least `cards_per_round` cards. `seed/songs.json` provides both.
 
@@ -443,7 +451,7 @@ be valid Stellar contract StrKeys; a configured escrow ID is validated too.
 | `REDIS_HOST`, `REDIS_PORT` | no | Redis (defaults `localhost:6379`) |
 | `REDIS_URL` | no | Redis connection URL (cache/throttler storage) |
 | `RATE_LIMIT_TTL`, `RATE_LIMIT_LIMIT` | no | Global throttling window (ms) and limit |
-| `CORS_ORIGINS` | no | Comma-separated allowed origins, or `*` |
+| `CORS_ORIGINS` | no (required in production) | `http://localhost:3000` | Comma-separated explicit allowed origins. `*` is rejected because credentialed requests require it; unlisted origins are refused. |
 | `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASS`, `MAIL_FROM` | no | Outgoing email (password reset) |
 | `APP_URL` | no | Public base URL, used to build shareable links |
 | `ANALYTICS_API_KEY` | no | Shared secret for the `x-analytics-key` header |

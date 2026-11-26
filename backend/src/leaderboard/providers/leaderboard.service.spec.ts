@@ -5,6 +5,7 @@ import { LeaderboardService } from './leaderboard.service';
 import { LeaderboardBoardService } from './leaderboard-board.service';
 import { LeaderboardRoundResult } from '../entities/leaderboard-round-result.entity';
 import { RedisService } from '../../redis/redis.service';
+import { ModerationService } from '../../anti-cheat/providers/moderation.service';
 
 describe('LeaderboardService', () => {
   let service: LeaderboardService;
@@ -31,6 +32,11 @@ describe('LeaderboardService', () => {
         {
           provide: RedisService,
           useValue: { get: jest.fn(), set: jest.fn(), delPattern: jest.fn() },
+        },
+        {
+          // Moderation flags suppress hidden/banned entries (LF-357).
+          provide: ModerationService,
+          useValue: { getAddressStatus: jest.fn().mockResolvedValue(null) },
         },
       ],
     }).compile();

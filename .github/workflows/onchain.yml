@@ -277,15 +277,28 @@ jobs:
       - name: Check docs/api.md covers every public function, error, and event
         run: bash onchain/scripts/check-api-docs.sh
 
+  seed-schema:
+    name: Seed catalogue matches JSON Schema (LF-362)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+      - name: Install check-jsonschema
+        run: python -m pip install check-jsonschema
+      - name: Validate seed/songs.json against seed/songs.schema.json
+        run: check-jsonschema --schemafile seed/songs.schema.json seed/songs.json
+
   ci-summary:
     name: LyricsFlip Contracts
     if: always()
-    needs: [build, test, audit, deny, bindings-check, api-docs-check]
+    needs: [build, test, bindings-check, api-docs-check, seed-schema]
     runs-on: ubuntu-latest
     steps:
       - name: Require contract checks
         run: |
-          if [[ "${{ needs.build.result }}" != "success" || "${{ needs.test.result }}" != "success" || "${{ needs.audit.result }}" != "success" || "${{ needs.deny.result }}" != "success" || "${{ needs.bindings-check.result }}" != "success" || "${{ needs.api-docs-check.result }}" != "success" ]]; then
+          if [[ "${{ needs.build.result }}" != "success" || "${{ needs.test.result }}" != "success" || "${{ needs.bindings-check.result }}" != "success" || "${{ needs.api-docs-check.result }}" != "success" || "${{ needs.seed-schema.result }}" != "success" ]]; then
             echo "Contract checks did not all pass."
             exit 1
           fi

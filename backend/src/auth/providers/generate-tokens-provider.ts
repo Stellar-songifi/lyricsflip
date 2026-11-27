@@ -10,7 +10,7 @@ import jwtConfig from '../authConfig/jwt.config';
 import { ConfigType } from '@nestjs/config';
 import { User } from './../../user/user.entity';
 import { randomUUID } from 'crypto';
-import { RefreshTokenStore } from './refresh-tokens';
+import { RefreshTokenStore } from './refresh-token.store';
 // import { User } from "./../../user/user.entity";
 
 export interface GenerateTokensOptions {

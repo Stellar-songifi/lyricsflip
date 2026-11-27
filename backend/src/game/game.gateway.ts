@@ -97,7 +97,6 @@ export class GameGateway
 
   constructor(
     private readonly wsAuthenticator: WsAuthenticator,
-    private readonly wsRateLimitGuard: WsRateLimitGuard,
     private readonly roundPlayersRepository: RoundPlayersRepository,
   ) {}
 

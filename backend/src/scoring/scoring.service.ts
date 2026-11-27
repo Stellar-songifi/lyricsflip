@@ -30,8 +30,10 @@ export class ScoringService {
       params.difficultyLevel,
     );
 
-    // Time bonus calculation
-    const timeBonus = this.calculateTimeBonus(params.responseTimeMs);
+    // Time bonus calculation — only a correct answer earns speed credit.
+    const timeBonus = params.isCorrect
+      ? this.calculateTimeBonus(params.responseTimeMs)
+      : 0;
 
     // Streak bonus calculation
     const { streakBonus, newStreak } = this.calculateStreakBonus(
@@ -151,7 +153,9 @@ export class ScoringService {
   }
 
   async calculateRankings(): Promise<Scoring[]> {
-    const scores = await this.scoringRepository.find({ order: { score: 'DESC' } });
+    const scores = await this.scoringRepository.find({
+      order: { score: 'DESC' },
+    });
     scores.forEach((score, index) => {
       score.ranking = index + 1;
     });
@@ -163,18 +167,23 @@ export class ScoringService {
   }
 
   async getLeaderboard(): Promise<Scoring[]> {
-    return await this.scoringRepository.find({ order: { score: 'DESC' }, take: 10 });
+    return await this.scoringRepository.find({
+      order: { score: 'DESC' },
+      take: 10,
+    });
   }
 
-  async updateScore(id: number, updateScoringDto: UpdateScoringDto): Promise<Scoring> {
+  async updateScore(
+    id: number,
+    updateScoringDto: UpdateScoringDto,
+  ): Promise<Scoring> {
     const scoreEntry = await this.scoringRepository.findOne({ where: { id } });
-  
+
     if (!scoreEntry) {
       throw new NotFoundException(`Score entry with ID ${id} not found`);
     }
-  
+
     Object.assign(scoreEntry, updateScoringDto);
     return await this.scoringRepository.save(scoreEntry);
   }
-  
 }

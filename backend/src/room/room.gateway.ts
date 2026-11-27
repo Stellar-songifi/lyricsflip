@@ -23,8 +23,6 @@ import {
     private readonly logger = new Logger(RoomGateway.name);
     private readonly connectedClients = new Map<string, string>(); // socketId -> playerId
   
-    constructor(private readonly wsRateLimitGuard: WsRateLimitGuard) {}
-  
     handleConnection(client: Socket): void {
       this.logger.log(`Client connected: ${client.id}`);
       

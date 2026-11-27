@@ -2,8 +2,13 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { NotFoundException } from '@nestjs/common';
-import { NotificationService, NOTIFICATION_CREATED } from './notification.service';
+import {
+  NotificationService,
+  NOTIFICATION_CREATED,
+} from './notification.service';
 import { Notification } from '../entities/notification.entity';
+import { NotificationPreference } from '../entities/notification-preference.entity';
+import { MailService } from '../../mail/mail.service';
 
 describe('NotificationService', () => {
   let service: NotificationService;
@@ -23,7 +28,18 @@ describe('NotificationService', () => {
       providers: [
         NotificationService,
         { provide: getRepositoryToken(Notification), useValue: repository },
+        {
+          provide: getRepositoryToken(NotificationPreference),
+          useValue: {
+            findOne: jest.fn().mockResolvedValue(null),
+            find: jest.fn().mockResolvedValue([]),
+          },
+        },
         { provide: EventEmitter2, useValue: eventEmitter },
+        {
+          provide: MailService,
+          useValue: { sendNotificationEmail: jest.fn() },
+        },
       ],
     }).compile();
 
@@ -31,10 +47,21 @@ describe('NotificationService', () => {
   });
 
   it('stores an unread notification and emits it for the gateway', async () => {
-    const notification = await service.sendToUser('user-1', { type: 'info', message: 'hi' });
+    const notification = await service.sendToUser('user-1', {
+      type: 'info',
+      title: 'Hi',
+      message: 'hi',
+    });
 
-    expect(notification).toMatchObject({ id: 'n-1', userId: 'user-1', isRead: false });
-    expect(eventEmitter.emit).toHaveBeenCalledWith(NOTIFICATION_CREATED, notification);
+    expect(notification).toMatchObject({
+      id: 'n-1',
+      userId: 'user-1',
+      isRead: false,
+    });
+    expect(eventEmitter.emit).toHaveBeenCalledWith(
+      NOTIFICATION_CREATED,
+      notification,
+    );
   });
 
   it('filters to unread notifications when asked', async () => {
@@ -47,13 +74,19 @@ describe('NotificationService', () => {
 
   it("only marks the owner's notification as read", async () => {
     repository.findOne.mockResolvedValue(null);
-    await expect(service.markRead('user-2', 'n-1')).rejects.toThrow(NotFoundException);
-    expect(repository.findOne).toHaveBeenCalledWith({ where: { id: 'n-1', userId: 'user-2' } });
+    await expect(service.markRead('user-2', 'n-1')).rejects.toThrow(
+      NotFoundException,
+    );
+    expect(repository.findOne).toHaveBeenCalledWith({
+      where: { id: 'n-1', userId: 'user-2' },
+    });
   });
 
   it('marks all unread notifications as read', async () => {
     repository.update.mockResolvedValue({ affected: 3 });
-    await expect(service.markAllRead('user-1')).resolves.toEqual({ updated: 3 });
+    await expect(service.markAllRead('user-1')).resolves.toEqual({
+      updated: 3,
+    });
     expect(repository.update).toHaveBeenCalledWith(
       { userId: 'user-1', isRead: false },
       { isRead: true },

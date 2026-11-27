@@ -145,11 +145,6 @@ export const validationSchema = Joi.object({
   INDEXER_BACKOFF_MAX_MS: Joi.number().integer().min(0).optional(),
 
   // Health check tuning - see configuration.ts for the defaults applied when unset.
-  INDEXER_MAX_LAG_LEDGERS: Joi.number()
-    .integer()
-    .min(0)
-    .optional()
-    .default(100),
   INDEXER_MAX_LAG_LEDGERS: Joi.number().integer().min(0).optional().default(100),
   RPC_HEALTH_TIMEOUT_MS: Joi.number().integer().min(1).optional().default(5000),
   // LF-340: wager reconciliation config.

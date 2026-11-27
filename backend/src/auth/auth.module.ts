@@ -56,6 +56,9 @@ import { RefreshTokenStore } from './providers/refresh-tokens';
     WsAuthenticator,
     RefreshTokenStore,
     JwtModule,
+    // AccessTokenGuard injects CONFIGURATION(jwt); modules that import
+    // AuthModule and use the exported guard need that provider too.
+    ConfigModule,
   ],
 })
 export class AuthModule {}

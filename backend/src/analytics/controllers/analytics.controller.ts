@@ -1,21 +1,28 @@
-import { Controller, Get, Query, UseGuards, UseInterceptors, ValidationPipe } from "@nestjs/common"
-import { CacheInterceptor } from "@nestjs/cache-manager"
-import { ApiTags, ApiOperation, ApiResponse } from "@nestjs/swagger"
-import type { PlayerEngagementService } from "../../player-engagement/player-engagement.service"
-import type { SongAnalyticsService } from "../services/song-analytics.service"
-import type { TokenAnalyticsService } from "../services/token-analytics.service"
-import type { UserProgressionService } from "../services/user-progression.service"
-import type { AnalyticsAggregatorService } from "../services/analytics-aggregator.service"
-import { OnboardingFunnelService } from "../services/onboarding-funnel.service"
-import type { DateRangeDto } from "../dto/date-range.dto"
-import { AnalyticsResponseDto } from "../dto/analytics-response.dto"
-import { AnalyticsAuthGuard } from "../guards/analytics-auth.guard"
-import { AnalyticsRolesGuard } from "../guards/analytics-roles.guard"
-import { AnalyticsRoles } from "../decorators/analytics-roles.decorator"
-import { AnalyticsRole } from "../enums/analytics-role.enum"
+import {
+  Controller,
+  Get,
+  Query,
+  UseGuards,
+  UseInterceptors,
+  ValidationPipe,
+} from '@nestjs/common';
+import { CacheInterceptor } from '@nestjs/cache-manager';
+import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { PlayerEngagementService } from '../../player-engagement/player-engagement.service';
+import { SongAnalyticsService } from '../services/song-analytics.service';
+import { TokenAnalyticsService } from '../services/token-analytics.service';
+import { UserProgressionService } from '../services/user-progression.service';
+import { AnalyticsAggregatorService } from '../services/analytics-aggregator.service';
+import { OnboardingFunnelService } from '../services/onboarding-funnel.service';
+import type { DateRangeDto } from '../dto/date-range.dto';
+import { AnalyticsResponseDto } from '../dto/analytics-response.dto';
+import { AnalyticsAuthGuard } from '../guards/analytics-auth.guard';
+import { AnalyticsRolesGuard } from '../guards/analytics-roles.guard';
+import { AnalyticsRoles } from '../decorators/analytics-roles.decorator';
+import { AnalyticsRole } from '../enums/analytics-role.enum';
 
-@ApiTags("Analytics")
-@Controller("analytics")
+@ApiTags('Analytics')
+@Controller('analytics')
 @UseGuards(AnalyticsAuthGuard, AnalyticsRolesGuard)
 @UseInterceptors(CacheInterceptor)
 export class AnalyticsController {
@@ -56,7 +63,9 @@ export class AnalyticsController {
   @AnalyticsRoles(AnalyticsRole.ANALYST, AnalyticsRole.ADMIN)
   @ApiOperation({ summary: 'Get user progression trends' })
   @ApiResponse({ status: 200, type: AnalyticsResponseDto })
-  async getUserProgressionTrends(@Query(ValidationPipe) dateRange: DateRangeDto) {
+  async getUserProgressionTrends(
+    @Query(ValidationPipe) dateRange: DateRangeDto,
+  ) {
     return this.userProgressionService.getTrends(dateRange);
   }
 
@@ -70,7 +79,9 @@ export class AnalyticsController {
 
   @Get('onboarding-funnel')
   @AnalyticsRoles(AnalyticsRole.ANALYST, AnalyticsRole.ADMIN)
-  @ApiOperation({ summary: 'Get anonymous onboarding funnel counts for 30 days' })
+  @ApiOperation({
+    summary: 'Get anonymous onboarding funnel counts for 30 days',
+  })
   async getOnboardingFunnel() {
     return this.onboardingFunnel.getCounts();
   }

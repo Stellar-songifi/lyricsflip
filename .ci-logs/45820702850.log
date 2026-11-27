@@ -1,0 +1,1343 @@
+Playwright e2e	UNKNOWN STEP	﻿2026-11-26T12:33:11.2410847Z Current runner version: '2.338.2'
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:11.2462436Z ##[group]Runner Image Provisioner
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:11.2463587Z Hosted Compute Agent
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:11.2464320Z Version: 20261111.635
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:11.2464978Z Commit: b8a594ea514ff44cadb5342986c68b1eac6e22ed
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:11.2465819Z Build Date: 2026-11-11T01:49:01Z
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:11.2466589Z Worker ID: {ea2f794e-869a-4bf6-941e-85581fe9b406}
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:11.2467344Z Region: westus2
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:11.2467973Z Cloud: Azure
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:11.2468556Z ##[endgroup]
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:11.2470155Z ##[group]Operating System
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:11.2470919Z Ubuntu
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:11.2471507Z 26.04.1
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:11.2472088Z LTS
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:11.2472683Z ##[endgroup]
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:11.2473275Z ##[group]Runner Image
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:11.2474213Z Image: ubuntu-26.04
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:11.2474808Z Version: 20261116.202.1
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:11.2476156Z Included Software: https://github.com/actions/runner-images/blob/ubuntu26/20261116.202/images/ubuntu/Ubuntu2604-Readme.md
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:11.2477744Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu26%2F20261116.202
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:11.2478852Z ##[endgroup]
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:11.2480203Z ##[group]GITHUB_TOKEN Permissions
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:11.2482571Z Contents: read
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:11.2483237Z Metadata: read
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:11.2484365Z Packages: read
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:11.2485049Z ##[endgroup]
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:11.2487535Z Secret source: None
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:11.2488681Z Cache mode: write
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:11.2489797Z Prepare workflow directory
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:11.3002595Z Prepare all required actions
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:11.3051615Z Getting action download info
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:11.6311554Z Download action repository 'actions/checkout@v4' (SHA:11d5960a326750d5838078e36cf38b85af677262)
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:11.7497525Z Download action repository 'actions/setup-node@v4' (SHA:49933ea5288caeca8642d1e84afbd3f7d6820020)
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:11.8400057Z Download action repository 'actions/upload-artifact@v4' (SHA:ea165f8d65b6e75b540449e92b4886f43607fa02)
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:12.1305367Z Complete job name: Playwright e2e
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:12.1995618Z ##[group]Checking docker version
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:12.2008419Z ##[command]/usr/bin/docker version --format '{{.Server.APIVersion}}'
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:12.3442338Z '1.54'
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:12.3489230Z Docker daemon API version: '1.54'
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:12.3490155Z ##[command]/usr/bin/docker version --format '{{.Client.APIVersion}}'
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:12.3691468Z '1.54'
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:12.3710670Z Docker client API version: '1.54'
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:12.3718672Z ##[endgroup]
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:12.3722833Z ##[group]Clean up resources from previous jobs
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:12.3731392Z ##[command]/usr/bin/docker ps --all --quiet --no-trunc --filter "label=8fb302"
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:12.3968190Z ##[command]/usr/bin/docker network prune --force --filter "label=8fb302"
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:12.4137314Z ##[endgroup]
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:12.4137977Z ##[group]Create local container network
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:12.4148752Z ##[command]/usr/bin/docker network create --label 8fb302 github_network_42e4137e286c4df69ed6254a06242cd6
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:12.4620983Z a179237ce78e5b7f665b7dc9e65f2ef6612e9f7843129c3dd751939801c0ebbd
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:12.4647218Z ##[endgroup]
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:12.4672587Z ##[group]Starting postgres service container
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:12.4694465Z ##[command]/usr/bin/docker pull postgres:16
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:13.2571630Z 16: Pulling from library/postgres
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:13.5273780Z cfa3776983f1: Pulling fs layer
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:13.5276347Z c362828e9ca3: Pulling fs layer
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:13.5277871Z 9be9d0609035: Pulling fs layer
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:13.5278821Z cc2ed79b34db: Pulling fs layer
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:13.5279902Z 40748add9f4f: Pulling fs layer
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:13.5280863Z 34ff39ac908b: Pulling fs layer
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:13.5281936Z e91b6b814ba6: Pulling fs layer
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:13.5283168Z 46e4f78fd254: Pulling fs layer
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:13.5284458Z 91d82016f303: Pulling fs layer
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:13.5286283Z 111f378001d9: Pulling fs layer
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:13.5287672Z 1be8baae3c53: Pulling fs layer
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:13.5289179Z 3b9319a24e33: Pulling fs layer
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:13.6876535Z 72bd85048465: Pulling fs layer
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:13.6879409Z cfa3776983f1: Download complete
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:13.7871082Z c362828e9ca3: Download complete
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:13.7876068Z 91d82016f303: Download complete
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:13.7879127Z 111f378001d9: Download complete
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:13.7882575Z 1be8baae3c53: Download complete
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:13.7887815Z 72bd85048465: Download complete
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:13.7893691Z 9be9d0609035: Download complete
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:13.7903254Z cc2ed79b34db: Download complete
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:13.7910776Z 34ff39ac908b: Download complete
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:13.8879689Z e91b6b814ba6: Download complete
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:13.8884890Z 46e4f78fd254: Download complete
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:13.9866945Z 7aa47411d7c7: Download complete
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:13.9871737Z 40748add9f4f: Download complete
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:14.1912081Z 636bc81cf18f: Download complete
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:14.3866737Z 3b9319a24e33: Download complete
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:14.8930666Z 1be8baae3c53: Pull complete
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:14.9020690Z 40748add9f4f: Pull complete
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:14.9981392Z e91b6b814ba6: Pull complete
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:15.0997282Z 46e4f78fd254: Pull complete
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:15.2917479Z c362828e9ca3: Pull complete
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:15.2936487Z 111f378001d9: Pull complete
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:15.2951933Z 72bd85048465: Pull complete
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:15.2965229Z 9be9d0609035: Pull complete
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:17.2857300Z cfa3776983f1: Pull complete
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:17.2858905Z 91d82016f303: Pull complete
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:17.2865672Z cc2ed79b34db: Pull complete
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:17.2879894Z 34ff39ac908b: Pull complete
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:17.2891372Z 3b9319a24e33: Pull complete
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:17.2892122Z Digest: sha256:07abc3f43c9395b0bdbbab36bc25ddb0e8d83cd4fcafb5fb7d6abe14ff156dd8
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:17.2892940Z Status: Downloaded newer image for postgres:16
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:17.2902883Z docker.io/library/postgres:16
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:17.3005262Z ##[command]/usr/bin/docker create --name 3fe62991b2d74e088d280e4a1ad5b826_postgres16_40628e --label 8fb302 --network github_network_42e4137e286c4df69ed6254a06242cd6 --network-alias postgres -p 5432:5432 --health-cmd "pg_isready -U lyricsflip -d lyricsflip" --health-interval 5s --health-timeout 5s --health-retries 10 -e "POSTGRES_USER=lyricsflip" -e "POSTGRES_PASSWORD=lyricsflip" -e "POSTGRES_DB=lyricsflip" -e GITHUB_ACTIONS=true -e CI=true postgres:16
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:18.4969342Z a1a5a5fdd9cba3de50ead413b76abe9599e129170d14c4f21015f05b5334fc3f
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:18.4997396Z ##[command]/usr/bin/docker start a1a5a5fdd9cba3de50ead413b76abe9599e129170d14c4f21015f05b5334fc3f
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:18.8417507Z a1a5a5fdd9cba3de50ead413b76abe9599e129170d14c4f21015f05b5334fc3f
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:18.8441781Z ##[command]/usr/bin/docker ps --all --filter id=a1a5a5fdd9cba3de50ead413b76abe9599e129170d14c4f21015f05b5334fc3f --filter status=running --no-trunc --format "{{.ID}} {{.Status}}"
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:18.8768209Z a1a5a5fdd9cba3de50ead413b76abe9599e129170d14c4f21015f05b5334fc3f Up Less than a second (health: starting)
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:18.8793212Z ##[command]/usr/bin/docker port a1a5a5fdd9cba3de50ead413b76abe9599e129170d14c4f21015f05b5334fc3f
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:18.8953680Z 5432/tcp -> 0.0.0.0:5432
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:18.8968443Z 5432/tcp -> [::]:5432
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:18.9006494Z ##[endgroup]
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:18.9007720Z ##[group]Starting redis service container
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:18.9009139Z ##[command]/usr/bin/docker pull redis:7
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:19.6437440Z 7: Pulling from library/redis
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:19.8972772Z 817018563f08: Pulling fs layer
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:19.8973675Z fb36845717af: Pulling fs layer
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:19.8974467Z a13218a43344: Pulling fs layer
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:19.8975197Z 4f4fb700ef54: Pulling fs layer
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:19.8975594Z b1dd3d113aab: Pulling fs layer
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:19.8976215Z dcadfd589ed7: Pulling fs layer
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:19.8976983Z 3ed90300cc1a: Pulling fs layer
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:19.9264520Z 4f4fb700ef54: Already exists
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:20.1256476Z fb36845717af: Download complete
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:20.1260411Z 3ed90300cc1a: Download complete
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:20.1262451Z a13218a43344: Download complete
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:20.1265234Z dcadfd589ed7: Download complete
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:20.1267813Z 817018563f08: Download complete
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:20.3257685Z 971ecd1c75ec: Download complete
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:20.3258869Z 592e13125349: Download complete
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:20.3264488Z b1dd3d113aab: Download complete
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:21.0326118Z dcadfd589ed7: Pull complete
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:21.0349565Z b1dd3d113aab: Pull complete
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:21.1321205Z fb36845717af: Pull complete
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:21.2317832Z a13218a43344: Pull complete
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:21.2570991Z 4f4fb700ef54: Pull complete
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:21.2580988Z 3ed90300cc1a: Pull complete
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:21.2603977Z 817018563f08: Pull complete
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:21.2604998Z Digest: sha256:6b645a37f49b0546582468706b32e71a8b7fbb5ba4583d0f9e27a8004716b738
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:21.2606407Z Status: Downloaded newer image for redis:7
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:21.2615117Z docker.io/library/redis:7
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:21.2644282Z ##[command]/usr/bin/docker create --name a2cece9a349d470caf77bb44bcba2806_redis7_c0d801 --label 8fb302 --network github_network_42e4137e286c4df69ed6254a06242cd6 --network-alias redis -p 6379:6379 --health-cmd "redis-cli ping" --health-interval 5s --health-timeout 3s --health-retries 10 -e GITHUB_ACTIONS=true -e CI=true redis:7
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:21.4206810Z 9305748c1a07e201aa8b382e0a1d48bfebf00c7405baa8e9cfdfe6c19488529b
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:21.4231842Z ##[command]/usr/bin/docker start 9305748c1a07e201aa8b382e0a1d48bfebf00c7405baa8e9cfdfe6c19488529b
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:21.5691869Z 9305748c1a07e201aa8b382e0a1d48bfebf00c7405baa8e9cfdfe6c19488529b
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:21.5741917Z ##[command]/usr/bin/docker ps --all --filter id=9305748c1a07e201aa8b382e0a1d48bfebf00c7405baa8e9cfdfe6c19488529b --filter status=running --no-trunc --format "{{.ID}} {{.Status}}"
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:21.5996177Z 9305748c1a07e201aa8b382e0a1d48bfebf00c7405baa8e9cfdfe6c19488529b Up Less than a second (health: starting)
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:21.6014137Z ##[command]/usr/bin/docker port 9305748c1a07e201aa8b382e0a1d48bfebf00c7405baa8e9cfdfe6c19488529b
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:21.6158849Z 6379/tcp -> 0.0.0.0:6379
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:21.6159531Z 6379/tcp -> [::]:6379
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:21.6175344Z ##[endgroup]
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:21.6186154Z ##[group]Waiting for all services to be ready
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:21.6199482Z ##[command]/usr/bin/docker inspect --format="{{if .Config.Healthcheck}}{{print .State.Health.Status}}{{end}}" a1a5a5fdd9cba3de50ead413b76abe9599e129170d14c4f21015f05b5334fc3f
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:21.6347471Z starting
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:21.6371117Z postgres service is starting, waiting 2 seconds before checking again.
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:23.6374097Z ##[command]/usr/bin/docker inspect --format="{{if .Config.Healthcheck}}{{print .State.Health.Status}}{{end}}" a1a5a5fdd9cba3de50ead413b76abe9599e129170d14c4f21015f05b5334fc3f
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:23.6519366Z starting
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:23.6536305Z postgres service is starting, waiting 4 seconds before checking again.
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:28.0268431Z ##[command]/usr/bin/docker inspect --format="{{if .Config.Healthcheck}}{{print .State.Health.Status}}{{end}}" a1a5a5fdd9cba3de50ead413b76abe9599e129170d14c4f21015f05b5334fc3f
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:28.0429189Z healthy
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:28.0469617Z postgres service is healthy.
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:28.0471017Z ##[command]/usr/bin/docker inspect --format="{{if .Config.Healthcheck}}{{print .State.Health.Status}}{{end}}" 9305748c1a07e201aa8b382e0a1d48bfebf00c7405baa8e9cfdfe6c19488529b
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:28.0634250Z healthy
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:28.0656448Z redis service is healthy.
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:28.0657384Z ##[endgroup]
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:28.1010117Z ##[group]Run actions/checkout@v4
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:28.1010794Z with:
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:28.1011040Z   repository: Stellar-songifi/lyricsflip
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:28.1014290Z   token: ***
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:28.1014504Z   ssh-strict: true
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:28.1014708Z   ssh-user: git
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:28.1014913Z   persist-credentials: true
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:28.1015139Z   clean: true
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:28.1015343Z   sparse-checkout-cone-mode: true
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:28.1015596Z   fetch-depth: 1
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:28.1015791Z   fetch-tags: false
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:28.1015990Z   show-progress: true
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:28.1016192Z   lfs: false
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:28.1016369Z   submodules: false
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:28.1016571Z   set-safe-directory: true
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:28.1016809Z   allow-unsafe-pr-checkout: false
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:28.1017345Z ##[endgroup]
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:28.3766756Z Syncing repository: Stellar-songifi/lyricsflip
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:28.3768493Z ##[group]Getting Git version info
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:28.3769249Z Working directory is '/home/runner/work/lyricsflip/lyricsflip'
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:28.3770155Z [command]/usr/bin/git version
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:28.3775408Z git version 2.56.1
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:28.3799840Z ##[endgroup]
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:28.3819789Z Temporarily overriding HOME='/home/runner/work/_temp/21a96836-0714-4f06-bc13-8375332aeb18' before making global git config changes
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:28.3836005Z Adding repository directory to the temporary git global config as a safe directory
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:28.3836889Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/lyricsflip/lyricsflip
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:28.3906571Z Deleting the contents of '/home/runner/work/lyricsflip/lyricsflip'
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:28.3907794Z ##[group]Initializing the repository
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:28.3908542Z [command]/usr/bin/git init /home/runner/work/lyricsflip/lyricsflip
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:28.4024176Z hint: Using 'master' as the name for the initial branch. This default branch name
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:28.4025336Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:28.4026213Z hint: to use in all of your new repositories, which will suppress this warning,
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:28.4026890Z hint: call:
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:28.4027219Z hint:
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:28.4027640Z hint: 	git config --global init.defaultBranch <name>
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:28.4027968Z hint:
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:28.4028409Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:28.4028914Z hint: 'development'. The just-created branch can be renamed via this command:
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:28.4029303Z hint:
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:28.4029510Z hint: 	git branch -m <name>
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:28.4029734Z hint:
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:28.4030066Z hint: Disable this message with "git config set advice.defaultBranchName false"
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:28.4037035Z Initialized empty Git repository in /home/runner/work/lyricsflip/lyricsflip/.git/
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:28.4049997Z [command]/usr/bin/git remote add origin https://github.com/Stellar-songifi/lyricsflip
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:28.4106224Z ##[endgroup]
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:28.4106851Z ##[group]Disabling automatic garbage collection
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:28.4111548Z [command]/usr/bin/git config --local gc.auto 0
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:28.4149009Z ##[endgroup]
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:28.4149618Z ##[group]Setting up auth
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:28.4158022Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:28.4196598Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:28.4720191Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:28.4799696Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:28.5331902Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:28.5377419Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:28.5728709Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:28.5774399Z ##[endgroup]
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:28.5774839Z ##[group]Fetching the repository
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:28.5785775Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +f71c66b7d1173f73967dfdcb2decd57ecf0e59aa:refs/remotes/pull/1031/merge
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:29.1618106Z From https://github.com/Stellar-songifi/lyricsflip
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:29.1618791Z  * [new ref]         f71c66b7d1173f73967dfdcb2decd57ecf0e59aa -> pull/1031/merge
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:29.1625314Z ##[endgroup]
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:29.1626013Z ##[group]Determining the checkout info
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:29.1628935Z ##[endgroup]
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:29.1645236Z [command]/usr/bin/git sparse-checkout disable
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:29.1699818Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:29.1732480Z ##[group]Checking out the ref
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:29.1737355Z [command]/usr/bin/git checkout --progress --force refs/remotes/pull/1031/merge
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:29.2468752Z Note: switching to 'refs/remotes/pull/1031/merge'.
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:29.2469360Z 
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:29.2469805Z You are in 'detached HEAD' state. You can look around, make experimental
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:29.2470684Z changes and commit them, and you can discard any commits you make in this
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:29.2471605Z state without impacting any branches by switching back to a branch.
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:29.2472104Z 
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:29.2472435Z If you want to create a new branch to retain commits you create, you may
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:29.2473181Z do so (now or later) by using -c with the switch command. Example:
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:29.2473832Z 
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:29.2474013Z   git switch -c <new-branch-name>
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:29.2474294Z 
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:29.2474470Z Or undo this operation with:
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:29.2474738Z 
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:29.2474872Z   git switch -
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:29.2475081Z 
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:29.2475426Z Turn off this advice by setting config variable advice.detachedHead to false
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:29.2475922Z 
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:29.2476523Z HEAD is now at f71c66b Merge a8e6e3a87cab92dbed2d6f0f6c1fe952d234aba5 into b3ea2d2ed7657939c2882d191b8edc2272586ee3
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:29.2485174Z ##[endgroup]
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:29.2536912Z [command]/usr/bin/git log -1 --format=%H
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:29.2566628Z f71c66b7d1173f73967dfdcb2decd57ecf0e59aa
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:29.2833004Z ##[group]Run actions/setup-node@v4
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:29.2833296Z with:
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:29.2833642Z   node-version: 20
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:29.2833844Z   cache: npm
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:29.2834098Z   cache-dependency-path: frontend/package-lock.json
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:29.2834417Z   always-auth: false
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:29.2834630Z   check-latest: false
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:29.2837182Z   token: ***
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:29.2837380Z ##[endgroup]
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:29.4277341Z Attempting to download 20...
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:29.4428659Z (node:3500) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:29.4429537Z (Use `node --trace-deprecation ...` to show where the warning was created)
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:30.0242469Z Acquiring 20.20.2 - x64 from https://github.com/actions/node-versions/releases/download/20.20.2-23521894959/node-20.20.2-linux-x64.tar.gz
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:30.4074731Z Extracting ...
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:30.4210295Z [command]/usr/bin/tar xz --strip 1 --warning=no-unknown-keyword --overwrite -C /home/runner/work/_temp/efe3903a-c34f-473d-b767-54065bc32e63 -f /home/runner/work/_temp/d47724ea-12a3-4b22-9ba8-a8e2988852ce
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:31.0554183Z Adding to the cache ...
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:32.5779034Z ##[group]Environment details
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:32.8307303Z node: v20.20.2
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:32.8307937Z npm: 10.8.2
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:32.8308244Z yarn: 1.22.22
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:32.8308899Z ##[endgroup]
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:32.8330071Z [command]/opt/hostedtoolcache/node/20.20.2/x64/bin/npm config get cache
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:32.9380269Z /home/runner/.npm
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:33.1698139Z npm cache is not found
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:33.1917049Z ##[group]Run npm ci
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:33.1917345Z ^[[36;1mnpm ci^[[0m
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:33.1957784Z shell: /usr/bin/bash -e {0}
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:33.1958062Z ##[endgroup]
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:34.3112869Z npm warn EBADENGINE Unsupported engine {
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:34.3114288Z npm warn EBADENGINE   package: '@stellar/js-xdr@5.0.0',
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:34.3115305Z npm warn EBADENGINE   required: { node: '>=22.0.0', pnpm: '>=10.0.0' },
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:34.3116317Z npm warn EBADENGINE   current: { node: 'v20.20.2', npm: '10.8.2' }
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:34.3117083Z npm warn EBADENGINE }
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:34.3117703Z npm warn EBADENGINE Unsupported engine {
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:34.3118571Z npm warn EBADENGINE   package: '@stellar/stellar-sdk@17.2.1',
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:34.3119551Z npm warn EBADENGINE   required: { node: '>=22.12.0' },
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:34.3120559Z npm warn EBADENGINE   current: { node: 'v20.20.2', npm: '10.8.2' }
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:34.3121220Z npm warn EBADENGINE }
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:37.8956023Z npm warn deprecated whatwg-encoding@2.0.0: Use @exodus/bytes instead for a more spec-conformant and faster implementation
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:38.7317066Z npm warn deprecated rimraf@3.0.2: Rimraf versions prior to v4 are no longer supported
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:40.0712590Z npm warn deprecated jest-process-manager@0.4.0: ⚠️ The 'jest-process-manager' package is deprecated. Please migrate to Playwright's built-in test runner (@playwright/test) which now includes full Jest-style features and parallel testing. See https://playwright.dev/docs/intro for details.
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:40.3583345Z npm warn deprecated inflight@1.0.6: This module is not supported, and leaks memory. Do not use it. Check out lru-cache if you want a good and tested way to coalesce async requests by a key value, which is much more comprehensive and powerful.
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:40.4672130Z npm warn deprecated jest-playwright-preset@4.0.0: ⚠️ The 'jest-playwright-preset' package is deprecated. Please migrate to Playwright's built-in test runner (@playwright/test) which now includes full Jest-style features and parallel testing. See https://playwright.dev/docs/intro for details.
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:40.5184920Z npm warn deprecated node-domexception@1.0.0: Use your platform's native DOMException instead
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:40.5795626Z npm warn deprecated glob@7.2.3: Glob versions prior to v9 are no longer supported
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:41.1251320Z npm warn deprecated domexception@4.0.0: Use your platform's native DOMException instead
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:41.9015001Z npm warn deprecated expect-playwright@0.8.0: ⚠️ The 'expect-playwright' package is deprecated. The Playwright core assertions (via @playwright/test) now cover the same functionality. Please migrate to built-in expect. See https://playwright.dev/docs/test-assertions for migration.
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:41.9636845Z npm warn deprecated abab@2.0.6: Use your platform's native atob() and btoa() methods instead
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:44.0392134Z npm warn deprecated @humanwhocodes/object-schema@2.0.3: Use @eslint/object-schema instead
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:44.0741285Z npm warn deprecated @humanwhocodes/config-array@0.13.0: Use @eslint/config-array instead
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:46.3985790Z npm warn deprecated @safe-global/safe-gateway-typescript-sdk@3.23.1: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:49.2374869Z npm warn deprecated uuid@8.3.2: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:49.7796753Z npm warn deprecated uuid@8.3.2: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:49.8608554Z npm warn deprecated uuid@8.3.2: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:49.8798361Z npm warn deprecated uuid@8.3.2: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:50.1923350Z npm warn deprecated glob@10.5.0: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:50.6036958Z npm warn deprecated uuid@9.0.1: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:50.7477050Z npm warn deprecated glob@10.5.0: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:50.9358157Z npm warn deprecated glob@10.3.10: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:51.0968167Z npm warn deprecated glob@10.5.0: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:33:54.4644531Z npm warn deprecated eslint@8.57.1: This version is no longer supported. Please see https://eslint.org/version-support for other options.
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:17.9387026Z 
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:17.9389534Z > lyricsflip@1.0.0 prepare
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:17.9390077Z > husky || true
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:17.9390333Z 
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:17.9598035Z sh: 1: husky: not found
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:17.9869755Z 
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:17.9870589Z added 2031 packages, and audited 2033 packages in 3m
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:17.9872715Z 
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:17.9873618Z 400 packages are looking for funding
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:17.9874178Z   run `npm fund` for details
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:18.7164036Z 
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:18.7165221Z 88 vulnerabilities (16 low, 35 moderate, 36 high, 1 critical)
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:18.7165815Z 
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:18.7166268Z To address issues that do not require attention, run:
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:18.7167148Z   npm audit fix
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:18.7167432Z 
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:18.7167994Z To address all issues possible (including breaking changes), run:
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:18.7168769Z   npm audit fix --force
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:18.7169108Z 
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:18.7169498Z Some issues need review, and may require choosing
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:18.7170180Z a different dependency.
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:18.7170480Z 
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:18.7170744Z Run `npm audit` for details.
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:18.7919031Z ##[group]Run npx playwright install --with-deps chromium
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:18.7919512Z ^[[36;1mnpx playwright install --with-deps chromium^[[0m
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:18.7954018Z shell: /usr/bin/bash -e {0}
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:18.7954288Z ##[endgroup]
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:19.6302217Z Installing dependencies...
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:19.6369236Z Switching to root user to install dependencies...
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:19.7415137Z Get:1 file:/etc/apt/apt-mirrors.txt Mirrorlist [144 B]
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:19.7511935Z Get:3 https://packages.microsoft.com/ubuntu/26.04/prod resolute InRelease [3964 B]
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:19.7668011Z Hit:2 http://azure.archive.ubuntu.com/ubuntu resolute InRelease
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:19.7699151Z Get:4 http://azure.archive.ubuntu.com/ubuntu resolute-updates InRelease [137 kB]
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:19.7748744Z Get:5 http://azure.archive.ubuntu.com/ubuntu resolute-backports InRelease [137 kB]
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:19.7776381Z Get:6 http://azure.archive.ubuntu.com/ubuntu resolute-security InRelease [137 kB]
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:19.7828342Z Get:7 https://packages.microsoft.com/ubuntu/26.04/prod resolute/main arm64 Packages [178 kB]
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:19.8085261Z Get:8 https://packages.microsoft.com/ubuntu/26.04/prod resolute/main amd64 Packages [192 kB]
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:19.8245157Z Get:9 http://azure.archive.ubuntu.com/ubuntu resolute-updates/main amd64v3 Packages [918 kB]
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:19.8424110Z Get:10 http://azure.archive.ubuntu.com/ubuntu resolute-updates/main Translation-en [202 kB]
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:19.8434861Z Get:11 http://azure.archive.ubuntu.com/ubuntu resolute-updates/universe amd64v3 Packages [398 kB]
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:19.8436877Z Get:12 http://azure.archive.ubuntu.com/ubuntu resolute-updates/universe Translation-en [126 kB]
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:19.8438439Z Get:13 http://azure.archive.ubuntu.com/ubuntu resolute-updates/restricted amd64v3 Packages [640 kB]
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:19.8467355Z Get:14 http://azure.archive.ubuntu.com/ubuntu resolute-updates/restricted Translation-en [132 kB]
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:19.8614500Z Get:15 http://azure.archive.ubuntu.com/ubuntu resolute-security/main amd64v3 Packages [754 kB]
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:19.8665983Z Get:16 http://azure.archive.ubuntu.com/ubuntu resolute-security/main Translation-en [163 kB]
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:19.8695502Z Get:17 http://azure.archive.ubuntu.com/ubuntu resolute-security/universe amd64v3 Packages [225 kB]
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:19.8705454Z Get:18 http://azure.archive.ubuntu.com/ubuntu resolute-security/universe Translation-en [73.3 kB]
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:19.9146412Z Get:19 http://azure.archive.ubuntu.com/ubuntu resolute-security/restricted amd64v3 Packages [618 kB]
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:19.9188160Z Get:20 http://azure.archive.ubuntu.com/ubuntu resolute-security/restricted Translation-en [128 kB]
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:22.1046647Z Fetched 5163 kB in 0s (11.9 MB/s)
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:22.7654641Z Reading package lists...
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:22.7923115Z Reading package lists...
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:22.9413024Z Building dependency tree...
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:22.9420251Z Reading state information...
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:22.9732712Z libatk-bridge2.0-0t64 is already the newest version (2.60.4-0ubuntu0.1).
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:22.9734260Z libatk-bridge2.0-0t64 set to manually installed.
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:22.9735624Z libatk1.0-0t64 is already the newest version (2.60.4-0ubuntu0.1).
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:22.9736689Z libatk1.0-0t64 set to manually installed.
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:22.9737686Z libatspi2.0-0t64 is already the newest version (2.60.4-0ubuntu0.1).
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:22.9738405Z libatspi2.0-0t64 set to manually installed.
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:22.9739045Z libcairo2 is already the newest version (1.18.4-3).
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:22.9739643Z libcairo2 set to manually installed.
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:22.9740624Z libcups2t64 is already the newest version (2.4.16-1ubuntu1.3).
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:22.9741372Z libcups2t64 set to manually installed.
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:22.9741979Z libdbus-1-3 is already the newest version (1.16.2-2ubuntu4).
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:22.9742479Z libdbus-1-3 set to manually installed.
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:22.9743341Z libdrm2 is already the newest version (2.4.131-1).
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:22.9744069Z libdrm2 set to manually installed.
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:22.9744564Z libgbm1 is already the newest version (26.0.8-1ubuntu0.3).
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:22.9745047Z libgbm1 set to manually installed.
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:22.9745576Z libglib2.0-0t64 is already the newest version (2.88.0-1ubuntu0.1).
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:22.9746116Z libglib2.0-0t64 set to manually installed.
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:22.9746661Z libnspr4 is already the newest version (2:4.38.2-1ubuntu1).
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:22.9747167Z libnspr4 set to manually installed.
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:22.9747671Z libnss3 is already the newest version (2:3.120-1ubuntu2.2).
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:22.9748154Z libnss3 set to manually installed.
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:22.9748643Z libpango-1.0-0 is already the newest version (1.57.0-1).
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:22.9749321Z libpango-1.0-0 set to manually installed.
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:22.9749861Z libx11-6 is already the newest version (2:1.8.13-1ubuntu0.1).
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:22.9750361Z libx11-6 set to manually installed.
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:22.9750845Z libxcb1 is already the newest version (1.17.0-2ubuntu1).
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:22.9751318Z libxcb1 set to manually installed.
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:22.9751840Z libxcomposite1 is already the newest version (1:0.4.6-1build1).
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:22.9752331Z libxcomposite1 set to manually installed.
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:22.9752751Z libxdamage1 is already the newest version (1:1.1.7-1).
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:22.9753126Z libxdamage1 set to manually installed.
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:22.9753748Z libxext6 is already the newest version (2:1.3.4-1build3).
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:22.9754123Z libxext6 set to manually installed.
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:22.9754505Z libxfixes3 is already the newest version (1:6.0.0-2build2).
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:22.9754880Z libxfixes3 set to manually installed.
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:22.9755268Z libxkbcommon0 is already the newest version (1.13.1-1).
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:22.9755640Z libxkbcommon0 set to manually installed.
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:22.9756036Z libxrandr2 is already the newest version (2:1.5.4-1build1).
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:22.9756411Z libxrandr2 set to manually installed.
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:22.9756791Z xvfb is already the newest version (2:21.1.22-1ubuntu1.3).
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:22.9757279Z fonts-noto-color-emoji is already the newest version (2.051-1build1).
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:22.9757795Z libfontconfig1 is already the newest version (2.17.1-3ubuntu1).
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:22.9758196Z libfontconfig1 set to manually installed.
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:22.9758627Z libfreetype6 is already the newest version (2.14.2+dfsg-1ubuntu0.2).
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:22.9759037Z libfreetype6 set to manually installed.
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:22.9759462Z fonts-liberation is already the newest version (1:2.1.5-3build1).
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:22.9759889Z fonts-liberation set to manually installed.
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:23.0273304Z Solving dependencies...
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:23.1091264Z The following additional packages will be installed:
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:23.1098977Z   libasound2-data xfonts-encodings xfonts-utils
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:23.1106388Z Recommended packages:
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:23.1106820Z   fonts-ipafont-mincho fonts-tlwg-loma
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:23.1372787Z The following NEW packages will be installed:
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:23.1374246Z   fonts-freefont-ttf fonts-ipafont-gothic fonts-tlwg-loma-otf fonts-unifont
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:23.1382785Z   fonts-wqy-zenhei xfonts-cyrillic xfonts-encodings xfonts-scalable
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:23.1384034Z   xfonts-utils
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:23.1388596Z The following packages will be upgraded:
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:23.1396067Z   libasound2-data libasound2t64
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:23.1665566Z 2 upgraded, 9 newly installed, 0 to remove and 70 not upgraded.
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:23.1670792Z Need to get 22.3 MB of archives.
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:23.1671590Z After this operation, 80.2 MB of additional disk space will be used.
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:23.1672231Z Get:1 file:/etc/apt/apt-mirrors.txt Mirrorlist [144 B]
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:23.1901534Z Get:2 http://azure.archive.ubuntu.com/ubuntu resolute/universe amd64v3 fonts-ipafont-gothic all 00303-23ubuntu1 [3703 kB]
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:23.2778112Z Get:3 http://azure.archive.ubuntu.com/ubuntu resolute/main amd64v3 fonts-freefont-ttf all 20211204+svn4273-4build1 [5656 kB]
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:23.3827380Z Get:4 http://azure.archive.ubuntu.com/ubuntu resolute/universe amd64v3 fonts-tlwg-loma-otf all 1:0.7.3-1build1 [106 kB]
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:23.3848454Z Get:5 http://azure.archive.ubuntu.com/ubuntu resolute/universe amd64v3 fonts-unifont all 1:16.0.04-1build1 [3169 kB]
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:23.4641310Z Get:6 http://azure.archive.ubuntu.com/ubuntu resolute/universe amd64v3 fonts-wqy-zenhei all 0.9.45-8build1 [7863 kB]
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:23.6515018Z Get:7 http://azure.archive.ubuntu.com/ubuntu resolute-security/main amd64v3 libasound2t64 amd64 1.2.15.3-1ubuntu1.2 [418 kB]
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:23.6580472Z Get:8 http://azure.archive.ubuntu.com/ubuntu resolute-security/main amd64v3 libasound2-data all 1.2.15.3-1ubuntu1.2 [19.7 kB]
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:23.6596204Z Get:9 http://azure.archive.ubuntu.com/ubuntu resolute/main amd64v3 xfonts-encodings all 1:1.0.5-0ubuntu3 [576 kB]
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:23.6664374Z Get:10 http://azure.archive.ubuntu.com/ubuntu resolute/main amd64v3 xfonts-utils amd64 1:7.7+7build1 [97.3 kB]
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:23.6694593Z Get:11 http://azure.archive.ubuntu.com/ubuntu resolute/universe amd64v3 xfonts-cyrillic all 1:1.0.5+nmu1build1 [384 kB]
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:23.6750284Z Get:12 http://azure.archive.ubuntu.com/ubuntu resolute/universe amd64v3 xfonts-scalable all 1:1.0.3-1.3build1 [304 kB]
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:23.9963792Z Fetched 22.3 MB in 1s (42.3 MB/s)
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:24.0225721Z Selecting previously unselected package fonts-ipafont-gothic.
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:24.0511391Z (Reading database ... 
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:24.0511864Z (Reading database ... 5%
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:24.0512207Z (Reading database ... 10%
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:24.0512528Z (Reading database ... 15%
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:24.0512838Z (Reading database ... 20%
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:24.0513845Z (Reading database ... 25%
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:24.0514240Z (Reading database ... 30%
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:24.0514611Z (Reading database ... 35%
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:24.0514948Z (Reading database ... 40%
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:24.0515276Z (Reading database ... 45%
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:24.0515607Z (Reading database ... 50%
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:24.0887072Z (Reading database ... 55%
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:24.1244401Z (Reading database ... 60%
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:24.1575753Z (Reading database ... 65%
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:24.1924528Z (Reading database ... 70%
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:24.2413231Z (Reading database ... 75%
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:24.3773072Z (Reading database ... 80%
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:24.6173124Z (Reading database ... 85%
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:24.8374241Z (Reading database ... 90%
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:24.9813213Z (Reading database ... 95%
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:24.9814307Z (Reading database ... 100%
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:24.9814909Z (Reading database ... 214296 files and directories currently installed.)
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:24.9857657Z Preparing to unpack .../00-fonts-ipafont-gothic_00303-23ubuntu1_all.deb ...
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:24.9955377Z Unpacking fonts-ipafont-gothic (00303-23ubuntu1) ...
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:25.0623969Z Selecting previously unselected package fonts-freefont-ttf.
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:25.0765214Z Preparing to unpack .../01-fonts-freefont-ttf_20211204+svn4273-4build1_all.deb ...
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:25.0773648Z Unpacking fonts-freefont-ttf (20211204+svn4273-4build1) ...
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:25.1624043Z Selecting previously unselected package fonts-tlwg-loma-otf.
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:25.1764311Z Preparing to unpack .../02-fonts-tlwg-loma-otf_1%3a0.7.3-1build1_all.deb ...
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:25.1771201Z Unpacking fonts-tlwg-loma-otf (1:0.7.3-1build1) ...
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:25.2021930Z Selecting previously unselected package fonts-unifont.
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:25.2160619Z Preparing to unpack .../03-fonts-unifont_1%3a16.0.04-1build1_all.deb ...
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:25.2167551Z Unpacking fonts-unifont (1:16.0.04-1build1) ...
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:25.3290759Z Selecting previously unselected package fonts-wqy-zenhei.
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:25.3432762Z Preparing to unpack .../04-fonts-wqy-zenhei_0.9.45-8build1_all.deb ...
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:25.3579225Z Unpacking fonts-wqy-zenhei (0.9.45-8build1) ...
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:25.4602665Z Preparing to unpack .../05-libasound2t64_1.2.15.3-1ubuntu1.2_amd64v3.deb ...
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:25.4638845Z Unpacking libasound2t64:amd64 (1.2.15.3-1ubuntu1.2) over (1.2.15.3-1ubuntu1.1) ...
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:25.5115520Z Preparing to unpack .../06-libasound2-data_1.2.15.3-1ubuntu1.2_all.deb ...
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:25.5139304Z Unpacking libasound2-data (1.2.15.3-1ubuntu1.2) over (1.2.15.3-1ubuntu1.1) ...
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:25.5549432Z Selecting previously unselected package xfonts-encodings.
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:25.5736612Z Preparing to unpack .../07-xfonts-encodings_1%3a1.0.5-0ubuntu3_all.deb ...
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:25.5744915Z Unpacking xfonts-encodings (1:1.0.5-0ubuntu3) ...
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:25.6177514Z Selecting previously unselected package xfonts-utils.
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:25.6321315Z Preparing to unpack .../08-xfonts-utils_1%3a7.7+7build1_amd64v3.deb ...
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:25.6329425Z Unpacking xfonts-utils (1:7.7+7build1) ...
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:25.6682677Z Selecting previously unselected package xfonts-cyrillic.
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:25.6826581Z Preparing to unpack .../09-xfonts-cyrillic_1%3a1.0.5+nmu1build1_all.deb ...
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:25.6833060Z Unpacking xfonts-cyrillic (1:1.0.5+nmu1build1) ...
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:25.7204529Z Selecting previously unselected package xfonts-scalable.
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:25.7346397Z Preparing to unpack .../10-xfonts-scalable_1%3a1.0.3-1.3build1_all.deb ...
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:25.7353608Z Unpacking xfonts-scalable (1:1.0.3-1.3build1) ...
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:25.7804497Z Setting up fonts-wqy-zenhei (0.9.45-8build1) ...
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:25.7956654Z Setting up fonts-freefont-ttf (20211204+svn4273-4build1) ...
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:25.7973758Z Setting up libasound2-data (1.2.15.3-1ubuntu1.2) ...
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:25.7989392Z Setting up libasound2t64:amd64 (1.2.15.3-1ubuntu1.2) ...
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:25.8005696Z Setting up fonts-tlwg-loma-otf (1:0.7.3-1build1) ...
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:25.8023021Z Setting up xfonts-encodings (1:1.0.5-0ubuntu3) ...
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:25.8040278Z Setting up fonts-ipafont-gothic (00303-23ubuntu1) ...
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:25.8101904Z update-alternatives: using /usr/share/fonts/opentype/ipafont-gothic/ipag.ttf to provide /usr/share/fonts/truetype/fonts-japanese-gothic.ttf (fonts-japanese-gothic.ttf) in auto mode
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:25.8119883Z Setting up fonts-unifont (1:16.0.04-1build1) ...
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:25.8137050Z Setting up xfonts-utils (1:7.7+7build1) ...
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:25.8193006Z Setting up xfonts-cyrillic (1:1.0.5+nmu1build1) ...
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:25.8635283Z Setting up xfonts-scalable (1:1.0.3-1.3build1) ...
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:25.9045057Z Processing triggers for libc-bin (2.43-2ubuntu2.7) ...
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:25.9332868Z Processing triggers for man-db (2.13.1-1build1) ...
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:25.9356668Z Not building database; man-db/auto-update is not 'true'.
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:25.9367844Z Processing triggers for fontconfig (2.17.1-3ubuntu1) ...
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:26.6820638Z 
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:26.6821362Z Running kernel seems to be up-to-date.
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:26.6821720Z 
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:26.6821885Z Restarting services...
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:26.6919045Z 
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:26.6919584Z Service restarts being deferred:
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:26.6923188Z  systemctl restart hosted-compute-agent.service
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:26.6923737Z 
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:26.6924319Z No containers need to be restarted.
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:26.6924519Z 
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:26.6934347Z No user sessions are running outdated binaries.
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:26.6934726Z 
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:26.6935203Z No VM guests are running outdated hypervisor (qemu) binaries on this host.
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:27.5918247Z Downloading Chrome for Testing 156.0.8078.4 (playwright chromium v1248) from https://cdn.playwright.dev/builds/cft/156.0.8078.4/linux64/chrome-linux64.zip
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:28.0428065Z |                                                                                |   0% of 191.1 MiB
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:28.2495540Z |■■■■■■■■                                                                        |  10% of 191.1 MiB
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:28.3516481Z |■■■■■■■■■■■■■■■■                                                                |  20% of 191.1 MiB
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:28.4411614Z |■■■■■■■■■■■■■■■■■■■■■■■■                                                        |  30% of 191.1 MiB
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:28.5286215Z |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■                                                |  40% of 191.1 MiB
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:28.6125453Z |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■                                        |  50% of 191.1 MiB
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:28.7000794Z |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■                                |  60% of 191.1 MiB
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:28.7842958Z |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■                        |  70% of 191.1 MiB
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:28.8750580Z |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■                |  80% of 191.1 MiB
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:28.9702625Z |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■        |  90% of 191.1 MiB
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:29.0540182Z |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■| 100% of 191.1 MiB
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:32.0829668Z Chrome for Testing 156.0.8078.4 (playwright chromium v1248) downloaded to /home/runner/.cache/ms-playwright/chromium-1248
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:32.0833894Z Downloading FFmpeg (playwright ffmpeg v1013) from https://cdn.playwright.dev/dbazure/download/playwright/builds/ffmpeg/1013/ffmpeg-linux.zip
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:32.5495235Z |                                                                                |   0% of 2.2 MiB
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:32.5982241Z |■■■■■■■■                                                                        |  10% of 2.2 MiB
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:32.6201203Z |■■■■■■■■■■■■■■■■                                                                |  20% of 2.2 MiB
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:32.6332889Z |■■■■■■■■■■■■■■■■■■■■■■■■                                                        |  30% of 2.2 MiB
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:32.6428373Z |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■                                                |  40% of 2.2 MiB
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:32.6497142Z |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■                                        |  50% of 2.2 MiB
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:32.6563925Z |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■                                |  60% of 2.2 MiB
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:32.6617092Z |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■                        |  70% of 2.2 MiB
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:32.6665244Z |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■                |  80% of 2.2 MiB
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:32.6700399Z |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■        |  90% of 2.2 MiB
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:32.6738128Z |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■| 100% of 2.2 MiB
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:32.7447032Z FFmpeg (playwright ffmpeg v1013) downloaded to /home/runner/.cache/ms-playwright/ffmpeg-1013
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:32.7451143Z Downloading Chrome Headless Shell 156.0.8078.4 (playwright chromium-headless-shell v1248) from https://cdn.playwright.dev/builds/cft/156.0.8078.4/linux64/chrome-headless-shell-linux64.zip
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:33.2865991Z |                                                                                |   0% of 120 MiB
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:38.9444783Z |■■■■■■■■                                                                        |  10% of 120 MiB
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:39.2007580Z |■■■■■■■■■■■■■■■■                                                                |  20% of 120 MiB
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:39.3868911Z |■■■■■■■■■■■■■■■■■■■■■■■■                                                        |  30% of 120 MiB
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:39.6218904Z |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■                                                |  40% of 120 MiB
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:40.2770289Z |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■                                        |  50% of 120 MiB
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:40.3659501Z |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■                                |  60% of 120 MiB
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:40.4338199Z |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■                        |  70% of 120 MiB
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:40.4844835Z |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■                |  80% of 120 MiB
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:40.5625662Z |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■        |  90% of 120 MiB
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:40.6358656Z |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■| 100% of 120 MiB
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:43.0791411Z Chrome Headless Shell 156.0.8078.4 (playwright chromium-headless-shell v1248) downloaded to /home/runner/.cache/ms-playwright/chromium_headless_shell-1248
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:43.1036822Z ##[group]Run docker compose --profile soroban up -d soroban
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:43.1037345Z ^[[36;1mdocker compose --profile soroban up -d soroban^[[0m
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:43.1071038Z shell: /usr/bin/bash -e {0}
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:43.1071295Z env:
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:43.1071484Z   DOCKER_BUILDKIT: 1
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:43.1071704Z ##[endgroup]
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:44.3116049Z  Image stellar/quickstart:latest Pulling 
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:45.2819909Z  4f4fb700ef54 Pulling fs layer 0B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:45.2820633Z  8e8df94085bf Pulling fs layer 0B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:45.2821132Z  183d1e91af7a Pulling fs layer 0B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:45.2837529Z  3f2f4db4bb33 Pulling fs layer 0B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:45.2838144Z  b55e1a10118f Pulling fs layer 0B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:45.2838664Z  421f9b67f58f Pulling fs layer 0B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:45.2843809Z  d13f9fe10d1c Pulling fs layer 0B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:45.2844702Z  d6bdb1f0eeaa Pulling fs layer 0B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:45.2845215Z  e84949895b66 Pulling fs layer 0B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:45.2845769Z  e196b2ccd62b Pulling fs layer 0B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:45.2846269Z  cb6d3228f639 Pulling fs layer 0B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:45.2846749Z  46f0a61479e2 Pulling fs layer 0B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:45.2847202Z  e50d8689963d Pulling fs layer 0B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:45.2847622Z  2cc3387203d7 Pulling fs layer 0B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:45.2847990Z  263222735df3 Pulling fs layer 0B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:45.2848255Z  3f5294132c48 Pulling fs layer 0B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:45.2848674Z  6670b0d9c71a Pulling fs layer 0B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:45.2848956Z  5c508fb7ae09 Pulling fs layer 0B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:45.2849219Z  24495d45e286 Pulling fs layer 0B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:45.2849622Z  a13fe0d8a18a Pulling fs layer 0B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:45.2849888Z  f08b1d690de1 Pulling fs layer 0B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:45.2850295Z  18cfc2aa1db2 Pulling fs layer 0B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:45.2850601Z  34e939db3707 Pulling fs layer 0B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:45.2850869Z  9c99ce9c8a4f Pulling fs layer 0B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:45.2851401Z  c4effdf181eb Pulling fs layer 0B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:45.2851808Z  4f4fb700ef54 Pulling fs layer 0B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:45.2852761Z  4bf719284b70 Pulling fs layer 0B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:45.2853292Z  7595e68f925f Pulling fs layer 0B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:45.3175648Z  4f4fb700ef54 Already exists 0B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:45.4161151Z  3f2f4db4bb33 Download complete 0B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:45.5160859Z  e196b2ccd62b Downloading 8.389MB
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:45.6182293Z  34e939db3707 Download complete 0B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:45.6205063Z  c4effdf181eb Download complete 0B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:45.6215274Z  4bf719284b70 Download complete 0B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:45.6216242Z  cb6d3228f639 Downloading 1.049MB
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:45.6217664Z  e50d8689963d Downloading 2.097MB
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:45.6218686Z  2cc3387203d7 Downloading 2.097MB
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:45.6219300Z  d13f9fe10d1c Downloading 3.146MB
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:45.6220350Z  d6bdb1f0eeaa Downloading 5.243MB
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:45.6225995Z  3f5294132c48 Download complete 0B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:45.6232771Z  6670b0d9c71a Download complete 0B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:45.6251583Z  183d1e91af7a Download complete 0B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:45.6252388Z  46f0a61479e2 Downloading 2.097MB
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:45.6268770Z  263222735df3 Download complete 0B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:45.6291197Z  24495d45e286 Download complete 0B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:45.6304078Z  18cfc2aa1db2 Download complete 0B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:45.6335827Z  9c99ce9c8a4f Download complete 0B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:45.6336842Z  8e8df94085bf Downloading 3.146MB
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:45.6390873Z  b55e1a10118f Download complete 0B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:45.6391798Z  e84949895b66 Downloading 3.146MB
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:45.6396487Z  e196b2ccd62b Download complete 0B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:45.6411808Z  5c508fb7ae09 Download complete 0B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:45.6428331Z  a13fe0d8a18a Download complete 0B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:45.6444624Z  7595e68f925f Download complete 0B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:45.6445207Z  421f9b67f58f Downloading 4.194MB
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:45.6454350Z  f08b1d690de1 Download complete 0B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:45.7159977Z  cb6d3228f639 Downloading 7.34MB
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:45.7161178Z  e50d8689963d Downloading 8.389MB
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:45.7162788Z  2cc3387203d7 Downloading 8.389MB
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:45.7164048Z  d13f9fe10d1c Downloading 9.437MB
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:45.7165095Z  d6bdb1f0eeaa Downloading 10.49MB
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:45.7166489Z  46f0a61479e2 Downloading 8.389MB
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:45.7167647Z  8e8df94085bf Downloading 9.437MB
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:45.7168548Z  e84949895b66 Downloading 9.437MB
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:45.7169490Z  421f9b67f58f Downloading 9.437MB
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:45.8155564Z  d13f9fe10d1c Download complete 0B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:45.8156924Z  d6bdb1f0eeaa Downloading 17.83MB
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:45.8158103Z  46f0a61479e2 Downloading 15.73MB
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:45.8158933Z  8e8df94085bf Downloading 16.78MB
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:45.8159801Z  e84949895b66 Downloading 15.73MB
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:45.8160849Z  421f9b67f58f Downloading 15.73MB
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:45.8161703Z  cb6d3228f639 Downloading 13.63MB
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:45.8162368Z  e50d8689963d Downloading 15.73MB
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:45.8162916Z  2cc3387203d7 Downloading 14.68MB
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:45.9189010Z  cb6d3228f639 Downloading 22.02MB
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:45.9190769Z  e50d8689963d Downloading 24.12MB
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:45.9191375Z  2cc3387203d7 Downloading 22.02MB
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:45.9191881Z  d6bdb1f0eeaa Downloading 26.21MB
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:45.9204010Z  46f0a61479e2 Download complete 0B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:45.9205047Z  8e8df94085bf Downloading 24.12MB
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:45.9208287Z  e84949895b66 Downloading 24.12MB
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:45.9209126Z  421f9b67f58f Downloading 24.12MB
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:46.0166894Z  cb6d3228f639 Downloading 31.46MB
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:46.0169173Z  e50d8689963d Downloading 33.55MB
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:46.0169988Z  2cc3387203d7 Downloading 29.36MB
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:46.0170801Z  d6bdb1f0eeaa Downloading 34.6MB
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:46.0178571Z  8e8df94085bf Download complete 0B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:46.0180623Z  e84949895b66 Downloading 32.51MB
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:46.0182399Z  421f9b67f58f Downloading 32.51MB
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:46.1044649Z  8e8df94085bf Extracting 1B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:46.1153958Z  cb6d3228f639 Downloading 40.89MB
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:46.1155901Z  e50d8689963d Downloading 42.99MB
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:46.1176083Z  2cc3387203d7 Download complete 0B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:46.1176825Z  d6bdb1f0eeaa Downloading 44.04MB
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:46.1196802Z  e84949895b66 Download complete 0B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:46.1197507Z  421f9b67f58f Downloading 40.89MB
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:46.1903859Z  8e8df94085bf Extracting 1B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:46.2143740Z  421f9b67f58f Downloading 54.53MB
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:46.2146825Z  cb6d3228f639 Downloading 53.48MB
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:46.2156299Z  e50d8689963d Download complete 0B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:46.2157199Z  d6bdb1f0eeaa Downloading 56.62MB
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:46.2722643Z  8e8df94085bf Extracting 1B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:46.3141789Z  421f9b67f58f Downloading 73.4MB
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:46.3169049Z  cb6d3228f639 Download complete 0B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:46.3170115Z  d6bdb1f0eeaa Downloading 74.45MB
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:46.3735370Z  8e8df94085bf Extracting 1B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:46.4147346Z  d6bdb1f0eeaa Downloading 92.27MB
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:46.4148423Z  421f9b67f58f Downloading 91.23MB
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:46.4617196Z  8e8df94085bf Extracting 1B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:46.5138990Z  421f9b67f58f Downloading 112.2MB
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:46.5147556Z  d6bdb1f0eeaa Download complete 0B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:46.5607323Z  8e8df94085bf Extracting 1B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:46.6141687Z  421f9b67f58f Downloading 138.4MB
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:46.6552854Z  8e8df94085bf Extracting 1B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:46.7147144Z  421f9b67f58f Downloading 163.6MB
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:46.7496277Z  8e8df94085bf Extracting 1B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:46.8151889Z  421f9b67f58f Downloading 165.7MB
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:46.8506074Z  8e8df94085bf Extracting 1B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:46.9157575Z  421f9b67f58f Download complete 0B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:46.9477048Z  8e8df94085bf Extracting 1B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:47.0485008Z  8e8df94085bf Extracting 1B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:47.1178240Z  3f2f4db4bb33 Pull complete 0B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:47.1330088Z  b55e1a10118f Pull complete 0B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:47.1426453Z  8e8df94085bf Pull complete 0B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:47.1511720Z  421f9b67f58f Extracting 1B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:47.2525992Z  421f9b67f58f Extracting 1B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:47.3481737Z  421f9b67f58f Extracting 1B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:47.4509305Z  421f9b67f58f Extracting 1B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:47.5485963Z  421f9b67f58f Extracting 1B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:47.6486440Z  421f9b67f58f Extracting 1B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:47.7502897Z  421f9b67f58f Extracting 1B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:47.8524293Z  421f9b67f58f Extracting 1B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:47.9500020Z  421f9b67f58f Extracting 1B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:48.0507096Z  421f9b67f58f Extracting 1B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:48.1474280Z  421f9b67f58f Extracting 1B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:48.2497577Z  421f9b67f58f Extracting 2B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:48.3481292Z  421f9b67f58f Extracting 2B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:48.4504260Z  421f9b67f58f Extracting 2B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:48.5515083Z  421f9b67f58f Extracting 2B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:48.6499904Z  421f9b67f58f Extracting 2B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:48.7474742Z  421f9b67f58f Extracting 2B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:48.8476159Z  421f9b67f58f Extracting 2B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:48.9499953Z  421f9b67f58f Extracting 2B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:49.0495543Z  421f9b67f58f Extracting 2B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:49.1484981Z  421f9b67f58f Extracting 2B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:49.2464424Z  421f9b67f58f Extracting 3B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:49.3481441Z  421f9b67f58f Extracting 3B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:49.4468422Z  421f9b67f58f Extracting 3B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:49.5457398Z  421f9b67f58f Extracting 3B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:49.6478049Z  421f9b67f58f Extracting 3B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:49.7464810Z  421f9b67f58f Extracting 3B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:49.8460852Z  421f9b67f58f Extracting 3B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:49.9471575Z  421f9b67f58f Extracting 3B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:50.0443245Z  421f9b67f58f Extracting 3B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:50.1460065Z  421f9b67f58f Extracting 3B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:50.2453819Z  421f9b67f58f Extracting 4B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:50.3466789Z  421f9b67f58f Extracting 4B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:50.4524883Z  421f9b67f58f Extracting 4B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:50.5481363Z  421f9b67f58f Extracting 4B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:50.6470522Z  421f9b67f58f Extracting 4B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:50.7450278Z  421f9b67f58f Extracting 4B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:50.8411258Z  d13f9fe10d1c Extracting 1B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:50.8522318Z  421f9b67f58f Pull complete 0B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:50.9390955Z  d13f9fe10d1c Extracting 1B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:51.0377588Z  d13f9fe10d1c Extracting 1B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:51.1399174Z  d13f9fe10d1c Pull complete 0B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:51.1492933Z  d6bdb1f0eeaa Extracting 1B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:51.2472758Z  d6bdb1f0eeaa Extracting 1B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:51.3566045Z  d6bdb1f0eeaa Extracting 1B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:51.4462378Z  d6bdb1f0eeaa Extracting 1B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:51.5464528Z  d6bdb1f0eeaa Extracting 1B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:51.6464475Z  d6bdb1f0eeaa Extracting 1B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:51.7510737Z  d6bdb1f0eeaa Extracting 1B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:51.8429079Z  d6bdb1f0eeaa Extracting 1B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:51.9547365Z  d6bdb1f0eeaa Extracting 1B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:52.0455393Z  d6bdb1f0eeaa Extracting 1B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:52.1489211Z  d6bdb1f0eeaa Extracting 1B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:52.2483065Z  d6bdb1f0eeaa Extracting 2B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:52.3515689Z  d6bdb1f0eeaa Extracting 2B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:52.4470139Z  d6bdb1f0eeaa Extracting 2B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:52.5496066Z  d6bdb1f0eeaa Extracting 2B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:52.6514704Z  d6bdb1f0eeaa Extracting 2B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:52.7527187Z  d6bdb1f0eeaa Extracting 2B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:52.8470025Z  e84949895b66 Extracting 1B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:52.8565647Z  d6bdb1f0eeaa Pull complete 0B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:52.9479717Z  e84949895b66 Extracting 1B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:53.0442626Z  e84949895b66 Extracting 1B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:53.1426796Z  e84949895b66 Extracting 1B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:53.3350003Z  e196b2ccd62b Extracting 1B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:53.3444647Z  e84949895b66 Pull complete 0B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:53.4386032Z  e196b2ccd62b Pull complete 0B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:53.4525790Z  cb6d3228f639 Extracting 1B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:53.5439402Z  cb6d3228f639 Extracting 1B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:53.6437814Z  cb6d3228f639 Extracting 1B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:53.7436480Z  cb6d3228f639 Extracting 1B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:53.8441216Z  cb6d3228f639 Extracting 1B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:53.9436417Z  cb6d3228f639 Extracting 1B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:54.0413520Z  46f0a61479e2 Extracting 1B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:54.0450808Z  cb6d3228f639 Pull complete 0B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:54.1404418Z  46f0a61479e2 Extracting 1B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:54.2410059Z  46f0a61479e2 Extracting 1B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:54.3390025Z  46f0a61479e2 Extracting 1B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:54.4404525Z  46f0a61479e2 Extracting 1B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:54.5376113Z  46f0a61479e2 Extracting 1B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:54.6405412Z  46f0a61479e2 Extracting 1B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:54.7378434Z  46f0a61479e2 Pull complete 0B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:54.7401879Z  e50d8689963d Extracting 1B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:54.8438796Z  e50d8689963d Extracting 1B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:54.9429944Z  e50d8689963d Extracting 1B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:55.0438733Z  e50d8689963d Extracting 1B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:55.1383220Z  e50d8689963d Extracting 1B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:55.2434305Z  e50d8689963d Extracting 1B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:55.4386584Z  2cc3387203d7 Extracting 1B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:55.4389860Z  e50d8689963d Pull complete 0B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:55.5415400Z  2cc3387203d7 Extracting 1B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:55.6395533Z  2cc3387203d7 Extracting 1B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:55.7395073Z  2cc3387203d7 Extracting 1B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:55.8159680Z  34e939db3707 Extracting 1B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:55.8190288Z  c4effdf181eb Pull complete 0B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:55.8254302Z  3f5294132c48 Pull complete 0B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:55.8255249Z  6670b0d9c71a Pull complete 0B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:55.8259977Z  183d1e91af7a Pull complete 0B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:55.8274037Z  263222735df3 Pull complete 0B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:55.8302635Z  24495d45e286 Pull complete 0B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:55.8318445Z  18cfc2aa1db2 Pull complete 0B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:55.8346086Z  5c508fb7ae09 Pull complete 0B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:55.8358560Z  a13fe0d8a18a Pull complete 0B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:55.8412201Z  2cc3387203d7 Pull complete 0B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:55.8852349Z  4f4fb700ef54 Pull complete 0B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:55.8885617Z  34e939db3707 Pull complete 0B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:55.8906787Z  4bf719284b70 Pull complete 0B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:55.8922332Z  9c99ce9c8a4f Pull complete 0B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:55.8939625Z  7595e68f925f Pull complete 0B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:55.8960007Z  f08b1d690de1 Pull complete 0B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:55.8967018Z  Image stellar/quickstart:latest Pulled 
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:55.9555236Z  Network lyricsflip_default Creating 
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:56.0063608Z  Network lyricsflip_default Created 
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:56.0091160Z  Container lyricsflip-soroban-1 Creating 
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:58.9417237Z  Container lyricsflip-soroban-1 Created 
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:58.9554760Z  Container lyricsflip-soroban-1 Starting 
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:59.0971545Z  Container lyricsflip-soroban-1 Started 
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:59.1101375Z ##[group]Run for i in $(seq 1 60); do
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:59.1101935Z ^[[36;1mfor i in $(seq 1 60); do^[[0m
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:59.1102420Z ^[[36;1m  if curl -sf -X POST \^[[0m
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:59.1102949Z ^[[36;1m    -H 'Content-Type: application/json' \^[[0m
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:59.1103821Z ^[[36;1m    -d '{"jsonrpc":"2.0","id":1,"method":"getHealth"}' \^[[0m
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:59.1104628Z ^[[36;1m    http://localhost:8000/soroban/rpc | grep -q '"healthy"'; then^[[0m
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:59.1105320Z ^[[36;1m    echo "RPC healthy after ${i} attempts"^[[0m
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:59.1105823Z ^[[36;1m    exit 0^[[0m
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:59.1106181Z ^[[36;1m  fi^[[0m
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:59.1106589Z ^[[36;1m  echo "Waiting for RPC... attempt $i/60"^[[0m
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:59.1107101Z ^[[36;1m  sleep 3^[[0m
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:59.1107459Z ^[[36;1mdone^[[0m
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:59.1107827Z ^[[36;1mecho "RPC did not become healthy"^[[0m
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:59.1108294Z ^[[36;1mexit 1^[[0m
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:59.1148909Z shell: /usr/bin/bash -e {0}
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:59.1149222Z ##[endgroup]
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:36:59.1386957Z Waiting for RPC... attempt 1/60
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:02.1568318Z Waiting for RPC... attempt 2/60
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:05.1731111Z Waiting for RPC... attempt 3/60
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:08.1866021Z Waiting for RPC... attempt 4/60
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:11.1977942Z Waiting for RPC... attempt 5/60
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:14.2118782Z RPC healthy after 6 attempts
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:14.2153740Z ##[group]Run docker compose up -d backend
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:14.2154222Z ^[[36;1mdocker compose up -d backend^[[0m
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:14.2194476Z shell: /usr/bin/bash -e {0}
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:14.2194831Z env:
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:14.2195095Z   DOCKER_BUILDKIT: 1
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:14.2195404Z ##[endgroup]
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:14.3657090Z  Image axllent/mailpit:latest Pulling 
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:15.2907319Z  2a720a9adef0 Pulling fs layer 0B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:15.2907918Z  881fc932939e Pulling fs layer 0B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:15.2908262Z  e17b83dd19bb Pulling fs layer 0B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:15.4685151Z  2a720a9adef0 Download complete 0B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:15.4686638Z  e17b83dd19bb Downloading 1.049MB
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:15.5688067Z  881fc932939e Download complete 0B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:15.5690193Z  e17b83dd19bb Download complete 0B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:15.5715216Z  881fc932939e Extracting 1B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:15.6694882Z  44136fa355b3 Already exists 0B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:15.6725700Z  881fc932939e Extracting 1B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:15.7689225Z  3c5288d0b4c5 Download complete 0B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:15.7721762Z  881fc932939e Pull complete 0B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:15.7736684Z  e17b83dd19bb Extracting 1B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:15.8701231Z  2a720a9adef0 Extracting 1B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:15.8714482Z  e17b83dd19bb Pull complete 0B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:15.8948005Z  2a720a9adef0 Pull complete 0B
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:15.8952311Z  Image axllent/mailpit:latest Pulled 
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:18.3033303Z  Image lyricsflip-contracts-init Building 
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:18.3034317Z  Image lyricsflip-backend Building 
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:18.4311939Z #1 [internal] load local bake definitions
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:18.5816219Z #1 reading from stdin 1.06kB done
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:18.5816965Z #1 DONE 0.0s
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:18.8075065Z 
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:18.8075958Z #2 [contracts-init internal] load build definition from Dockerfile
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:18.8076729Z #2 transferring dockerfile: 2.66kB 0.0s done
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:18.8077331Z #2 DONE 0.0s
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:18.8077562Z 
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:18.8078419Z #3 [backend internal] load build definition from Dockerfile
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:18.8078966Z #3 transferring dockerfile: 1.80kB 0.0s done
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:18.8079331Z #3 DONE 0.0s
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:18.8079470Z 
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:18.8079970Z #4 [contracts-init] resolve image config for docker-image://docker.io/docker/dockerfile:1
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:19.0177511Z #4 ...
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:19.0177768Z 
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:19.0178268Z #5 [auth] docker/dockerfile:pull token for registry-1.docker.io
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:19.0178869Z #5 DONE 0.0s
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:19.1680292Z 
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:19.1681241Z #4 [contracts-init] resolve image config for docker-image://docker.io/docker/dockerfile:1
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:19.7282241Z #4 DONE 0.9s
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:19.7282508Z 
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:19.7283654Z #6 [contracts-init] docker-image://docker.io/docker/dockerfile:1@sha256:572cebbc2b15e6f84c077742952674889cb63cd5e9b80abdffcbe587b6f19183
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:19.7285062Z #6 resolve docker.io/docker/dockerfile:1@sha256:572cebbc2b15e6f84c077742952674889cb63cd5e9b80abdffcbe587b6f19183 0.0s done
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:19.7325091Z #6 sha256:03f648a05b5780c2a0e4b43c93eb1838c6b9b32131b25f4199f42a788d106315 6.29MB / 15.19MB 0.2s
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:19.8952471Z #6 sha256:03f648a05b5780c2a0e4b43c93eb1838c6b9b32131b25f4199f42a788d106315 15.19MB / 15.19MB 0.2s done
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:19.8954401Z #6 extracting sha256:03f648a05b5780c2a0e4b43c93eb1838c6b9b32131b25f4199f42a788d106315 0.1s done
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:20.1388045Z #6 extracting sha256:03f648a05b5780c2a0e4b43c93eb1838c6b9b32131b25f4199f42a788d106315 0.1s done
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:20.1388594Z #6 DONE 0.3s
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:20.1388719Z 
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:20.1389036Z #7 [backend internal] load metadata for docker.io/library/node:20-alpine
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:20.3507755Z #7 ...
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:20.3508062Z 
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:20.3508575Z #8 [auth] library/node:pull token for registry-1.docker.io
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:20.3509204Z #8 DONE 0.0s
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:20.3509359Z 
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:20.3510160Z #9 [auth] library/rust:pull token for registry-1.docker.io
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:20.3510621Z #9 DONE 0.0s
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:20.3510770Z 
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:20.3511075Z #10 [auth] library/debian:pull token for registry-1.docker.io
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:20.3511503Z #10 DONE 0.0s
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:20.5010235Z 
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:20.5011751Z #11 [contracts-init internal] load metadata for docker.io/library/debian:bookworm-slim
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:20.7238586Z #11 DONE 0.7s
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:20.7238791Z 
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:20.7239317Z #12 [contracts-init internal] load metadata for docker.io/library/rust:1.82-slim
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:20.8590411Z #12 DONE 0.8s
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:20.8593149Z 
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:20.8594327Z #7 [backend internal] load metadata for docker.io/library/node:20-alpine
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:20.8595015Z #7 DONE 0.8s
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:20.8595224Z 
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:20.8595507Z #13 [backend internal] load .dockerignore
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:20.8596108Z #13 transferring context: 149B done
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:20.8596553Z #13 DONE 0.0s
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:20.8596747Z 
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:20.8597110Z #14 [contracts-init internal] load .dockerignore
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:20.8597713Z #14 transferring context: 2B done
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:20.8598129Z #14 DONE 0.0s
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:20.9690337Z 
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:20.9755500Z #15 [contracts-init runtime 1/8] FROM docker.io/library/debian:bookworm-slim@sha256:e67eeead736ff7bbe258ef088bff683635c561b1fcfefad0806c1df4ab49ce0e
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:20.9758036Z #15 resolve docker.io/library/debian:bookworm-slim@sha256:e67eeead736ff7bbe258ef088bff683635c561b1fcfefad0806c1df4ab49ce0e 0.0s done
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:20.9759727Z #15 DONE 0.0s
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:20.9760236Z 
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:20.9761595Z #16 [contracts-init builder 1/6] FROM docker.io/library/rust:1.82-slim@sha256:1111c28d995d06a7863ba6cea3b3dcb87bebe65af8ec5517caaf2c8c26f38010
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:20.9763952Z #16 resolve docker.io/library/rust:1.82-slim@sha256:1111c28d995d06a7863ba6cea3b3dcb87bebe65af8ec5517caaf2c8c26f38010 0.0s done
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:20.9765348Z #16 DONE 0.1s
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:20.9766213Z 
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:20.9767514Z #17 [backend deps 1/4] FROM docker.io/library/node:20-alpine@sha256:fb4cd12c85ee03686f6af5362a0b0d56d50c58a04632e6c0fb8363f609372293
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:20.9769658Z #17 resolve docker.io/library/node:20-alpine@sha256:fb4cd12c85ee03686f6af5362a0b0d56d50c58a04632e6c0fb8363f609372293 0.0s done
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:21.0996370Z #17 ...
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:21.0998087Z 
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:21.0998968Z #18 [contracts-init internal] load build context
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:21.1000417Z #18 transferring context: 626.47kB 0.0s done
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:21.1001324Z #18 DONE 0.1s
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:21.1002003Z 
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:21.1002522Z #19 [backend internal] load build context
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:21.1003336Z #19 transferring context: 1.77MB 0.2s done
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:21.1004276Z #19 DONE 0.2s
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:21.1004681Z 
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:21.1005791Z #17 [backend deps 1/4] FROM docker.io/library/node:20-alpine@sha256:fb4cd12c85ee03686f6af5362a0b0d56d50c58a04632e6c0fb8363f609372293
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:21.1007930Z #17 sha256:fff4e2c1b189bf87d63ad8bd07f7f4eb288d6f2b6a07a8bb44c60e8c075d2096 445B / 445B 0.1s done
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:21.2286718Z #17 sha256:4feea04c154301db6f4a496efa397b3db96603b1c009c797cfdde77bea8b3287 0B / 43.23MB 0.2s
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:21.3299349Z #17 sha256:4feea04c154301db6f4a496efa397b3db96603b1c009c797cfdde77bea8b3287 20.97MB / 43.23MB 0.3s
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:21.3301815Z #17 sha256:b2cbbfe903b0821005780971ddc5892edcc4ce74c5a48d82e1d2b382edac3122 1.26MB / 1.26MB 0.2s done
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:21.4460236Z #17 sha256:6a0ac1617861a677b045b7ff88545213ec31c0ff08763195a70a4a5adda577bb 3.86MB / 3.86MB 0.1s done
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:21.4479047Z #17 extracting sha256:6a0ac1617861a677b045b7ff88545213ec31c0ff08763195a70a4a5adda577bb
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:21.5969197Z #17 sha256:4feea04c154301db6f4a496efa397b3db96603b1c009c797cfdde77bea8b3287 43.23MB / 43.23MB 0.5s done
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:21.7448232Z #17 extracting sha256:6a0ac1617861a677b045b7ff88545213ec31c0ff08763195a70a4a5adda577bb 0.2s done
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:21.7454188Z #17 extracting sha256:4feea04c154301db6f4a496efa397b3db96603b1c009c797cfdde77bea8b3287
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:23.6061791Z #17 extracting sha256:4feea04c154301db6f4a496efa397b3db96603b1c009c797cfdde77bea8b3287 2.0s done
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:23.6066814Z #17 DONE 2.7s
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:23.6067221Z 
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:23.6068415Z #16 [contracts-init builder 1/6] FROM docker.io/library/rust:1.82-slim@sha256:1111c28d995d06a7863ba6cea3b3dcb87bebe65af8ec5517caaf2c8c26f38010
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:23.6070295Z #16 sha256:8ac7bb1afc6bf3ff1243a37703b04f24aa27f670988812d8abaddb6cda713de8 263.63MB / 263.63MB 2.0s done
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:23.6072799Z #16 sha256:2d429b9e73a6cf90a5bb85105c8118b30a1b2deedeae3ea9587055ffcb80eb45 29.13MB / 29.13MB 0.3s done
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:23.6074876Z #16 extracting sha256:2d429b9e73a6cf90a5bb85105c8118b30a1b2deedeae3ea9587055ffcb80eb45 2.0s done
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:23.6077701Z #16 extracting sha256:8ac7bb1afc6bf3ff1243a37703b04f24aa27f670988812d8abaddb6cda713de8
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:23.8147859Z #16 ...
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:23.8149251Z 
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:23.8150671Z #17 [backend deps 1/4] FROM docker.io/library/node:20-alpine@sha256:fb4cd12c85ee03686f6af5362a0b0d56d50c58a04632e6c0fb8363f609372293
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:23.8152575Z #17 extracting sha256:b2cbbfe903b0821005780971ddc5892edcc4ce74c5a48d82e1d2b382edac3122 0.0s done
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:23.8154701Z #17 extracting sha256:fff4e2c1b189bf87d63ad8bd07f7f4eb288d6f2b6a07a8bb44c60e8c075d2096 done
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:23.8155807Z #17 DONE 2.8s
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:23.9443176Z 
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:23.9444992Z #20 [contracts-init runtime 2/8] RUN apt-get update && apt-get install -y --no-install-recommends       curl       ca-certificates       jq     && rm -rf /var/lib/apt/lists/*
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:23.9446541Z #20 0.319 Get:1 http://deb.debian.org/debian bookworm InRelease [151 kB]
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:23.9447540Z #20 0.352 Get:2 http://deb.debian.org/debian bookworm-updates InRelease [55.4 kB]
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:23.9448677Z #20 0.359 Get:3 http://deb.debian.org/debian-security bookworm-security InRelease [34.8 kB]
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:23.9455009Z #20 0.471 Get:4 http://deb.debian.org/debian bookworm/main amd64 Packages [8790 kB]
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:23.9456529Z #20 0.606 Get:5 http://deb.debian.org/debian bookworm-updates/main amd64 Packages [6924 B]
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:23.9458248Z #20 0.727 Get:6 http://deb.debian.org/debian-security bookworm-security/main amd64 Packages [381 kB]
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:23.9459425Z #20 1.664 Fetched 9420 kB in 1s (6618 kB/s)
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:23.9460144Z #20 1.664 Reading package lists...
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:23.9460824Z #20 2.351 Reading package lists...
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:24.1076931Z #20 3.051 Building dependency tree...
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:24.2404582Z #20 3.198 Reading state information...
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:24.2408481Z #20 3.330 The following additional packages will be installed:
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:24.3899174Z #20 ...
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:24.3900556Z 
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:24.3901173Z #21 [backend deps 2/4] WORKDIR /app
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:24.3901898Z #21 DONE 0.6s
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:24.3902274Z 
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:24.3902881Z #22 [backend deps 3/4] COPY package.json package-lock.json ./
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:24.3903841Z #22 DONE 0.1s
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:24.3905004Z 
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:24.3906518Z #20 [contracts-init runtime 2/8] RUN apt-get update && apt-get install -y --no-install-recommends       curl       ca-certificates       jq     && rm -rf /var/lib/apt/lists/*
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:24.3908852Z #20 3.330   libbrotli1 libcurl4 libgssapi-krb5-2 libjq1 libk5crypto3 libkeyutils1
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:24.3911728Z #20 3.330   libkrb5-3 libkrb5support0 libldap-2.5-0 libnghttp2-14 libonig5 libpsl5
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:24.3912931Z #20 3.330   librtmp1 libsasl2-2 libsasl2-modules-db libssh2-1 libssl3 openssl
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:24.3914167Z #20 3.331 Suggested packages:
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:24.3915091Z #20 3.331   krb5-doc krb5-user
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:24.3917904Z #20 3.331 Recommended packages:
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:24.3919015Z #20 3.331   krb5-locales libldap-common publicsuffix libsasl2-modules
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:24.3920033Z #20 3.478 The following NEW packages will be installed:
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:24.3921558Z #20 3.478   ca-certificates curl jq libbrotli1 libcurl4 libgssapi-krb5-2 libjq1
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:24.3927478Z #20 3.478   libk5crypto3 libkeyutils1 libkrb5-3 libkrb5support0 libldap-2.5-0
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:24.3936782Z #20 3.478   libnghttp2-14 libonig5 libpsl5 librtmp1 libsasl2-2 libsasl2-modules-db
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:24.3940487Z #20 3.478   libssh2-1 libssl3 openssl
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:24.4906817Z #20 3.527 0 upgraded, 21 newly installed, 0 to remove and 0 not upgraded.
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:24.4910921Z #20 3.527 Need to get 6235 kB of archives.
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:24.4914252Z #20 3.527 After this operation, 15.9 MB of additional disk space will be used.
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:24.4917516Z #20 3.527 Get:1 http://deb.debian.org/debian-security bookworm-security/main amd64 libssl3 amd64 3.0.22-1~deb12u2 [2040 kB]
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:24.4920061Z #20 3.560 Get:2 http://deb.debian.org/debian-security bookworm-security/main amd64 openssl amd64 3.0.22-1~deb12u2 [1442 kB]
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:24.4924803Z #20 3.565 Get:3 http://deb.debian.org/debian-security bookworm-security/main amd64 ca-certificates all 20250419~deb12u2 [161 kB]
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:24.4927910Z #20 3.567 Get:4 http://deb.debian.org/debian-security bookworm-security/main amd64 libbrotli1 amd64 1.0.9-2+deb12u1 [275 kB]
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:24.4931486Z #20 3.568 Get:5 http://deb.debian.org/debian bookworm/main amd64 libkrb5support0 amd64 1.20.1-2+deb12u5 [33.2 kB]
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:24.4934551Z #20 3.568 Get:6 http://deb.debian.org/debian bookworm/main amd64 libk5crypto3 amd64 1.20.1-2+deb12u5 [79.7 kB]
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:24.4939236Z #20 3.569 Get:7 http://deb.debian.org/debian bookworm/main amd64 libkeyutils1 amd64 1.6.3-2 [8808 B]
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:24.4940934Z #20 3.569 Get:8 http://deb.debian.org/debian bookworm/main amd64 libkrb5-3 amd64 1.20.1-2+deb12u5 [332 kB]
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:24.4944592Z #20 3.571 Get:9 http://deb.debian.org/debian bookworm/main amd64 libgssapi-krb5-2 amd64 1.20.1-2+deb12u5 [135 kB]
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:24.4948313Z #20 3.572 Get:10 http://deb.debian.org/debian-security bookworm-security/main amd64 libsasl2-modules-db amd64 2.1.28+dfsg-10+deb12u1 [20.5 kB]
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:24.4953672Z #20 3.573 Get:11 http://deb.debian.org/debian-security bookworm-security/main amd64 libsasl2-2 amd64 2.1.28+dfsg-10+deb12u1 [59.9 kB]
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:24.4958648Z #20 3.574 Get:12 http://deb.debian.org/debian bookworm/main amd64 libldap-2.5-0 amd64 2.5.13+dfsg-5 [183 kB]
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:24.4960481Z #20 3.575 Get:13 http://deb.debian.org/debian bookworm/main amd64 libnghttp2-14 amd64 1.52.0-1+deb12u3 [72.4 kB]
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:24.4963164Z #20 3.576 Get:14 http://deb.debian.org/debian bookworm/main amd64 libpsl5 amd64 0.21.2-1 [58.7 kB]
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:24.4967497Z #20 3.577 Get:15 http://deb.debian.org/debian bookworm/main amd64 librtmp1 amd64 2.4+20151223.gitfa8646d.1-2+b2 [60.8 kB]
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:24.4970434Z #20 3.581 Get:16 http://deb.debian.org/debian-security bookworm-security/main amd64 libssh2-1 amd64 1.10.0-3+deb12u1 [176 kB]
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:24.4974166Z #20 3.581 Get:17 http://deb.debian.org/debian bookworm/main amd64 libcurl4 amd64 7.88.1-10+deb12u15 [392 kB]
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:24.6487422Z #20 3.589 Get:18 http://deb.debian.org/debian bookworm/main amd64 curl amd64 7.88.1-10+deb12u15 [316 kB]
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:24.6488987Z #20 3.589 Get:19 http://deb.debian.org/debian bookworm/main amd64 libonig5 amd64 6.9.8-1 [188 kB]
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:24.6491574Z #20 3.589 Get:20 http://deb.debian.org/debian-security bookworm-security/main amd64 libjq1 amd64 1.6-2.1+deb12u3 [136 kB]
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:24.6495671Z #20 3.589 Get:21 http://deb.debian.org/debian-security bookworm-security/main amd64 jq amd64 1.6-2.1+deb12u3 [64.4 kB]
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:24.6938451Z #20 3.784 debconf: delaying package configuration, since apt-utils is not installed
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:24.9269433Z #20 3.823 Fetched 6235 kB in 0s (60.6 MB/s)
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:24.9270580Z #20 3.846 Selecting previously unselected package libssl3:amd64.
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:24.9271515Z #20 3.846 (Reading database ... 
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:24.9274515Z (Reading database ... 5%
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:24.9275261Z (Reading database ... 10%
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:24.9276047Z (Reading database ... 15%
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:24.9279176Z (Reading database ... 20%
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:24.9279813Z (Reading database ... 25%
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:24.9280391Z (Reading database ... 30%
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:24.9280970Z (Reading database ... 35%
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:24.9282601Z (Reading database ... 40%
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:24.9283629Z (Reading database ... 45%
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:24.9286689Z (Reading database ... 50%
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:24.9287296Z (Reading database ... 55%
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:24.9287868Z (Reading database ... 60%
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:24.9288440Z (Reading database ... 65%
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:24.9289478Z (Reading database ... 70%
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:24.9290839Z (Reading database ... 75%
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:24.9291667Z (Reading database ... 80%
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:24.9296280Z (Reading database ... 85%
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:24.9296890Z (Reading database ... 90%
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:24.9297471Z (Reading database ... 95%
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:24.9298066Z (Reading database ... 100%
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:24.9298929Z (Reading database ... 6096 files and directories currently installed.)
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:24.9300178Z #20 3.863 Preparing to unpack .../00-libssl3_3.0.22-1~deb12u2_amd64.deb ...
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:24.9302371Z #20 3.867 Unpacking libssl3:amd64 (3.0.22-1~deb12u2) ...
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:25.0065869Z #20 4.097 Selecting previously unselected package openssl.
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:25.1635536Z #20 4.101 Preparing to unpack .../01-openssl_3.0.22-1~deb12u2_amd64.deb ...
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:25.1641743Z #20 4.103 Unpacking openssl (3.0.22-1~deb12u2) ...
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:25.1775440Z #20 4.267 Selecting previously unselected package ca-certificates.
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:25.3299999Z #20 4.268 Preparing to unpack .../02-ca-certificates_20250419~deb12u2_all.deb ...
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:25.3301923Z #20 4.269 Unpacking ca-certificates (20250419~deb12u2) ...
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:25.3303086Z #20 4.344 Selecting previously unselected package libbrotli1:amd64.
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:25.3305904Z #20 4.347 Preparing to unpack .../03-libbrotli1_1.0.9-2+deb12u1_amd64.deb ...
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:25.3308682Z #20 4.348 Unpacking libbrotli1:amd64 (1.0.9-2+deb12u1) ...
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:25.3311436Z #20 4.420 Selecting previously unselected package libkrb5support0:amd64.
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:25.3321653Z #20 4.420 Preparing to unpack .../04-libkrb5support0_1.20.1-2+deb12u5_amd64.deb ...
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:25.4312421Z #20 4.423 Unpacking libkrb5support0:amd64 (1.20.1-2+deb12u5) ...
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:25.4314345Z #20 4.450 Selecting previously unselected package libk5crypto3:amd64.
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:25.4327532Z #20 4.452 Preparing to unpack .../05-libk5crypto3_1.20.1-2+deb12u5_amd64.deb ...
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:25.4328702Z #20 4.456 Unpacking libk5crypto3:amd64 (1.20.1-2+deb12u5) ...
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:25.4329773Z #20 4.489 Selecting previously unselected package libkeyutils1:amd64.
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:25.4330925Z #20 4.490 Preparing to unpack .../06-libkeyutils1_1.6.3-2_amd64.deb ...
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:25.4331670Z #20 4.492 Unpacking libkeyutils1:amd64 (1.6.3-2) ...
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:25.4332287Z #20 4.519 Selecting previously unselected package libkrb5-3:amd64.
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:25.4333008Z #20 4.521 Preparing to unpack .../07-libkrb5-3_1.20.1-2+deb12u5_amd64.deb ...
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:25.4333963Z #20 4.522 Unpacking libkrb5-3:amd64 (1.20.1-2+deb12u5) ...
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:25.5508363Z #20 4.600 Selecting previously unselected package libgssapi-krb5-2:amd64.
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:25.5522624Z #20 4.603 Preparing to unpack .../08-libgssapi-krb5-2_1.20.1-2+deb12u5_amd64.deb ...
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:25.5524272Z #20 4.603 Unpacking libgssapi-krb5-2:amd64 (1.20.1-2+deb12u5) ...
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:25.5525671Z #20 4.641 Selecting previously unselected package libsasl2-modules-db:amd64.
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:25.6754851Z #20 4.644 Preparing to unpack .../09-libsasl2-modules-db_2.1.28+dfsg-10+deb12u1_amd64.deb ...
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:25.6757208Z #20 4.645 Unpacking libsasl2-modules-db:amd64 (2.1.28+dfsg-10+deb12u1) ...
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:25.6758937Z #20 4.673 Selecting previously unselected package libsasl2-2:amd64.
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:25.6760271Z #20 4.674 Preparing to unpack .../10-libsasl2-2_2.1.28+dfsg-10+deb12u1_amd64.deb ...
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:25.6761508Z #20 4.677 Unpacking libsasl2-2:amd64 (2.1.28+dfsg-10+deb12u1) ...
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:25.6762651Z #20 4.710 Selecting previously unselected package libldap-2.5-0:amd64.
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:25.6771780Z #20 4.712 Preparing to unpack .../11-libldap-2.5-0_2.5.13+dfsg-5_amd64.deb ...
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:25.6774996Z #20 4.714 Unpacking libldap-2.5-0:amd64 (2.5.13+dfsg-5) ...
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:25.6777927Z #20 4.765 Selecting previously unselected package libnghttp2-14:amd64.
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:25.8104524Z #20 4.768 Preparing to unpack .../12-libnghttp2-14_1.52.0-1+deb12u3_amd64.deb ...
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:25.8106806Z #20 4.771 Unpacking libnghttp2-14:amd64 (1.52.0-1+deb12u3) ...
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:25.8107974Z #20 4.810 Selecting previously unselected package libpsl5:amd64.
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:25.8109181Z #20 4.812 Preparing to unpack .../13-libpsl5_0.21.2-1_amd64.deb ...
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:25.8110119Z #20 4.816 Unpacking libpsl5:amd64 (0.21.2-1) ...
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:25.8110753Z #20 4.861 Selecting previously unselected package librtmp1:amd64.
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:25.8111504Z #20 4.863 Preparing to unpack .../14-librtmp1_2.4+20151223.gitfa8646d.1-2+b2_amd64.deb ...
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:25.8112315Z #20 4.866 Unpacking librtmp1:amd64 (2.4+20151223.gitfa8646d.1-2+b2) ...
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:25.8112984Z #20 4.901 Selecting previously unselected package libssh2-1:amd64.
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:25.9335915Z #20 4.903 Preparing to unpack .../15-libssh2-1_1.10.0-3+deb12u1_amd64.deb ...
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:25.9337673Z #20 4.911 Unpacking libssh2-1:amd64 (1.10.0-3+deb12u1) ...
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:25.9339240Z #20 4.955 Selecting previously unselected package libcurl4:amd64.
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:25.9340399Z #20 4.957 Preparing to unpack .../16-libcurl4_7.88.1-10+deb12u15_amd64.deb ...
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:25.9341922Z #20 4.958 Unpacking libcurl4:amd64 (7.88.1-10+deb12u15) ...
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:25.9343894Z #20 5.023 Selecting previously unselected package curl.
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:26.0525263Z #20 5.026 Preparing to unpack .../17-curl_7.88.1-10+deb12u15_amd64.deb ...
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:26.0526861Z #20 5.028 Unpacking curl (7.88.1-10+deb12u15) ...
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:26.0527945Z #20 5.085 Selecting previously unselected package libonig5:amd64.
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:26.0528834Z #20 5.087 Preparing to unpack .../18-libonig5_6.9.8-1_amd64.deb ...
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:26.0529620Z #20 5.089 Unpacking libonig5:amd64 (6.9.8-1) ...
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:26.0530424Z #20 5.143 Selecting previously unselected package libjq1:amd64.
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:26.0531390Z #20 5.143 Preparing to unpack .../19-libjq1_1.6-2.1+deb12u3_amd64.deb ...
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:26.1568625Z #20 5.144 Unpacking libjq1:amd64 (1.6-2.1+deb12u3) ...
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:26.1571131Z #20 5.183 Selecting previously unselected package jq.
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:26.1573146Z #20 5.186 Preparing to unpack .../20-jq_1.6-2.1+deb12u3_amd64.deb ...
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:26.1575779Z #20 5.187 Unpacking jq (1.6-2.1+deb12u3) ...
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:26.1578332Z #20 5.230 Setting up libkeyutils1:amd64 (1.6.3-2) ...
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:26.1579772Z #20 5.234 Setting up libpsl5:amd64 (0.21.2-1) ...
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:26.1582112Z #20 5.238 Setting up libbrotli1:amd64 (1.0.9-2+deb12u1) ...
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:26.1583146Z #20 5.242 Setting up libssl3:amd64 (3.0.22-1~deb12u2) ...
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:26.1585018Z #20 5.248 Setting up libnghttp2-14:amd64 (1.52.0-1+deb12u3) ...
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:26.3384814Z #20 5.251 Setting up libkrb5support0:amd64 (1.20.1-2+deb12u5) ...
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:26.3387377Z #20 5.256 Setting up libsasl2-modules-db:amd64 (2.1.28+dfsg-10+deb12u1) ...
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:26.3389190Z #20 5.260 Setting up librtmp1:amd64 (2.4+20151223.gitfa8646d.1-2+b2) ...
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:26.3392373Z #20 5.264 Setting up libk5crypto3:amd64 (1.20.1-2+deb12u5) ...
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:26.3394013Z #20 5.268 Setting up libsasl2-2:amd64 (2.1.28+dfsg-10+deb12u1) ...
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:26.3397609Z #20 5.272 Setting up libssh2-1:amd64 (1.10.0-3+deb12u1) ...
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:26.3399150Z #20 5.275 Setting up libkrb5-3:amd64 (1.20.1-2+deb12u5) ...
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:26.3401225Z #20 5.279 Setting up openssl (3.0.22-1~deb12u2) ...
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:26.3404147Z #20 5.290 Setting up libonig5:amd64 (6.9.8-1) ...
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:26.3405190Z #20 5.293 Setting up libjq1:amd64 (1.6-2.1+deb12u3) ...
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:26.3409460Z #20 5.296 Setting up libldap-2.5-0:amd64 (2.5.13+dfsg-5) ...
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:26.3410550Z #20 5.299 Setting up ca-certificates (20250419~deb12u2) ...
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:26.3411616Z #20 5.429 debconf: unable to initialize frontend: Dialog
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:26.3413251Z #20 5.429 debconf: (TERM is not set, so the dialog frontend is not usable.)
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:26.5020950Z #20 5.430 debconf: falling back to frontend: Readline
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:26.5023512Z #20 5.431 debconf: unable to initialize frontend: Readline
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:26.5033636Z #20 5.431 debconf: (Can't locate Term/ReadLine.pm in @INC (you may need to install the Term::ReadLine module) (@INC contains: /etc/perl /usr/local/lib/x86_64-linux-gnu/perl/5.36.0 /usr/local/share/perl/5.36.0 /usr/lib/x86_64-linux-gnu/perl5/5.36 /usr/share/perl5 /usr/lib/x86_64-linux-gnu/perl-base /usr/lib/x86_64-linux-gnu/perl/5.36 /usr/share/perl/5.36 /usr/local/lib/site_perl) at /usr/share/perl5/Debconf/FrontEnd/Readline.pm line 7.)
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:26.5039942Z #20 5.433 debconf: falling back to frontend: Teletype
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:27.3192199Z #20 6.409 Updating certificates in /etc/ssl/certs...
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:28.6158075Z #20 7.705 148 added, 0 removed; done.
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:28.8409597Z #20 7.733 Setting up libgssapi-krb5-2:amd64 (1.20.1-2+deb12u5) ...
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:28.8411018Z #20 7.737 Setting up jq (1.6-2.1+deb12u3) ...
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:28.8411979Z #20 7.740 Setting up libcurl4:amd64 (7.88.1-10+deb12u15) ...
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:28.8412884Z #20 7.743 Setting up curl (7.88.1-10+deb12u15) ...
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:28.8414002Z #20 7.746 Processing triggers for libc-bin (2.36-9+deb12u14) ...
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:28.8415590Z #20 7.772 Processing triggers for ca-certificates (20250419~deb12u2) ...
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:28.8416616Z #20 7.779 Updating certificates in /etc/ssl/certs...
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:29.8445161Z #20 8.935 0 added, 0 removed; done.
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:29.8446132Z #20 8.935 Running hooks in /etc/ca-certificates/update.d...
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:29.9995546Z #20 8.939 done.
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:31.0275444Z #20 DONE 10.1s
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:31.0288795Z 
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:31.0290231Z #23 [backend prod-deps 4/4] RUN npm ci --omit=dev --legacy-peer-deps && npm cache clean --force
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:31.0298552Z #23 2.166 npm warn EBADENGINE Unsupported engine {
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:31.0300263Z #23 2.166 npm warn EBADENGINE   package: '@stellar/js-xdr@5.0.0',
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:31.0302781Z #23 2.166 npm warn EBADENGINE   required: { node: '>=22.0.0', pnpm: '>=10.0.0' },
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:31.0312217Z #23 2.166 npm warn EBADENGINE   current: { node: 'v20.20.2', npm: '10.8.2' }
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:31.0314026Z #23 2.166 npm warn EBADENGINE }
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:31.0315029Z #23 2.169 npm warn EBADENGINE Unsupported engine {
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:31.0317758Z #23 2.169 npm warn EBADENGINE   package: '@stellar/stellar-sdk@17.1.0',
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:31.0344654Z #23 2.169 npm warn EBADENGINE   required: { node: '>=22.12.0' },
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:31.0345859Z #23 2.169 npm warn EBADENGINE   current: { node: 'v20.20.2', npm: '10.8.2' }
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:31.0346863Z #23 2.169 npm warn EBADENGINE }
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:31.0347950Z #23 5.764 npm warn deprecated rimraf@3.0.2: Rimraf versions prior to v4 are no longer supported
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:31.0370885Z #23 6.279 npm warn deprecated npmlog@5.0.1: This package is no longer supported.
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:31.1795940Z #23 ...
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:31.1796220Z 
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:31.1800095Z #24 [contracts-init runtime 3/8] RUN curl -fsSL -o /tmp/stellar-cli.tar.gz       "https://github.com/stellar/stellar-cli/releases/download/v30.0.1/stellar-cli-30.0.1-x86_64-unknown-linux-gnu.tar.gz"     && echo "48c70074020e09af0a3ebbd2bf62d53c9aec47935e49a112d3cd90fb4e37658f  /tmp/stellar-cli.tar.gz" | sha256sum -c -     && tar -xzf /tmp/stellar-cli.tar.gz -C /usr/local/bin     && rm -f /tmp/stellar-cli.tar.gz     && stellar --version
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:32.0615126Z #24 1.035 /tmp/stellar-cli.tar.gz: OK
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:32.3562982Z #24 ...
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:32.3563811Z 
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:32.3565497Z #16 [contracts-init builder 1/6] FROM docker.io/library/rust:1.82-slim@sha256:1111c28d995d06a7863ba6cea3b3dcb87bebe65af8ec5517caaf2c8c26f38010
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:32.3567560Z #16 extracting sha256:8ac7bb1afc6bf3ff1243a37703b04f24aa27f670988812d8abaddb6cda713de8 9.1s done
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:32.3568761Z #16 DONE 11.5s
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:32.5073171Z 
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:32.5075078Z #25 [contracts-init builder 2/6] RUN apt-get update && apt-get install -y --no-install-recommends       curl       ca-certificates       jq     && rm -rf /var/lib/apt/lists/*
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:32.8932650Z #25 0.536 Get:1 http://deb.debian.org/debian bookworm InRelease [151 kB]
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:33.0946941Z #25 0.574 Get:2 http://deb.debian.org/debian bookworm-updates InRelease [55.4 kB]
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:33.0948797Z #25 0.587 Get:3 http://deb.debian.org/debian-security bookworm-security InRelease [34.8 kB]
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:33.1251208Z #25 0.768 Get:4 http://deb.debian.org/debian bookworm/main amd64 Packages [8790 kB]
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:33.2982771Z #25 0.941 Get:5 http://deb.debian.org/debian bookworm-updates/main amd64 Packages [6924 B]
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:33.4783580Z #25 1.121 Get:6 http://deb.debian.org/debian-security bookworm-security/main amd64 Packages [381 kB]
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:34.3234708Z #25 ...
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:34.3237322Z 
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:34.3240671Z #24 [contracts-init runtime 3/8] RUN curl -fsSL -o /tmp/stellar-cli.tar.gz       "https://github.com/stellar/stellar-cli/releases/download/v30.0.1/stellar-cli-30.0.1-x86_64-unknown-linux-gnu.tar.gz"     && echo "48c70074020e09af0a3ebbd2bf62d53c9aec47935e49a112d3cd90fb4e37658f  /tmp/stellar-cli.tar.gz" | sha256sum -c -     && tar -xzf /tmp/stellar-cli.tar.gz -C /usr/local/bin     && rm -f /tmp/stellar-cli.tar.gz     && stellar --version
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:34.3244867Z #24 2.580 stellar: error while loading shared libraries: libdbus-1.so.3: cannot open shared object file: No such file or directory
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:34.3249294Z #24 ERROR: process "/bin/sh -c curl -fsSL -o /tmp/stellar-cli.tar.gz       \"https://github.com/stellar/stellar-cli/releases/download/v${STELLAR_CLI_VERSION}/stellar-cli-${STELLAR_CLI_VERSION}-x86_64-unknown-linux-gnu.tar.gz\"     && echo \"${STELLAR_CLI_SHA256}  /tmp/stellar-cli.tar.gz\" | sha256sum -c -     && tar -xzf /tmp/stellar-cli.tar.gz -C /usr/local/bin     && rm -f /tmp/stellar-cli.tar.gz     && stellar --version" did not complete successfully: exit code: 127
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:34.5730561Z 
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:34.5732929Z #25 [contracts-init builder 2/6] RUN apt-get update && apt-get install -y --no-install-recommends       curl       ca-certificates       jq     && rm -rf /var/lib/apt/lists/*
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:34.5735133Z #25 CANCELED
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:34.5735622Z 
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:34.5736412Z #26 [backend deps 4/4] RUN npm ci --legacy-peer-deps
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:34.5738840Z #26 2.076 npm warn EBADENGINE Unsupported engine {
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:34.5742225Z #26 2.076 npm warn EBADENGINE   package: '@stellar/js-xdr@5.0.0',
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:34.5743634Z #26 2.076 npm warn EBADENGINE   required: { node: '>=22.0.0', pnpm: '>=10.0.0' },
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:34.5745889Z #26 2.076 npm warn EBADENGINE   current: { node: 'v20.20.2', npm: '10.8.2' }
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:34.5747334Z #26 2.076 npm warn EBADENGINE }
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:34.5754318Z #26 2.079 npm warn EBADENGINE Unsupported engine {
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:34.5755380Z #26 2.079 npm warn EBADENGINE   package: '@stellar/stellar-sdk@17.1.0',
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:34.5756458Z #26 2.079 npm warn EBADENGINE   required: { node: '>=22.12.0' },
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:34.5757525Z #26 2.079 npm warn EBADENGINE   current: { node: 'v20.20.2', npm: '10.8.2' }
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:34.5758399Z #26 2.079 npm warn EBADENGINE }
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:34.5759789Z #26 8.564 npm warn deprecated rimraf@3.0.2: Rimraf versions prior to v4 are no longer supported
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:34.5762370Z #26 8.577 npm warn deprecated supertest@6.3.4: Please upgrade to supertest v7.1.3+, see release notes at https://github.com/forwardemail/supertest/releases/tag/v7.1.3 - maintenance is supported by Forward Email @ https://forwardemail.net
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:34.5766379Z #26 9.647 npm warn deprecated npmlog@5.0.1: This package is no longer supported.
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:34.6440005Z #26 CANCELED
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:34.6440832Z 
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:34.6442421Z #23 [backend prod-deps 4/4] RUN npm ci --omit=dev --legacy-peer-deps && npm cache clean --force
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:34.6458180Z #23 7.349 npm warn deprecated inflight@1.0.6: This module is not supported, and leaks memory. Do not use it. Check out lru-cache if you want a good and tested way to coalesce async requests by a key value, which is much more comprehensive and powerful.
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:34.6460627Z #23 8.021 npm warn deprecated cache-manager-redis-yet@5.1.5: With cache-manager v6 we now are using Keyv
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:34.6462111Z #23 8.191 npm warn deprecated are-we-there-yet@2.0.0: This package is no longer supported.
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:34.6463587Z #23 8.212 npm warn deprecated gauge@3.0.2: This package is no longer supported.
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:34.6464867Z #23 8.322 npm warn deprecated glob@7.2.3: Glob versions prior to v9 are no longer supported
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:34.6467585Z #23 8.974 npm warn deprecated tar@6.2.1: Old versions of tar are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:34.6474400Z #23 9.635 npm warn deprecated uuid@9.0.1: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:34.6479528Z #23 10.05 npm warn deprecated glob@10.5.0: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:34.6730945Z #23 CANCELED
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:34.6731625Z ------
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:34.6735429Z  > [contracts-init runtime 3/8] RUN curl -fsSL -o /tmp/stellar-cli.tar.gz       "https://github.com/stellar/stellar-cli/releases/download/v30.0.1/stellar-cli-30.0.1-x86_64-unknown-linux-gnu.tar.gz"     && echo "48c70074020e09af0a3ebbd2bf62d53c9aec47935e49a112d3cd90fb4e37658f  /tmp/stellar-cli.tar.gz" | sha256sum -c -     && tar -xzf /tmp/stellar-cli.tar.gz -C /usr/local/bin     && rm -f /tmp/stellar-cli.tar.gz     && stellar --version:
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:34.6750405Z 1.035 /tmp/stellar-cli.tar.gz: OK
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:34.6769868Z 2.580 stellar: error while loading shared libraries: libdbus-1.so.3: cannot open shared object file: No such file or directory
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:34.6780457Z ------
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:34.6866650Z Dockerfile:44
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:34.6867146Z 
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:34.6867557Z --------------------
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:34.6868029Z 
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:34.6868795Z   43 |     ARG STELLAR_CLI_SHA256=48c70074020e09af0a3ebbd2bf62d53c9aec47935e49a112d3cd90fb4e37658f
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:34.6869610Z 
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:34.6870060Z   44 | >>> RUN curl -fsSL -o /tmp/stellar-cli.tar.gz \
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:34.6872054Z 
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:34.6915376Z   45 | >>>       "https://github.com/stellar/stellar-cli/releases/download/v${STELLAR_CLI_VERSION}/stellar-cli-${STELLAR_CLI_VERSION}-x86_64-unknown-linux-gnu.tar.gz" \
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:34.6916710Z 
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:34.6917393Z   46 | >>>     && echo "${STELLAR_CLI_SHA256}  /tmp/stellar-cli.tar.gz" | sha256sum -c - \
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:34.6934173Z 
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:34.6934810Z   47 | >>>     && tar -xzf /tmp/stellar-cli.tar.gz -C /usr/local/bin \
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:34.6935330Z 
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:34.6936058Z   48 | >>>     && rm -f /tmp/stellar-cli.tar.gz \
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:34.6936566Z 
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:34.6936851Z   49 | >>>     && stellar --version
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:34.6937217Z 
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:34.6937381Z   50 |     
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:34.6937558Z 
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:34.6937735Z --------------------
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:34.6937968Z 
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:34.6941599Z target contracts-init: failed to solve: process "/bin/sh -c curl -fsSL -o /tmp/stellar-cli.tar.gz       \"https://github.com/stellar/stellar-cli/releases/download/v${STELLAR_CLI_VERSION}/stellar-cli-${STELLAR_CLI_VERSION}-x86_64-unknown-linux-gnu.tar.gz\"     && echo \"${STELLAR_CLI_SHA256}  /tmp/stellar-cli.tar.gz\" | sha256sum -c -     && tar -xzf /tmp/stellar-cli.tar.gz -C /usr/local/bin     && rm -f /tmp/stellar-cli.tar.gz     && stellar --version" did not complete successfully: exit code: 127
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:34.6945512Z 
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:34.6992339Z ##[error]Process completed with exit code 1.
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:34.7109389Z ##[group]Run actions/upload-artifact@v4
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:34.7109721Z with:
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:34.7109933Z   name: playwright-report
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:34.7110192Z   path: frontend/playwright-report/
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:34.7110461Z   retention-days: 14
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:34.7110685Z   if-no-files-found: warn
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:34.7110916Z   compression-level: 6
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:34.7111127Z   overwrite: false
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:34.7111341Z   include-hidden-files: false
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:34.7111579Z ##[endgroup]
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:34.8976843Z (node:12051) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:34.8978293Z (Use `node --trace-deprecation ...` to show where the warning was created)
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:34.9032510Z ##[warning]No files were found with the provided path: frontend/playwright-report/. No artifacts will be uploaded.
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:34.9268411Z Post job cleanup.
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:35.0372301Z [command]/usr/bin/git version
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:35.0421894Z git version 2.56.1
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:35.0467793Z Temporarily overriding HOME='/home/runner/work/_temp/63f6c5d7-5ede-4309-a81a-2607260cdfeb' before making global git config changes
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:35.0469633Z Adding repository directory to the temporary git global config as a safe directory
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:35.0476670Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/lyricsflip/lyricsflip
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:35.0524186Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:35.0571492Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:35.1117102Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:35.1161601Z http.https://github.com/.extraheader
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:35.1174692Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:35.1235544Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:35.1711270Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:35.1815544Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:35.2348327Z Print service container logs: 3fe62991b2d74e088d280e4a1ad5b826_postgres16_40628e
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:35.2355951Z ##[command]/usr/bin/docker logs --details a1a5a5fdd9cba3de50ead413b76abe9599e129170d14c4f21015f05b5334fc3f
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:35.2592347Z  The files belonging to this database system will be owned by user "postgres".
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:35.2596025Z  initdb: warning: enabling "trust" authentication for local connections
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:35.2597830Z  initdb: hint: You can change this by editing pg_hba.conf or using the option -A, or --auth-local and --auth-host, the next time you run initdb.
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:35.2600317Z  2026-11-26 12:33:19.792 UTC [1] LOG:  starting PostgreSQL 16.16 (Debian 16.16-1.pgdg13+1) on x86_64-pc-linux-gnu, compiled by gcc (Debian 14.2.0-19) 14.2.0, 64-bit
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:35.2602103Z  2026-11-26 12:33:19.793 UTC [1] LOG:  listening on IPv4 address "0.0.0.0", port 5432
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:35.2603235Z  2026-11-26 12:33:19.793 UTC [1] LOG:  listening on IPv6 address "::", port 5432
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:35.2604799Z  2026-11-26 12:33:19.794 UTC [1] LOG:  listening on Unix socket "/var/run/postgresql/.s.PGSQL.5432"
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:35.2606372Z  2026-11-26 12:33:19.797 UTC [64] LOG:  database system was shut down at 2026-11-26 12:33:19 UTC
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:35.2607627Z  2026-11-26 12:33:19.801 UTC [1] LOG:  database system is ready to accept connections
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:35.2608914Z  This user must also own the server process.
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:35.2609668Z  
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:35.2610161Z  The database cluster will be initialized with locale "en_US.utf8".
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:35.2610956Z  The default database encoding has accordingly been set to "UTF8".
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:35.2611703Z  The default text search configuration will be set to "english".
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:35.2612431Z  
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:35.2612779Z  Data page checksums are disabled.
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:35.2613200Z  
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:35.2613861Z  fixing permissions on existing directory /var/lib/postgresql/data ... ok
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:35.2614508Z  creating subdirectories ... ok
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:35.2615018Z  selecting dynamic shared memory implementation ... posix
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:35.2615584Z  selecting default max_connections ... 100
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:35.2616069Z  selecting default shared_buffers ... 128MB
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:35.2616894Z  selecting default time zone ... Etc/UTC
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:35.2617368Z  creating configuration files ... ok
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:35.2617814Z  running bootstrap script ... ok
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:35.2618591Z  performing post-bootstrap initialization ... ok
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:35.2619096Z  syncing data to disk ... ok
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:35.2619464Z  
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:35.2619735Z  
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:35.2620109Z  Success. You can now start the database server using:
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:35.2620598Z  
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:35.2620969Z      pg_ctl -D /var/lib/postgresql/data -l logfile start
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:35.2621446Z  
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:35.2622491Z  waiting for server to start....2026-11-26 12:33:19.477 UTC [48] LOG:  starting PostgreSQL 16.16 (Debian 16.16-1.pgdg13+1) on x86_64-pc-linux-gnu, compiled by gcc (Debian 14.2.0-19) 14.2.0, 64-bit
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:35.2624102Z  2026-11-26 12:33:19.478 UTC [48] LOG:  listening on Unix socket "/var/run/postgresql/.s.PGSQL.5432"
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:35.2625062Z  2026-11-26 12:33:19.481 UTC [51] LOG:  database system was shut down at 2026-11-26 12:33:19 UTC
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:35.2625961Z  2026-11-26 12:33:19.484 UTC [48] LOG:  database system is ready to accept connections
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:35.2626607Z   done
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:35.2626898Z  server started
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:35.2627217Z  CREATE DATABASE
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:35.2627522Z  
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:35.2627795Z  
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:35.2628322Z  /usr/local/bin/docker-entrypoint.sh: ignoring /docker-entrypoint-initdb.d/*
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:35.2628988Z  
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:35.2629826Z  waiting for server to shut down...2026-11-26 12:33:19.670 UTC [48] LOG:  received fast shutdown request
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:35.2631010Z  .2026-11-26 12:33:19.670 UTC [48] LOG:  aborting any active transactions
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:35.2631998Z  2026-11-26 12:33:19.672 UTC [48] LOG:  background worker "logical replication launcher" (PID 54) exited with exit code 1
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:35.2632882Z  2026-11-26 12:33:19.673 UTC [49] LOG:  shutting down
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:35.2633674Z  2026-11-26 12:33:19.674 UTC [49] LOG:  checkpoint starting: shutdown immediate
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:35.2635477Z  2026-11-26 12:33:19.690 UTC [49] LOG:  checkpoint complete: wrote 935 buffers (5.7%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.014 s, sync=0.002 s, total=0.018 s; sync files=301, longest=0.001 s, average=0.001 s; distance=4346 kB, estimate=4346 kB; lsn=0/1943060, redo lsn=0/1943060
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:35.2637910Z  2026-11-26 12:33:19.698 UTC [48] LOG:  database system is shut down
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:35.2638440Z   done
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:35.2638758Z  server stopped
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:35.2639077Z  
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:35.2639420Z  PostgreSQL init process complete; ready for start up.
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:35.2639998Z  
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:35.2650265Z Stop and remove container: 3fe62991b2d74e088d280e4a1ad5b826_postgres16_40628e
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:35.2658893Z ##[command]/usr/bin/docker rm --force a1a5a5fdd9cba3de50ead413b76abe9599e129170d14c4f21015f05b5334fc3f
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:36.0984831Z a1a5a5fdd9cba3de50ead413b76abe9599e129170d14c4f21015f05b5334fc3f
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:36.1004724Z Print service container logs: a2cece9a349d470caf77bb44bcba2806_redis7_c0d801
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:36.1006069Z ##[command]/usr/bin/docker logs --details 9305748c1a07e201aa8b382e0a1d48bfebf00c7405baa8e9cfdfe6c19488529b
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:36.1157941Z  1:C 26 Nov 2026 12:33:21.578 # WARNING Memory overcommit must be enabled! Without it, a background save or replication may fail under low memory condition. Being disabled, it can also cause failures without low memory condition, see https://github.com/jemalloc/jemalloc/issues/1328. To fix this issue add 'vm.overcommit_memory = 1' to /etc/sysctl.conf and then reboot or run the command 'sysctl vm.overcommit_memory=1' for this to take effect.
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:36.1160856Z  1:C 26 Nov 2026 12:33:21.578 * oO0OoO0OoO0Oo Redis is starting oO0OoO0OoO0Oo
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:36.1161535Z  1:C 26 Nov 2026 12:33:21.578 * Redis version=7.4.12, bits=64, commit=00000000, modified=0, pid=1, just started
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:36.1162655Z  1:C 26 Nov 2026 12:33:21.578 # Warning: no config file specified, using the default config. In order to specify a config file use redis-server /path/to/redis.conf
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:36.1163742Z  1:M 26 Nov 2026 12:33:21.579 * monotonic clock: POSIX clock_gettime
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:36.1164629Z  1:M 26 Nov 2026 12:33:21.580 * Running mode=standalone, port=6379.
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:36.1164998Z  1:M 26 Nov 2026 12:33:21.580 * Server initialized
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:36.1165337Z  1:M 26 Nov 2026 12:33:21.580 * Ready to accept connections tcp
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:36.1179026Z Stop and remove container: a2cece9a349d470caf77bb44bcba2806_redis7_c0d801
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:36.1179791Z ##[command]/usr/bin/docker rm --force 9305748c1a07e201aa8b382e0a1d48bfebf00c7405baa8e9cfdfe6c19488529b
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:36.2544113Z 9305748c1a07e201aa8b382e0a1d48bfebf00c7405baa8e9cfdfe6c19488529b
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:36.2574051Z Remove container network: github_network_42e4137e286c4df69ed6254a06242cd6
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:36.2578340Z ##[command]/usr/bin/docker network rm github_network_42e4137e286c4df69ed6254a06242cd6
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:36.3187072Z github_network_42e4137e286c4df69ed6254a06242cd6
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:36.3261982Z Cleaning up orphan processes
+Playwright e2e	UNKNOWN STEP	2026-11-26T12:37:36.4110346Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@v4, actions/setup-node@v4, actions/upload-artifact@v4. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/

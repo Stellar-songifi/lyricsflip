@@ -4,6 +4,7 @@ import { RewardService } from './providers/reward.service';
 
 @Module({
   controllers: [RewardController],
-  providers: [RewardService]
+  providers: [RewardService],
+  exports: [RewardService],
 })
 export class RewardModule {}

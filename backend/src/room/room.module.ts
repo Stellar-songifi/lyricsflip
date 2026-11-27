@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { WsAuthenticator } from '../auth/providers/ws-authenticator.provider';
+import { AuthModule } from '../auth/auth.module';
 import { Player } from '../player/player.entity';
 import { PlayerPresenceService } from './player-presence.service';
 import { PlayerRoom } from './entities/player-room.entity';
@@ -13,7 +13,11 @@ import { RoundGateway } from './round.gateway';
 import { RoundPlayersRepository } from './round-players.repository';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Room, PlayerRoom, Player])],
+  imports: [
+    TypeOrmModule.forFeature([Room, PlayerRoom, Player]),
+    // WsAuthenticator (and the JwtService it needs) lives in AuthModule.
+    AuthModule,
+  ],
   controllers: [RoomController],
   providers: [
     RoomService,
@@ -22,14 +26,12 @@ import { RoundPlayersRepository } from './round-players.repository';
     RoomGateway,
     RoundGateway,
     RoundPlayersRepository,
-    WsAuthenticator,
   ],
   exports: [
     RoomService,
     RoomMembershipService,
     PlayerPresenceService,
     RoundGateway,
-    WsAuthenticator,
   ],
 })
 export class RoomModule {}

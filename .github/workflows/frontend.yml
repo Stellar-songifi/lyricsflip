@@ -18,6 +18,13 @@ jobs:
     defaults:
       run:
         working-directory: frontend
+    env:
+      # Required to boot the backend while exporting its OpenAPI spec.
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/lyricsflip
+      JWT_SECRET: ci-secret
+      JWT_REFRESH_SECRET: ci-refresh-secret
+      STELLAR_NETWORK: testnet
+      NODE_ENV: test
     steps:
       - uses: actions/checkout@v4
 

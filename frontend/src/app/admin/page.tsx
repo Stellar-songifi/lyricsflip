@@ -101,7 +101,6 @@ export default function AdminPage() {
         </div>
       )}
       {isOwner && activeTab === 'owner' ? (
-        <OwnerSettings isOwner walletAddress={account.address} />
         <OwnerSettings isOwner walletAddress={account?.address ?? null} />
       ) : (
         <>

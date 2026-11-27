@@ -1,4 +1,5 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
+import { AuthModule } from '../../auth/auth.module';
 import { GameModule } from '../../game/game.module';
 import { GameResultsModule } from '../../game-results/game-results.module';
 import { GameSessionModule } from '../../game-session/game-session.module';
@@ -23,6 +24,9 @@ import { RoundsReadService } from './providers/rounds-read.service';
     ScoringModule,
     WagerModule,
     RedisModule,
+    // RoundsController is guarded by the exported AccessTokenGuard, which
+    // needs JwtService and CONFIGURATION(jwt) from AuthModule.
+    forwardRef(() => AuthModule),
   ],
   controllers: [RoundsController, RoundsReadController],
   providers: [RoundsReadService],

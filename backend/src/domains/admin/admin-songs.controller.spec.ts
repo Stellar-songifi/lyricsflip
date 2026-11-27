@@ -46,8 +46,8 @@ describe('AdminSongsController', () => {
   });
 
   it('approve delegates to the service', async () => {
-    await controller.approve('1');
-    expect(songsService.approve).toHaveBeenCalledWith('1');
+    await controller.approve('1', 'admin-1');
+    expect(songsService.approveSong).toHaveBeenCalledWith('1', 'admin-1');
   });
 
   it('sync delegates to the sync service', async () => {

@@ -115,7 +115,7 @@ fn create_round_caps_open_lobbies_per_address() {
 
     let rounds = fill_open_lobby_cap(&client, &owner, 1);
     assert_eq!(
-        client.get_open_rounds(&0, &10).len() as u32,
+        client.get_open_rounds(&0, &10).len(),
         MAX_OPEN_ROUNDS_PER_ADDRESS
     );
 

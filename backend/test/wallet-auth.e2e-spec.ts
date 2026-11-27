@@ -96,14 +96,12 @@ class InMemoryRedisService {
 const signBase64 = (keypair: Keypair, message: string): string =>
   Buffer.from(keypair.sign(Buffer.from(message, 'utf8'))).toString('base64');
 
-/** SEP-53: sign SHA-256("Stellar Signed Message:
-" + message). */
+/** SEP-53: sign SHA-256("Stellar Signed Message:\n" + message). */
 const signSep53Base64 = (keypair: Keypair, message: string): string =>
   Buffer.from(
     keypair.sign(
       createHash('sha256')
-        .update('Stellar Signed Message:
-', 'utf8')
+        .update('Stellar Signed Message:\n', 'utf8')
         .update(message, 'utf8')
         .digest(),
     ),

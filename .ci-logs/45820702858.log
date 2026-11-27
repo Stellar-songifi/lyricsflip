@@ -1,0 +1,1593 @@
+build	UNKNOWN STEP	﻿2026-11-26T12:33:11.2764428Z Current runner version: '2.338.2'
+build	UNKNOWN STEP	2026-11-26T12:33:11.2801846Z ##[group]Runner Image Provisioner
+build	UNKNOWN STEP	2026-11-26T12:33:11.2802449Z Hosted Compute Agent
+build	UNKNOWN STEP	2026-11-26T12:33:11.2802939Z Version: 20261111.635
+build	UNKNOWN STEP	2026-11-26T12:33:11.2803400Z Commit: b8a594ea514ff44cadb5342986c68b1eac6e22ed
+build	UNKNOWN STEP	2026-11-26T12:33:11.2803930Z Build Date: 2026-11-11T01:49:01Z
+build	UNKNOWN STEP	2026-11-26T12:33:11.2804401Z Worker ID: {16005b96-6e15-4f82-b16b-d700f672f7a9}
+build	UNKNOWN STEP	2026-11-26T12:33:11.2804881Z Region: us-west-2
+build	UNKNOWN STEP	2026-11-26T12:33:11.2805289Z Cloud: AWS
+build	UNKNOWN STEP	2026-11-26T12:33:11.2805660Z ##[endgroup]
+build	UNKNOWN STEP	2026-11-26T12:33:11.2806593Z ##[group]Operating System
+build	UNKNOWN STEP	2026-11-26T12:33:11.2807183Z Ubuntu
+build	UNKNOWN STEP	2026-11-26T12:33:11.2807551Z 26.04.1
+build	UNKNOWN STEP	2026-11-26T12:33:11.2807957Z LTS
+build	UNKNOWN STEP	2026-11-26T12:33:11.2808561Z ##[endgroup]
+build	UNKNOWN STEP	2026-11-26T12:33:11.2808962Z ##[group]Runner Image
+build	UNKNOWN STEP	2026-11-26T12:33:11.2809399Z Image: ubuntu-26.04
+build	UNKNOWN STEP	2026-11-26T12:33:11.2809806Z Version: 20261116.88.1
+build	UNKNOWN STEP	2026-11-26T12:33:11.2810792Z Included Software: https://github.com/actions/runner-images/blob/ubuntu26/20261116.88/images/ubuntu/Ubuntu2604-Readme.md
+build	UNKNOWN STEP	2026-11-26T12:33:11.2811910Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu26%2F20261116.88
+build	UNKNOWN STEP	2026-11-26T12:33:11.2812583Z ##[endgroup]
+build	UNKNOWN STEP	2026-11-26T12:33:11.2814599Z ##[group]GITHUB_TOKEN Permissions
+build	UNKNOWN STEP	2026-11-26T12:33:11.2816510Z Actions: read
+build	UNKNOWN STEP	2026-11-26T12:33:11.2816910Z ArtifactMetadata: read
+build	UNKNOWN STEP	2026-11-26T12:33:11.2817350Z Attestations: read
+build	UNKNOWN STEP	2026-11-26T12:33:11.2817741Z Checks: read
+build	UNKNOWN STEP	2026-11-26T12:33:11.2818319Z CodeQuality: read
+build	UNKNOWN STEP	2026-11-26T12:33:11.2818731Z Contents: read
+build	UNKNOWN STEP	2026-11-26T12:33:11.2819125Z Deployments: read
+build	UNKNOWN STEP	2026-11-26T12:33:11.2819513Z Discussions: read
+build	UNKNOWN STEP	2026-11-26T12:33:11.2819891Z Drives: read
+build	UNKNOWN STEP	2026-11-26T12:33:11.2820248Z Issues: read
+build	UNKNOWN STEP	2026-11-26T12:33:11.2820643Z Metadata: read
+build	UNKNOWN STEP	2026-11-26T12:33:11.2821123Z Models: read
+build	UNKNOWN STEP	2026-11-26T12:33:11.2821506Z Packages: read
+build	UNKNOWN STEP	2026-11-26T12:33:11.2821884Z Pages: read
+build	UNKNOWN STEP	2026-11-26T12:33:11.2822287Z PullRequests: read
+build	UNKNOWN STEP	2026-11-26T12:33:11.2822710Z RepositoryProjects: read
+build	UNKNOWN STEP	2026-11-26T12:33:11.2823163Z SecurityEvents: read
+build	UNKNOWN STEP	2026-11-26T12:33:11.2823565Z Statuses: read
+build	UNKNOWN STEP	2026-11-26T12:33:11.2823964Z VulnerabilityAlerts: read
+build	UNKNOWN STEP	2026-11-26T12:33:11.2824374Z ##[endgroup]
+build	UNKNOWN STEP	2026-11-26T12:33:11.2826003Z Secret source: None
+build	UNKNOWN STEP	2026-11-26T12:33:11.2826608Z Cache mode: write
+build	UNKNOWN STEP	2026-11-26T12:33:11.2827095Z Prepare workflow directory
+build	UNKNOWN STEP	2026-11-26T12:33:11.3053381Z Prepare all required actions
+build	UNKNOWN STEP	2026-11-26T12:33:11.3089369Z Getting action download info
+build	UNKNOWN STEP	2026-11-26T12:33:11.6948341Z Download action repository 'actions/checkout@v4' (SHA:11d5960a326750d5838078e36cf38b85af677262)
+build	UNKNOWN STEP	2026-11-26T12:33:13.0445184Z Download action repository 'dtolnay/rust-toolchain@stable' (SHA:39008827e6b4319a349e9a42dfc90579dd25f1ca)
+build	UNKNOWN STEP	2026-11-26T12:33:13.2730469Z Download action repository 'Swatinem/rust-cache@v2' (SHA:d1527c8f67ef9af357290475d4af4b0fab8f12e0)
+build	UNKNOWN STEP	2026-11-26T12:33:13.6308192Z Download action repository 'actions/upload-artifact@v4' (SHA:ea165f8d65b6e75b540449e92b4886f43607fa02)
+build	UNKNOWN STEP	2026-11-26T12:33:13.9016717Z Complete job name: build
+build	UNKNOWN STEP	2026-11-26T12:33:13.9633390Z ##[group]Run actions/checkout@v4
+build	UNKNOWN STEP	2026-11-26T12:33:13.9633856Z with:
+build	UNKNOWN STEP	2026-11-26T12:33:13.9634168Z   repository: Stellar-songifi/lyricsflip
+build	UNKNOWN STEP	2026-11-26T12:33:13.9636169Z   token: ***
+build	UNKNOWN STEP	2026-11-26T12:33:13.9636408Z   ssh-strict: true
+build	UNKNOWN STEP	2026-11-26T12:33:13.9636685Z   ssh-user: git
+build	UNKNOWN STEP	2026-11-26T12:33:13.9636950Z   persist-credentials: true
+build	UNKNOWN STEP	2026-11-26T12:33:13.9637232Z   clean: true
+build	UNKNOWN STEP	2026-11-26T12:33:13.9637563Z   sparse-checkout-cone-mode: true
+build	UNKNOWN STEP	2026-11-26T12:33:13.9638276Z   fetch-depth: 1
+build	UNKNOWN STEP	2026-11-26T12:33:13.9638618Z   fetch-tags: false
+build	UNKNOWN STEP	2026-11-26T12:33:13.9638870Z   show-progress: true
+build	UNKNOWN STEP	2026-11-26T12:33:13.9639141Z   lfs: false
+build	UNKNOWN STEP	2026-11-26T12:33:13.9639366Z   submodules: false
+build	UNKNOWN STEP	2026-11-26T12:33:13.9639602Z   set-safe-directory: true
+build	UNKNOWN STEP	2026-11-26T12:33:13.9639907Z   allow-unsafe-pr-checkout: false
+build	UNKNOWN STEP	2026-11-26T12:33:13.9640363Z ##[endgroup]
+build	UNKNOWN STEP	2026-11-26T12:33:16.2148566Z Syncing repository: Stellar-songifi/lyricsflip
+build	UNKNOWN STEP	2026-11-26T12:33:16.2150222Z ##[group]Getting Git version info
+build	UNKNOWN STEP	2026-11-26T12:33:16.2150749Z Working directory is '/home/runner/work/lyricsflip/lyricsflip'
+build	UNKNOWN STEP	2026-11-26T12:33:16.2151762Z [command]/usr/bin/git version
+build	UNKNOWN STEP	2026-11-26T12:33:16.2152034Z git version 2.56.1
+build	UNKNOWN STEP	2026-11-26T12:33:16.2164740Z ##[endgroup]
+build	UNKNOWN STEP	2026-11-26T12:33:16.2176093Z Temporarily overriding HOME='/home/runner/work/_temp/6e0fa6d1-adf7-4f80-8b24-da88f9d621e8' before making global git config changes
+build	UNKNOWN STEP	2026-11-26T12:33:16.2177014Z Adding repository directory to the temporary git global config as a safe directory
+build	UNKNOWN STEP	2026-11-26T12:33:16.2180846Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/lyricsflip/lyricsflip
+build	UNKNOWN STEP	2026-11-26T12:33:16.2583319Z Deleting the contents of '/home/runner/work/lyricsflip/lyricsflip'
+build	UNKNOWN STEP	2026-11-26T12:33:16.2586421Z ##[group]Initializing the repository
+build	UNKNOWN STEP	2026-11-26T12:33:16.2589901Z [command]/usr/bin/git init /home/runner/work/lyricsflip/lyricsflip
+build	UNKNOWN STEP	2026-11-26T12:33:16.2801858Z hint: Using 'master' as the name for the initial branch. This default branch name
+build	UNKNOWN STEP	2026-11-26T12:33:16.2802377Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+build	UNKNOWN STEP	2026-11-26T12:33:16.2802797Z hint: to use in all of your new repositories, which will suppress this warning,
+build	UNKNOWN STEP	2026-11-26T12:33:16.2803115Z hint: call:
+build	UNKNOWN STEP	2026-11-26T12:33:16.2803264Z hint:
+build	UNKNOWN STEP	2026-11-26T12:33:16.2803489Z hint: 	git config --global init.defaultBranch <name>
+build	UNKNOWN STEP	2026-11-26T12:33:16.2803713Z hint:
+build	UNKNOWN STEP	2026-11-26T12:33:16.2803951Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+build	UNKNOWN STEP	2026-11-26T12:33:16.2804323Z hint: 'development'. The just-created branch can be renamed via this command:
+build	UNKNOWN STEP	2026-11-26T12:33:16.2804591Z hint:
+build	UNKNOWN STEP	2026-11-26T12:33:16.2804752Z hint: 	git branch -m <name>
+build	UNKNOWN STEP	2026-11-26T12:33:16.2804925Z hint:
+build	UNKNOWN STEP	2026-11-26T12:33:16.2805176Z hint: Disable this message with "git config set advice.defaultBranchName false"
+build	UNKNOWN STEP	2026-11-26T12:33:16.2831957Z Initialized empty Git repository in /home/runner/work/lyricsflip/lyricsflip/.git/
+build	UNKNOWN STEP	2026-11-26T12:33:16.2840100Z [command]/usr/bin/git remote add origin https://github.com/Stellar-songifi/lyricsflip
+build	UNKNOWN STEP	2026-11-26T12:33:16.2918163Z ##[endgroup]
+build	UNKNOWN STEP	2026-11-26T12:33:16.2918664Z ##[group]Disabling automatic garbage collection
+build	UNKNOWN STEP	2026-11-26T12:33:16.2921410Z [command]/usr/bin/git config --local gc.auto 0
+build	UNKNOWN STEP	2026-11-26T12:33:16.2944110Z ##[endgroup]
+build	UNKNOWN STEP	2026-11-26T12:33:16.2944766Z ##[group]Setting up auth
+build	UNKNOWN STEP	2026-11-26T12:33:16.2948827Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+build	UNKNOWN STEP	2026-11-26T12:33:16.2971473Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+build	UNKNOWN STEP	2026-11-26T12:33:16.5570796Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+build	UNKNOWN STEP	2026-11-26T12:33:16.5600110Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+build	UNKNOWN STEP	2026-11-26T12:33:16.5775338Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+build	UNKNOWN STEP	2026-11-26T12:33:16.5797497Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+build	UNKNOWN STEP	2026-11-26T12:33:16.5975183Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+build	UNKNOWN STEP	2026-11-26T12:33:16.5999526Z ##[endgroup]
+build	UNKNOWN STEP	2026-11-26T12:33:16.5999836Z ##[group]Fetching the repository
+build	UNKNOWN STEP	2026-11-26T12:33:16.6005205Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +f71c66b7d1173f73967dfdcb2decd57ecf0e59aa:refs/remotes/pull/1031/merge
+build	UNKNOWN STEP	2026-11-26T12:33:17.2906900Z From https://github.com/Stellar-songifi/lyricsflip
+build	UNKNOWN STEP	2026-11-26T12:33:17.2907410Z  * [new ref]         f71c66b7d1173f73967dfdcb2decd57ecf0e59aa -> pull/1031/merge
+build	UNKNOWN STEP	2026-11-26T12:33:17.2911900Z ##[endgroup]
+build	UNKNOWN STEP	2026-11-26T12:33:17.2912335Z ##[group]Determining the checkout info
+build	UNKNOWN STEP	2026-11-26T12:33:17.2913654Z ##[endgroup]
+build	UNKNOWN STEP	2026-11-26T12:33:17.2918325Z [command]/usr/bin/git sparse-checkout disable
+build	UNKNOWN STEP	2026-11-26T12:33:17.2999386Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+build	UNKNOWN STEP	2026-11-26T12:33:17.3005172Z ##[group]Checking out the ref
+build	UNKNOWN STEP	2026-11-26T12:33:17.3009359Z [command]/usr/bin/git checkout --progress --force refs/remotes/pull/1031/merge
+build	UNKNOWN STEP	2026-11-26T12:33:17.3447873Z Note: switching to 'refs/remotes/pull/1031/merge'.
+build	UNKNOWN STEP	2026-11-26T12:33:17.3448302Z 
+build	UNKNOWN STEP	2026-11-26T12:33:17.3448526Z You are in 'detached HEAD' state. You can look around, make experimental
+build	UNKNOWN STEP	2026-11-26T12:33:17.3448894Z changes and commit them, and you can discard any commits you make in this
+build	UNKNOWN STEP	2026-11-26T12:33:17.3449314Z state without impacting any branches by switching back to a branch.
+build	UNKNOWN STEP	2026-11-26T12:33:17.3449569Z 
+build	UNKNOWN STEP	2026-11-26T12:33:17.3449729Z If you want to create a new branch to retain commits you create, you may
+build	UNKNOWN STEP	2026-11-26T12:33:17.3450090Z do so (now or later) by using -c with the switch command. Example:
+build	UNKNOWN STEP	2026-11-26T12:33:17.3450301Z 
+build	UNKNOWN STEP	2026-11-26T12:33:17.3450401Z   git switch -c <new-branch-name>
+build	UNKNOWN STEP	2026-11-26T12:33:17.3450526Z 
+build	UNKNOWN STEP	2026-11-26T12:33:17.3450609Z Or undo this operation with:
+build	UNKNOWN STEP	2026-11-26T12:33:17.3450799Z 
+build	UNKNOWN STEP	2026-11-26T12:33:17.3450887Z   git switch -
+build	UNKNOWN STEP	2026-11-26T12:33:17.3450980Z 
+build	UNKNOWN STEP	2026-11-26T12:33:17.3451160Z Turn off this advice by setting config variable advice.detachedHead to false
+build	UNKNOWN STEP	2026-11-26T12:33:17.3451379Z 
+build	UNKNOWN STEP	2026-11-26T12:33:17.3451626Z HEAD is now at f71c66b Merge a8e6e3a87cab92dbed2d6f0f6c1fe952d234aba5 into b3ea2d2ed7657939c2882d191b8edc2272586ee3
+build	UNKNOWN STEP	2026-11-26T12:33:17.3462093Z ##[endgroup]
+build	UNKNOWN STEP	2026-11-26T12:33:17.3513925Z [command]/usr/bin/git log -1 --format=%H
+build	UNKNOWN STEP	2026-11-26T12:33:17.3531159Z f71c66b7d1173f73967dfdcb2decd57ecf0e59aa
+build	UNKNOWN STEP	2026-11-26T12:33:17.3794349Z ##[group]Run dtolnay/rust-toolchain@stable
+build	UNKNOWN STEP	2026-11-26T12:33:17.3794566Z with:
+build	UNKNOWN STEP	2026-11-26T12:33:17.3794753Z   targets: wasm32v1-none
+build	UNKNOWN STEP	2026-11-26T12:33:17.3794929Z   components: rustfmt, clippy
+build	UNKNOWN STEP	2026-11-26T12:33:17.3795105Z   toolchain: stable
+build	UNKNOWN STEP	2026-11-26T12:33:17.3795254Z ##[endgroup]
+build	UNKNOWN STEP	2026-11-26T12:33:17.3851034Z ##[start-action display=Parse toolchain version;id=__dtolnay_rust-toolchain.parse]
+build	UNKNOWN STEP	2026-11-26T12:33:17.3898682Z ##[group]Run if [[ -z $toolchain ]]; then
+build	UNKNOWN STEP	2026-11-26T12:33:17.3899099Z ^[[36;1mif [[ -z $toolchain ]]; then^[[0m
+build	UNKNOWN STEP	2026-11-26T12:33:17.3899542Z ^[[36;1m  # GitHub does not enforce `required: true` inputs itself. https://github.com/actions/runner/issues/1070^[[0m
+build	UNKNOWN STEP	2026-11-26T12:33:17.3899993Z ^[[36;1m  echo "'toolchain' is a required input" >&2^[[0m
+build	UNKNOWN STEP	2026-11-26T12:33:17.3900299Z ^[[36;1m  exit 1^[[0m
+build	UNKNOWN STEP	2026-11-26T12:33:17.3900624Z ^[[36;1melif [[ $toolchain =~ ^stable' '[0-9]+' '(year|month|week|day)s?' 'ago$ ]]; then^[[0m
+build	UNKNOWN STEP	2026-11-26T12:33:17.3901066Z ^[[36;1m  if [[ Linux == macOS ]]; then^[[0m
+build	UNKNOWN STEP	2026-11-26T12:33:17.3901513Z ^[[36;1m    echo "toolchain=1.$((($(date -v-$(sed 's/stable \([0-9]*\) \(.\).*/\1\2/' <<< $toolchain) +%s)/60/60/24-16569)/7/6))" >> $GITHUB_OUTPUT^[[0m
+build	UNKNOWN STEP	2026-11-26T12:33:17.3901969Z ^[[36;1m  else^[[0m
+build	UNKNOWN STEP	2026-11-26T12:33:17.3902322Z ^[[36;1m    echo "toolchain=1.$((($(date --date "${toolchain#stable }" +%s)/60/60/24-16569)/7/6))" >> $GITHUB_OUTPUT^[[0m
+build	UNKNOWN STEP	2026-11-26T12:33:17.3902702Z ^[[36;1m  fi^[[0m
+build	UNKNOWN STEP	2026-11-26T12:33:17.3902988Z ^[[36;1melif [[ $toolchain =~ ^stable' 'minus' '[0-9]+' 'releases?$ ]]; then^[[0m
+build	UNKNOWN STEP	2026-11-26T12:33:17.3903427Z ^[[36;1m  echo "toolchain=1.$((($(date +%s)/60/60/24-16569)/7/6-${toolchain//[^0-9]/}))" >> $GITHUB_OUTPUT^[[0m
+build	UNKNOWN STEP	2026-11-26T12:33:17.3903862Z ^[[36;1melif [[ $toolchain =~ ^1\.[0-9]+$ ]]; then^[[0m
+build	UNKNOWN STEP	2026-11-26T12:33:17.3904288Z ^[[36;1m  echo "toolchain=1.$((i=${toolchain#1.}, c=($(date +%s)/60/60/24-16569)/7/6, i+9*i*(10*i<=c)+90*i*(100*i<=c)))" >> $GITHUB_OUTPUT^[[0m
+build	UNKNOWN STEP	2026-11-26T12:33:17.3904702Z ^[[36;1melse^[[0m
+build	UNKNOWN STEP	2026-11-26T12:33:17.3904966Z ^[[36;1m  delimiter=EOF^[[0m
+build	UNKNOWN STEP	2026-11-26T12:33:17.3905299Z ^[[36;1m  while [[ $toolchain == *$delimiter* ]]; do delimiter+=_; done^[[0m
+build	UNKNOWN STEP	2026-11-26T12:33:17.3905754Z ^[[36;1m  printf 'toolchain<<%s\n%s\n%s\n' "$delimiter" "$toolchain" "$delimiter" >> $GITHUB_OUTPUT^[[0m
+build	UNKNOWN STEP	2026-11-26T12:33:17.3906108Z ^[[36;1mfi^[[0m
+build	UNKNOWN STEP	2026-11-26T12:33:17.3928162Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+build	UNKNOWN STEP	2026-11-26T12:33:17.3928595Z env:
+build	UNKNOWN STEP	2026-11-26T12:33:17.3928752Z   toolchain: stable
+build	UNKNOWN STEP	2026-11-26T12:33:17.3928914Z ##[endgroup]
+build	UNKNOWN STEP	2026-11-26T12:33:17.4005420Z ##[end-action id=__dtolnay_rust-toolchain.parse;outcome=success;conclusion=success;duration_ms=15]
+build	UNKNOWN STEP	2026-11-26T12:33:17.4008843Z ##[start-action display=Set $CARGO_HOME;id=__dtolnay_rust-toolchain.__run]
+build	UNKNOWN STEP	2026-11-26T12:33:17.4034245Z ##[group]Run echo CARGO_HOME=${CARGO_HOME:-"$HOME/.cargo"} >> $GITHUB_ENV
+build	UNKNOWN STEP	2026-11-26T12:33:17.4034599Z ^[[36;1mecho CARGO_HOME=${CARGO_HOME:-"$HOME/.cargo"} >> $GITHUB_ENV^[[0m
+build	UNKNOWN STEP	2026-11-26T12:33:17.4050817Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+build	UNKNOWN STEP	2026-11-26T12:33:17.4051067Z ##[endgroup]
+build	UNKNOWN STEP	2026-11-26T12:33:17.4084806Z ##[end-action id=__dtolnay_rust-toolchain.__run;outcome=success;conclusion=success;duration_ms=7]
+build	UNKNOWN STEP	2026-11-26T12:33:17.4086497Z ##[start-action display=Install rustup if needed;id=__dtolnay_rust-toolchain.__run_2]
+build	UNKNOWN STEP	2026-11-26T12:33:17.4106586Z ##[group]Run if ! command -v rustup &>/dev/null; then
+build	UNKNOWN STEP	2026-11-26T12:33:17.4106867Z ^[[36;1mif ! command -v rustup &>/dev/null; then^[[0m
+build	UNKNOWN STEP	2026-11-26T12:33:17.4107402Z ^[[36;1m  curl --proto '=https' --tlsv1.2 --retry 10 --retry-connrefused --location --silent --show-error --fail https://sh.rustup.rs | sh -s -- --default-toolchain none -y^[[0m
+build	UNKNOWN STEP	2026-11-26T12:33:17.4107904Z ^[[36;1m  echo "$CARGO_HOME/bin" >> $GITHUB_PATH^[[0m
+build	UNKNOWN STEP	2026-11-26T12:33:17.4108293Z ^[[36;1mfi^[[0m
+build	UNKNOWN STEP	2026-11-26T12:33:17.4121681Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+build	UNKNOWN STEP	2026-11-26T12:33:17.4121917Z env:
+build	UNKNOWN STEP	2026-11-26T12:33:17.4122073Z   CARGO_HOME: /home/runner/.cargo
+build	UNKNOWN STEP	2026-11-26T12:33:17.4122250Z ##[endgroup]
+build	UNKNOWN STEP	2026-11-26T12:33:17.4153078Z ##[end-action id=__dtolnay_rust-toolchain.__run_2;outcome=success;conclusion=success;duration_ms=6]
+build	UNKNOWN STEP	2026-11-26T12:33:17.4154855Z ##[start-action display=Install rustup if needed on windows;id=__dtolnay_rust-toolchain.__run_3]
+build	UNKNOWN STEP	2026-11-26T12:33:17.4159941Z ##[end-action id=__dtolnay_rust-toolchain.__run_3;outcome=skipped;conclusion=skipped;duration_ms=0]
+build	UNKNOWN STEP	2026-11-26T12:33:17.4170389Z ##[start-action display=rustup toolchain install stable;id=__dtolnay_rust-toolchain.__run_4]
+build	UNKNOWN STEP	2026-11-26T12:33:17.4185405Z ##[group]Run set -f  # split targets and components on commas and whitespace, without glob expansion
+build	UNKNOWN STEP	2026-11-26T12:33:17.4185879Z ^[[36;1mset -f  # split targets and components on commas and whitespace, without glob expansion^[[0m
+build	UNKNOWN STEP	2026-11-26T12:33:17.4186186Z ^[[36;1mflags=()^[[0m
+build	UNKNOWN STEP	2026-11-26T12:33:17.4186390Z ^[[36;1mfor t in ${targets//,/ }; do flags+=(--target "$t"); done^[[0m
+build	UNKNOWN STEP	2026-11-26T12:33:17.4186678Z ^[[36;1mfor c in ${components//,/ }; do flags+=(--component "$c"); done^[[0m
+build	UNKNOWN STEP	2026-11-26T12:33:17.4187044Z ^[[36;1mif [[ $toolchain == nightly && -n $components ]]; then flags+=(--allow-downgrade); fi^[[0m
+build	UNKNOWN STEP	2026-11-26T12:33:17.4187400Z ^[[36;1mlog=$(mktemp)^[[0m
+build	UNKNOWN STEP	2026-11-26T12:33:17.4187575Z ^[[36;1mtrap 'rm -f "$log"' EXIT^[[0m
+build	UNKNOWN STEP	2026-11-26T12:33:17.4187766Z ^[[36;1mfor attempt in 1 2 3 4 5; do^[[0m
+build	UNKNOWN STEP	2026-11-26T12:33:17.4188338Z ^[[36;1m  if rustup toolchain install "$toolchain" "${flags[@]}" --profile minimal --no-self-update --force-non-host 2>&1 | tee "$log"; then^[[0m
+build	UNKNOWN STEP	2026-11-26T12:33:17.4188734Z ^[[36;1m    break^[[0m
+build	UNKNOWN STEP	2026-11-26T12:33:17.4188885Z ^[[36;1m  else^[[0m
+build	UNKNOWN STEP	2026-11-26T12:33:17.4189036Z ^[[36;1m    status=$?^[[0m
+build	UNKNOWN STEP	2026-11-26T12:33:17.4189196Z ^[[36;1m  fi^[[0m
+build	UNKNOWN STEP	2026-11-26T12:33:17.4189415Z ^[[36;1m  if [[ $attempt == 5 ]] || ! grep -Fq 'checksum failed for ' "$log" \^[[0m
+build	UNKNOWN STEP	2026-11-26T12:33:17.4189804Z ^[[36;1m      || ! grep -Fq 'this is likely due to an ongoing update of the official release server' "$log"; then^[[0m
+build	UNKNOWN STEP	2026-11-26T12:33:17.4190117Z ^[[36;1m    exit "$status"^[[0m
+build	UNKNOWN STEP	2026-11-26T12:33:17.4190284Z ^[[36;1m  fi^[[0m
+build	UNKNOWN STEP	2026-11-26T12:33:17.4190538Z ^[[36;1m  echo "Retrying rustup toolchain install in 30 seconds (retry $attempt of 4)" >&2^[[0m
+build	UNKNOWN STEP	2026-11-26T12:33:17.4190830Z ^[[36;1m  sleep 30^[[0m
+build	UNKNOWN STEP	2026-11-26T12:33:17.4190981Z ^[[36;1mdone^[[0m
+build	UNKNOWN STEP	2026-11-26T12:33:17.4204149Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+build	UNKNOWN STEP	2026-11-26T12:33:17.4204539Z env:
+build	UNKNOWN STEP	2026-11-26T12:33:17.4204698Z   CARGO_HOME: /home/runner/.cargo
+build	UNKNOWN STEP	2026-11-26T12:33:17.4204888Z   toolchain: stable
+build	UNKNOWN STEP	2026-11-26T12:33:17.4205055Z   targets: wasm32v1-none
+build	UNKNOWN STEP	2026-11-26T12:33:17.4205237Z   components: rustfmt, clippy
+build	UNKNOWN STEP	2026-11-26T12:33:17.4205420Z   RUSTUP_PERMIT_COPY_RENAME: 1
+build	UNKNOWN STEP	2026-11-26T12:33:17.4205666Z ##[endgroup]
+build	UNKNOWN STEP	2026-11-26T12:33:20.6703673Z info: syncing channel updates for stable-x86_64-unknown-linux-gnu
+build	UNKNOWN STEP	2026-11-26T12:33:21.0265185Z info: latest update on 2026-11-12 for version 1.100.0 (0ef1bc386 2026-11-09)
+build	UNKNOWN STEP	2026-11-26T12:33:21.0371533Z info: component clippy is up to date
+build	UNKNOWN STEP	2026-11-26T12:33:21.0371925Z info: component rustfmt is up to date
+build	UNKNOWN STEP	2026-11-26T12:33:21.0374057Z info: downloading component rust-std
+build	UNKNOWN STEP	2026-11-26T12:33:22.0756984Z 
+build	UNKNOWN STEP	2026-11-26T12:33:22.0819779Z   stable-x86_64-unknown-linux-gnu updated - rustc 1.100.0 (0ef1bc386 2026-11-09) (from rustc 1.100.0 (0ef1bc386 2026-11-09))
+build	UNKNOWN STEP	2026-11-26T12:33:22.0820237Z 
+build	UNKNOWN STEP	2026-11-26T12:33:22.0857504Z ##[end-action id=__dtolnay_rust-toolchain.__run_4;outcome=success;conclusion=success;duration_ms=4668]
+build	UNKNOWN STEP	2026-11-26T12:33:22.0863565Z ##[start-action display=rustup default stable;id=__dtolnay_rust-toolchain.__run_5]
+build	UNKNOWN STEP	2026-11-26T12:33:22.0877732Z ##[group]Run rustup default "$toolchain" --force-non-host
+build	UNKNOWN STEP	2026-11-26T12:33:22.0878214Z ^[[36;1mrustup default "$toolchain" --force-non-host^[[0m
+build	UNKNOWN STEP	2026-11-26T12:33:22.0896549Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+build	UNKNOWN STEP	2026-11-26T12:33:22.0896796Z env:
+build	UNKNOWN STEP	2026-11-26T12:33:22.0896959Z   CARGO_HOME: /home/runner/.cargo
+build	UNKNOWN STEP	2026-11-26T12:33:22.0897147Z   toolchain: stable
+build	UNKNOWN STEP	2026-11-26T12:33:22.0897309Z ##[endgroup]
+build	UNKNOWN STEP	2026-11-26T12:33:22.0964159Z info: using existing install for stable-x86_64-unknown-linux-gnu
+build	UNKNOWN STEP	2026-11-26T12:33:22.0967798Z info: default toolchain set to stable-x86_64-unknown-linux-gnu
+build	UNKNOWN STEP	2026-11-26T12:33:22.0968230Z 
+build	UNKNOWN STEP	2026-11-26T12:33:22.1022981Z   stable-x86_64-unknown-linux-gnu unchanged - rustc 1.100.0 (0ef1bc386 2026-11-09)
+build	UNKNOWN STEP	2026-11-26T12:33:22.1023310Z 
+build	UNKNOWN STEP	2026-11-26T12:33:22.1033283Z ##[end-action id=__dtolnay_rust-toolchain.__run_5;outcome=success;conclusion=success;duration_ms=16]
+build	UNKNOWN STEP	2026-11-26T12:33:22.1036088Z ##[start-action display=Create cachekey;id=__dtolnay_rust-toolchain.rustc-version]
+build	UNKNOWN STEP	2026-11-26T12:33:22.1048736Z ##[group]Run DATE=$(rustc +"$toolchain" --version --verbose | sed -ne 's/^commit-date: \(20[0-9][0-9]\)-\([01][0-9]\)-\([0-3][0-9]\)$/\1\2\3/p')
+build	UNKNOWN STEP	2026-11-26T12:33:22.1049396Z ^[[36;1mDATE=$(rustc +"$toolchain" --version --verbose | sed -ne 's/^commit-date: \(20[0-9][0-9]\)-\([01][0-9]\)-\([0-3][0-9]\)$/\1\2\3/p')^[[0m
+build	UNKNOWN STEP	2026-11-26T12:33:22.1049864Z ^[[36;1mHASH=$(rustc +"$toolchain" --version --verbose | sed -ne 's/^commit-hash: //p')^[[0m
+build	UNKNOWN STEP	2026-11-26T12:33:22.1050238Z ^[[36;1mecho "cachekey=$(echo $DATE$HASH | head -c12)" >> $GITHUB_OUTPUT^[[0m
+build	UNKNOWN STEP	2026-11-26T12:33:22.1064699Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+build	UNKNOWN STEP	2026-11-26T12:33:22.1064937Z env:
+build	UNKNOWN STEP	2026-11-26T12:33:22.1065103Z   CARGO_HOME: /home/runner/.cargo
+build	UNKNOWN STEP	2026-11-26T12:33:22.1065288Z   toolchain: stable
+build	UNKNOWN STEP	2026-11-26T12:33:22.1065453Z ##[endgroup]
+build	UNKNOWN STEP	2026-11-26T12:33:22.1634933Z ##[end-action id=__dtolnay_rust-toolchain.rustc-version;outcome=success;conclusion=success;duration_ms=59]
+build	UNKNOWN STEP	2026-11-26T12:33:22.1636801Z ##[start-action display=Disable incremental compilation;id=__dtolnay_rust-toolchain.__run_6]
+build	UNKNOWN STEP	2026-11-26T12:33:22.1650330Z ##[group]Run if [ -z "${CARGO_INCREMENTAL+set}" ]; then
+build	UNKNOWN STEP	2026-11-26T12:33:22.1650615Z ^[[36;1mif [ -z "${CARGO_INCREMENTAL+set}" ]; then^[[0m
+build	UNKNOWN STEP	2026-11-26T12:33:22.1650851Z ^[[36;1m  echo CARGO_INCREMENTAL=0 >> $GITHUB_ENV^[[0m
+build	UNKNOWN STEP	2026-11-26T12:33:22.1651054Z ^[[36;1mfi^[[0m
+build	UNKNOWN STEP	2026-11-26T12:33:22.1665297Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+build	UNKNOWN STEP	2026-11-26T12:33:22.1665540Z env:
+build	UNKNOWN STEP	2026-11-26T12:33:22.1665712Z   CARGO_HOME: /home/runner/.cargo
+build	UNKNOWN STEP	2026-11-26T12:33:22.1665899Z ##[endgroup]
+build	UNKNOWN STEP	2026-11-26T12:33:22.1697837Z ##[end-action id=__dtolnay_rust-toolchain.__run_6;outcome=success;conclusion=success;duration_ms=6]
+build	UNKNOWN STEP	2026-11-26T12:33:22.1699945Z ##[start-action display=Enable colors in Cargo output;id=__dtolnay_rust-toolchain.__run_7]
+build	UNKNOWN STEP	2026-11-26T12:33:22.1712571Z ##[group]Run if [ -z "${CARGO_TERM_COLOR+set}" ]; then
+build	UNKNOWN STEP	2026-11-26T12:33:22.1712843Z ^[[36;1mif [ -z "${CARGO_TERM_COLOR+set}" ]; then^[[0m
+build	UNKNOWN STEP	2026-11-26T12:33:22.1713094Z ^[[36;1m  echo CARGO_TERM_COLOR=always >> $GITHUB_ENV^[[0m
+build	UNKNOWN STEP	2026-11-26T12:33:22.1713319Z ^[[36;1mfi^[[0m
+build	UNKNOWN STEP	2026-11-26T12:33:22.1726568Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+build	UNKNOWN STEP	2026-11-26T12:33:22.1726827Z env:
+build	UNKNOWN STEP	2026-11-26T12:33:22.1726994Z   CARGO_HOME: /home/runner/.cargo
+build	UNKNOWN STEP	2026-11-26T12:33:22.1727190Z   CARGO_INCREMENTAL: 0
+build	UNKNOWN STEP	2026-11-26T12:33:22.1727353Z ##[endgroup]
+build	UNKNOWN STEP	2026-11-26T12:33:22.1758481Z ##[end-action id=__dtolnay_rust-toolchain.__run_7;outcome=success;conclusion=success;duration_ms=5]
+build	UNKNOWN STEP	2026-11-26T12:33:22.1761326Z ##[start-action display=Enable Cargo sparse registry;id=__dtolnay_rust-toolchain.__run_8]
+build	UNKNOWN STEP	2026-11-26T12:33:22.1775218Z ##[group]Run # implemented in 1.66, stabilized in 1.68, made default in 1.70
+build	UNKNOWN STEP	2026-11-26T12:33:22.1775578Z ^[[36;1m# implemented in 1.66, stabilized in 1.68, made default in 1.70^[[0m
+build	UNKNOWN STEP	2026-11-26T12:33:22.1776080Z ^[[36;1mif [ -z "${CARGO_REGISTRIES_CRATES_IO_PROTOCOL+set}" -o -f "/home/runner/work/_temp"/.implicit_cargo_registries_crates_io_protocol ]; then^[[0m
+build	UNKNOWN STEP	2026-11-26T12:33:22.1776598Z ^[[36;1m  if rustc +"$toolchain" --version --verbose | grep -q '^release: 1\.6[89]\.'; then^[[0m
+build	UNKNOWN STEP	2026-11-26T12:33:22.1777015Z ^[[36;1m    touch "/home/runner/work/_temp"/.implicit_cargo_registries_crates_io_protocol || true^[[0m
+build	UNKNOWN STEP	2026-11-26T12:33:22.1777387Z ^[[36;1m    echo CARGO_REGISTRIES_CRATES_IO_PROTOCOL=sparse >> $GITHUB_ENV^[[0m
+build	UNKNOWN STEP	2026-11-26T12:33:22.1777746Z ^[[36;1m  elif rustc +"$toolchain" --version --verbose | grep -q '^release: 1\.6[67]\.'; then^[[0m
+build	UNKNOWN STEP	2026-11-26T12:33:22.1778544Z ^[[36;1m    touch "/home/runner/work/_temp"/.implicit_cargo_registries_crates_io_protocol || true^[[0m
+build	UNKNOWN STEP	2026-11-26T12:33:22.1778908Z ^[[36;1m    echo CARGO_REGISTRIES_CRATES_IO_PROTOCOL=git >> $GITHUB_ENV^[[0m
+build	UNKNOWN STEP	2026-11-26T12:33:22.1779156Z ^[[36;1m  fi^[[0m
+build	UNKNOWN STEP	2026-11-26T12:33:22.1779299Z ^[[36;1mfi^[[0m
+build	UNKNOWN STEP	2026-11-26T12:33:22.1791491Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+build	UNKNOWN STEP	2026-11-26T12:33:22.1791735Z env:
+build	UNKNOWN STEP	2026-11-26T12:33:22.1791892Z   CARGO_HOME: /home/runner/.cargo
+build	UNKNOWN STEP	2026-11-26T12:33:22.1792127Z   CARGO_INCREMENTAL: 0
+build	UNKNOWN STEP	2026-11-26T12:33:22.1792306Z   CARGO_TERM_COLOR: always
+build	UNKNOWN STEP	2026-11-26T12:33:22.1792474Z   toolchain: stable
+build	UNKNOWN STEP	2026-11-26T12:33:22.1792627Z ##[endgroup]
+build	UNKNOWN STEP	2026-11-26T12:33:22.1994162Z ##[end-action id=__dtolnay_rust-toolchain.__run_8;outcome=success;conclusion=success;duration_ms=23]
+build	UNKNOWN STEP	2026-11-26T12:33:22.1996817Z ##[start-action display=Work around spurious network errors in curl 8.0;id=__dtolnay_rust-toolchain.__run_9]
+build	UNKNOWN STEP	2026-11-26T12:33:22.2009332Z ##[group]Run # https://rust-lang.zulipchat.com/#narrow/stream/246057-t-cargo/topic/timeout.20investigation
+build	UNKNOWN STEP	2026-11-26T12:33:22.2009863Z ^[[36;1m# https://rust-lang.zulipchat.com/#narrow/stream/246057-t-cargo/topic/timeout.20investigation^[[0m
+build	UNKNOWN STEP	2026-11-26T12:33:22.2010307Z ^[[36;1mif rustc +"$toolchain" --version --verbose | grep -q '^release: 1\.7[01]\.'; then^[[0m
+build	UNKNOWN STEP	2026-11-26T12:33:22.2010656Z ^[[36;1m  echo CARGO_HTTP_MULTIPLEXING=false >> $GITHUB_ENV^[[0m
+build	UNKNOWN STEP	2026-11-26T12:33:22.2010881Z ^[[36;1mfi^[[0m
+build	UNKNOWN STEP	2026-11-26T12:33:22.2023747Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+build	UNKNOWN STEP	2026-11-26T12:33:22.2023995Z env:
+build	UNKNOWN STEP	2026-11-26T12:33:22.2024156Z   CARGO_HOME: /home/runner/.cargo
+build	UNKNOWN STEP	2026-11-26T12:33:22.2024351Z   CARGO_INCREMENTAL: 0
+build	UNKNOWN STEP	2026-11-26T12:33:22.2024528Z   CARGO_TERM_COLOR: always
+build	UNKNOWN STEP	2026-11-26T12:33:22.2024699Z   toolchain: stable
+build	UNKNOWN STEP	2026-11-26T12:33:22.2024859Z ##[endgroup]
+build	UNKNOWN STEP	2026-11-26T12:33:22.2137110Z ##[end-action id=__dtolnay_rust-toolchain.__run_9;outcome=success;conclusion=success;duration_ms=13]
+build	UNKNOWN STEP	2026-11-26T12:33:22.2140555Z ##[start-action display=rustc +stable --version --verbose;id=__dtolnay_rust-toolchain.__run_10]
+build	UNKNOWN STEP	2026-11-26T12:33:22.2152579Z ##[group]Run rustc +"$toolchain" --version --verbose
+build	UNKNOWN STEP	2026-11-26T12:33:22.2152847Z ^[[36;1mrustc +"$toolchain" --version --verbose^[[0m
+build	UNKNOWN STEP	2026-11-26T12:33:22.2165764Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+build	UNKNOWN STEP	2026-11-26T12:33:22.2166132Z env:
+build	UNKNOWN STEP	2026-11-26T12:33:22.2166292Z   CARGO_HOME: /home/runner/.cargo
+build	UNKNOWN STEP	2026-11-26T12:33:22.2166483Z   CARGO_INCREMENTAL: 0
+build	UNKNOWN STEP	2026-11-26T12:33:22.2166663Z   CARGO_TERM_COLOR: always
+build	UNKNOWN STEP	2026-11-26T12:33:22.2166835Z   toolchain: stable
+build	UNKNOWN STEP	2026-11-26T12:33:22.2166991Z ##[endgroup]
+build	UNKNOWN STEP	2026-11-26T12:33:22.2264090Z rustc 1.100.0 (0ef1bc386 2026-11-09)
+build	UNKNOWN STEP	2026-11-26T12:33:22.2264887Z binary: rustc
+build	UNKNOWN STEP	2026-11-26T12:33:22.2265388Z commit-hash: 0ef1bc386059596dada8fb65b50425aab2ea637a
+build	UNKNOWN STEP	2026-11-26T12:33:22.2265657Z commit-date: 2026-11-09
+build	UNKNOWN STEP	2026-11-26T12:33:22.2265840Z host: x86_64-unknown-linux-gnu
+build	UNKNOWN STEP	2026-11-26T12:33:22.2266017Z release: 1.100.0
+build	UNKNOWN STEP	2026-11-26T12:33:22.2266199Z LLVM version: 23.1.5
+build	UNKNOWN STEP	2026-11-26T12:33:22.2275725Z ##[end-action id=__dtolnay_rust-toolchain.__run_10;outcome=success;conclusion=success;duration_ms=13]
+build	UNKNOWN STEP	2026-11-26T12:33:22.2359800Z ##[group]Run Swatinem/rust-cache@v2
+build	UNKNOWN STEP	2026-11-26T12:33:22.2360112Z with:
+build	UNKNOWN STEP	2026-11-26T12:33:22.2360392Z   workspaces: onchain
+build	UNKNOWN STEP	2026-11-26T12:33:22.2360617Z   prefix-key: v0-rust
+build	UNKNOWN STEP	2026-11-26T12:33:22.2360859Z   add-job-id-key: true
+build	UNKNOWN STEP	2026-11-26T12:33:22.2361124Z   add-rust-environment-hash-key: true
+build	UNKNOWN STEP	2026-11-26T12:33:22.2361385Z   cache-targets: true
+build	UNKNOWN STEP	2026-11-26T12:33:22.2361637Z   cache-all-crates: false
+build	UNKNOWN STEP	2026-11-26T12:33:22.2361887Z   cache-workspace-crates: false
+build	UNKNOWN STEP	2026-11-26T12:33:22.2362138Z   save-if: true
+build	UNKNOWN STEP	2026-11-26T12:33:22.2362358Z   cache-provider: github
+build	UNKNOWN STEP	2026-11-26T12:33:22.2362575Z   cache-bin: true
+build	UNKNOWN STEP	2026-11-26T12:33:22.2362825Z   lookup-only: false
+build	UNKNOWN STEP	2026-11-26T12:33:22.2363044Z   cmd-format: {0}
+build	UNKNOWN STEP	2026-11-26T12:33:22.2363258Z env:
+build	UNKNOWN STEP	2026-11-26T12:33:22.2363507Z   CARGO_HOME: /home/runner/.cargo
+build	UNKNOWN STEP	2026-11-26T12:33:22.2363742Z   CARGO_INCREMENTAL: 0
+build	UNKNOWN STEP	2026-11-26T12:33:22.2364006Z   CARGO_TERM_COLOR: always
+build	UNKNOWN STEP	2026-11-26T12:33:22.2364231Z ##[endgroup]
+build	UNKNOWN STEP	2026-11-26T12:33:23.3593815Z ##[group]Cache Configuration
+build	UNKNOWN STEP	2026-11-26T12:33:23.3594324Z Cache Provider:
+build	UNKNOWN STEP	2026-11-26T12:33:23.3594622Z     github
+build	UNKNOWN STEP	2026-11-26T12:33:23.3594952Z Workspaces:
+build	UNKNOWN STEP	2026-11-26T12:33:23.3595370Z     /home/runner/work/lyricsflip/lyricsflip/onchain
+build	UNKNOWN STEP	2026-11-26T12:33:23.3595756Z Cache Paths:
+build	UNKNOWN STEP	2026-11-26T12:33:23.3596019Z     /home/runner/.cargo/bin
+build	UNKNOWN STEP	2026-11-26T12:33:23.3596354Z     /home/runner/.cargo/.crates.toml
+build	UNKNOWN STEP	2026-11-26T12:33:23.3596641Z     /home/runner/.cargo/.crates2.json
+build	UNKNOWN STEP	2026-11-26T12:33:23.3596954Z     /home/runner/.cargo/registry
+build	UNKNOWN STEP	2026-11-26T12:33:23.3597229Z     /home/runner/.cargo/git
+build	UNKNOWN STEP	2026-11-26T12:33:23.3597545Z     /home/runner/work/lyricsflip/lyricsflip/onchain/target
+build	UNKNOWN STEP	2026-11-26T12:33:23.3597872Z Restore Key:
+build	UNKNOWN STEP	2026-11-26T12:33:23.3598396Z     v0-rust-build-Linux-x64-2fd77104
+build	UNKNOWN STEP	2026-11-26T12:33:23.3598775Z Cache Key:
+build	UNKNOWN STEP	2026-11-26T12:33:23.3599025Z     v0-rust-build-Linux-x64-2fd77104-20a3a1c0
+build	UNKNOWN STEP	2026-11-26T12:33:23.3599297Z .. Prefix:
+build	UNKNOWN STEP	2026-11-26T12:33:23.3599540Z   - v0-rust-build-Linux-x64
+build	UNKNOWN STEP	2026-11-26T12:33:23.3599788Z .. Environment considered:
+build	UNKNOWN STEP	2026-11-26T12:33:23.3600028Z   - Rust Versions:
+build	UNKNOWN STEP	2026-11-26T12:33:23.3600334Z     - 1.100.0 x86_64-unknown-linux-gnu 0ef1bc386059596dada8fb65b50425aab2ea637a
+build	UNKNOWN STEP	2026-11-26T12:33:23.3600658Z   - CARGO_HOME
+build	UNKNOWN STEP	2026-11-26T12:33:23.3600934Z   - CARGO_INCREMENTAL
+build	UNKNOWN STEP	2026-11-26T12:33:23.3601156Z   - CARGO_TERM_COLOR
+build	UNKNOWN STEP	2026-11-26T12:33:23.3601388Z .. Lockfiles considered:
+build	UNKNOWN STEP	2026-11-26T12:33:23.3601679Z   - /home/runner/work/lyricsflip/lyricsflip/onchain/Cargo.lock
+build	UNKNOWN STEP	2026-11-26T12:33:23.3602090Z   - /home/runner/work/lyricsflip/lyricsflip/onchain/contracts/lyricsflip-escrow/Cargo.toml
+build	UNKNOWN STEP	2026-11-26T12:33:23.3602695Z   - /home/runner/work/lyricsflip/lyricsflip/onchain/contracts/lyricsflip-nft/Cargo.toml
+build	UNKNOWN STEP	2026-11-26T12:33:23.3603277Z   - /home/runner/work/lyricsflip/lyricsflip/onchain/contracts/lyricsflip/Cargo.toml
+build	UNKNOWN STEP	2026-11-26T12:33:23.3603787Z   - /home/runner/work/lyricsflip/lyricsflip/onchain/contracts/upgrade-fixture/Cargo.toml
+build	UNKNOWN STEP	2026-11-26T12:33:23.3604451Z ##[endgroup]
+build	UNKNOWN STEP	2026-11-26T12:33:23.3604578Z 
+build	UNKNOWN STEP	2026-11-26T12:33:23.3604695Z ... Restoring cache ...
+build	UNKNOWN STEP	2026-11-26T12:33:23.6734256Z Cache hit for: v0-rust-build-Linux-x64-2fd77104-20a3a1c0
+build	UNKNOWN STEP	2026-11-26T12:33:25.0174594Z Received 0 of 260331227 (0.0%), 0.0 MBs/sec
+build	UNKNOWN STEP	2026-11-26T12:33:26.0174021Z Received 75497472 of 260331227 (29.0%), 36.0 MBs/sec
+build	UNKNOWN STEP	2026-11-26T12:33:27.0175673Z Received 167772160 of 260331227 (64.4%), 53.3 MBs/sec
+build	UNKNOWN STEP	2026-11-26T12:33:28.0176345Z Received 256136923 of 260331227 (98.4%), 61.1 MBs/sec
+build	UNKNOWN STEP	2026-11-26T12:33:28.4575595Z Received 260331227 of 260331227 (100.0%), 55.9 MBs/sec
+build	UNKNOWN STEP	2026-11-26T12:33:28.4576107Z Cache Size: ~248 MB (260331227 B)
+build	UNKNOWN STEP	2026-11-26T12:33:28.4633611Z [command]/usr/bin/tar -xf /home/runner/work/_temp/99bc2fae-bbd3-4ce9-827c-69fc1701920f/cache.tzst -P -C /home/runner/work/lyricsflip/lyricsflip --use-compress-program unzstd
+build	UNKNOWN STEP	2026-11-26T12:33:29.4189756Z Cache restored successfully
+build	UNKNOWN STEP	2026-11-26T12:33:29.4269501Z Restored from cache key "v0-rust-build-Linux-x64-2fd77104-20a3a1c0" full match: true.
+build	UNKNOWN STEP	2026-11-26T12:33:29.4390881Z ##[group]Run cargo fmt --check
+build	UNKNOWN STEP	2026-11-26T12:33:29.4391200Z ^[[36;1mcargo fmt --check^[[0m
+build	UNKNOWN STEP	2026-11-26T12:33:29.4410027Z shell: /usr/bin/bash -e {0}
+build	UNKNOWN STEP	2026-11-26T12:33:29.4410323Z env:
+build	UNKNOWN STEP	2026-11-26T12:33:29.4410555Z   CARGO_HOME: /home/runner/.cargo
+build	UNKNOWN STEP	2026-11-26T12:33:29.4410850Z   CARGO_INCREMENTAL: 0
+build	UNKNOWN STEP	2026-11-26T12:33:29.4411141Z   CARGO_TERM_COLOR: always
+build	UNKNOWN STEP	2026-11-26T12:33:29.4411386Z   CACHE_ON_FAILURE: false
+build	UNKNOWN STEP	2026-11-26T12:33:29.4411626Z ##[endgroup]
+build	UNKNOWN STEP	2026-11-26T12:33:30.7380510Z Diff in /home/runner/work/lyricsflip/lyricsflip/onchain/contracts/lyricsflip/src/test/cards_validation.rs:305:
+build	UNKNOWN STEP	2026-11-26T12:33:30.7381453Z      }
+build	UNKNOWN STEP	2026-11-26T12:33:30.7381752Z  
+build	UNKNOWN STEP	2026-11-26T12:33:30.7382234Z      assert_eq!(client.get_cards_count(), MAX_CARDS_PER_BATCH as u64 + 1);
+build	UNKNOWN STEP	2026-11-26T12:33:30.7389107Z -    assert_eq!(client.get_genre_card_count(&Genre::Pop), MAX_CARDS_PER_BATCH);
+build	UNKNOWN STEP	2026-11-26T12:33:30.7389664Z +    assert_eq!(
+build	UNKNOWN STEP	2026-11-26T12:33:30.7390139Z +        client.get_genre_card_count(&Genre::Pop),
+build	UNKNOWN STEP	2026-11-26T12:33:30.7390705Z +        MAX_CARDS_PER_BATCH
+build	UNKNOWN STEP	2026-11-26T12:33:30.7391157Z +    );
+build	UNKNOWN STEP	2026-11-26T12:33:30.7391442Z      assert_eq!(
+build	UNKNOWN STEP	2026-11-26T12:33:30.7391823Z          genre_ids(&client, &owner, Genre::Pop),
+build	UNKNOWN STEP	2026-11-26T12:33:30.7392330Z          (2..=MAX_CARDS_PER_BATCH as u64 + 1).collect::<std::vec::Vec<u64>>()
+build	UNKNOWN STEP	2026-11-26T12:33:30.8132107Z ##[error]Process completed with exit code 1.
+build	UNKNOWN STEP	2026-11-26T12:33:30.8250254Z Post job cleanup.
+build	UNKNOWN STEP	2026-11-26T12:33:30.8879418Z [command]/usr/bin/git version
+build	UNKNOWN STEP	2026-11-26T12:33:30.8916264Z git version 2.56.1
+build	UNKNOWN STEP	2026-11-26T12:33:30.8947545Z Temporarily overriding HOME='/home/runner/work/_temp/4bbc43e2-98c2-4d4c-9633-5d2bddb96377' before making global git config changes
+build	UNKNOWN STEP	2026-11-26T12:33:30.8948427Z Adding repository directory to the temporary git global config as a safe directory
+build	UNKNOWN STEP	2026-11-26T12:33:30.8952514Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/lyricsflip/lyricsflip
+build	UNKNOWN STEP	2026-11-26T12:33:30.8984118Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+build	UNKNOWN STEP	2026-11-26T12:33:30.9008401Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+build	UNKNOWN STEP	2026-11-26T12:33:30.9212155Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+build	UNKNOWN STEP	2026-11-26T12:33:30.9228175Z http.https://github.com/.extraheader
+build	UNKNOWN STEP	2026-11-26T12:33:30.9234705Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+build	UNKNOWN STEP	2026-11-26T12:33:30.9256059Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+build	UNKNOWN STEP	2026-11-26T12:33:30.9452888Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+build	UNKNOWN STEP	2026-11-26T12:33:30.9480326Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+build	UNKNOWN STEP	2026-11-26T12:33:30.9760881Z Cleaning up orphan processes
+build	UNKNOWN STEP	2026-11-26T12:33:31.0027711Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@v4. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+test	UNKNOWN STEP	﻿2026-11-26T12:33:10.3575964Z Current runner version: '2.338.2'
+test	UNKNOWN STEP	2026-11-26T12:33:10.3602264Z ##[group]Runner Image Provisioner
+test	UNKNOWN STEP	2026-11-26T12:33:10.3603182Z Hosted Compute Agent
+test	UNKNOWN STEP	2026-11-26T12:33:10.3603757Z Version: 20261111.635
+test	UNKNOWN STEP	2026-11-26T12:33:10.3604720Z Commit: b8a594ea514ff44cadb5342986c68b1eac6e22ed
+test	UNKNOWN STEP	2026-11-26T12:33:10.3605718Z Build Date: 2026-11-11T01:49:01Z
+test	UNKNOWN STEP	2026-11-26T12:33:10.3606400Z Worker ID: {d418a774-80bb-4775-9da7-871b3be636eb}
+test	UNKNOWN STEP	2026-11-26T12:33:10.3607189Z Region: eastus
+test	UNKNOWN STEP	2026-11-26T12:33:10.3607736Z Cloud: Azure
+test	UNKNOWN STEP	2026-11-26T12:33:10.3608256Z ##[endgroup]
+test	UNKNOWN STEP	2026-11-26T12:33:10.3610223Z ##[group]Operating System
+test	UNKNOWN STEP	2026-11-26T12:33:10.3610858Z Ubuntu
+test	UNKNOWN STEP	2026-11-26T12:33:10.3611436Z 26.04.1
+test	UNKNOWN STEP	2026-11-26T12:33:10.3611956Z LTS
+test	UNKNOWN STEP	2026-11-26T12:33:10.3612454Z ##[endgroup]
+test	UNKNOWN STEP	2026-11-26T12:33:10.3613076Z ##[group]Runner Image
+test	UNKNOWN STEP	2026-11-26T12:33:10.3613670Z Image: ubuntu-26.04
+test	UNKNOWN STEP	2026-11-26T12:33:10.3614608Z Version: 20261116.202.1
+test	UNKNOWN STEP	2026-11-26T12:33:10.3615864Z Included Software: https://github.com/actions/runner-images/blob/ubuntu26/20261116.202/images/ubuntu/Ubuntu2604-Readme.md
+test	UNKNOWN STEP	2026-11-26T12:33:10.3617535Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu26%2F20261116.202
+test	UNKNOWN STEP	2026-11-26T12:33:10.3618536Z ##[endgroup]
+test	UNKNOWN STEP	2026-11-26T12:33:10.3619764Z ##[group]GITHUB_TOKEN Permissions
+test	UNKNOWN STEP	2026-11-26T12:33:10.3622055Z Contents: read
+test	UNKNOWN STEP	2026-11-26T12:33:10.3622771Z Metadata: read
+test	UNKNOWN STEP	2026-11-26T12:33:10.3623346Z PullRequests: read
+test	UNKNOWN STEP	2026-11-26T12:33:10.3624188Z ##[endgroup]
+test	UNKNOWN STEP	2026-11-26T12:33:10.3626528Z Secret source: None
+test	UNKNOWN STEP	2026-11-26T12:33:10.3627426Z Cache mode: write
+test	UNKNOWN STEP	2026-11-26T12:33:10.3628484Z Prepare workflow directory
+test	UNKNOWN STEP	2026-11-26T12:33:10.3955112Z Prepare all required actions
+test	UNKNOWN STEP	2026-11-26T12:33:10.4003412Z Getting action download info
+test	UNKNOWN STEP	2026-11-26T12:33:10.6153085Z Download action repository 'actions/checkout@v4' (SHA:11d5960a326750d5838078e36cf38b85af677262)
+test	UNKNOWN STEP	2026-11-26T12:33:10.7173520Z Download action repository 'dtolnay/rust-toolchain@stable' (SHA:39008827e6b4319a349e9a42dfc90579dd25f1ca)
+test	UNKNOWN STEP	2026-11-26T12:33:10.8195630Z Download action repository 'Swatinem/rust-cache@v2' (SHA:d1527c8f67ef9af357290475d4af4b0fab8f12e0)
+test	UNKNOWN STEP	2026-11-26T12:33:10.9678528Z Download action repository 'taiki-e/install-action@cargo-llvm-cov' (SHA:dfc065c7e0e98a962f5f09de95e522dfd01e88d6)
+test	UNKNOWN STEP	2026-11-26T12:33:11.1440339Z Download action repository 'actions/upload-artifact@v4' (SHA:ea165f8d65b6e75b540449e92b4886f43607fa02)
+test	UNKNOWN STEP	2026-11-26T12:33:11.2219215Z Download action repository 'actions/github-script@v7' (SHA:f28e40c7f34bde8b3046d885e986cb6290c5673b)
+test	UNKNOWN STEP	2026-11-26T12:33:11.5609401Z Complete job name: test
+test	UNKNOWN STEP	2026-11-26T12:33:11.6716381Z ##[group]Run actions/checkout@v4
+test	UNKNOWN STEP	2026-11-26T12:33:11.6717683Z with:
+test	UNKNOWN STEP	2026-11-26T12:33:11.6718500Z   repository: Stellar-songifi/lyricsflip
+test	UNKNOWN STEP	2026-11-26T12:33:11.6726798Z   token: ***
+test	UNKNOWN STEP	2026-11-26T12:33:11.6727572Z   ssh-strict: true
+test	UNKNOWN STEP	2026-11-26T12:33:11.6728364Z   ssh-user: git
+test	UNKNOWN STEP	2026-11-26T12:33:11.6729163Z   persist-credentials: true
+test	UNKNOWN STEP	2026-11-26T12:33:11.6730056Z   clean: true
+test	UNKNOWN STEP	2026-11-26T12:33:11.6730851Z   sparse-checkout-cone-mode: true
+test	UNKNOWN STEP	2026-11-26T12:33:11.6731804Z   fetch-depth: 1
+test	UNKNOWN STEP	2026-11-26T12:33:11.6732610Z   fetch-tags: false
+test	UNKNOWN STEP	2026-11-26T12:33:11.6733427Z   show-progress: true
+test	UNKNOWN STEP	2026-11-26T12:33:11.6734372Z   lfs: false
+test	UNKNOWN STEP	2026-11-26T12:33:11.6735136Z   submodules: false
+test	UNKNOWN STEP	2026-11-26T12:33:11.6735960Z   set-safe-directory: true
+test	UNKNOWN STEP	2026-11-26T12:33:11.6736876Z   allow-unsafe-pr-checkout: false
+test	UNKNOWN STEP	2026-11-26T12:33:11.6738095Z ##[endgroup]
+test	UNKNOWN STEP	2026-11-26T12:33:11.9808256Z Syncing repository: Stellar-songifi/lyricsflip
+test	UNKNOWN STEP	2026-11-26T12:33:11.9811258Z ##[group]Getting Git version info
+test	UNKNOWN STEP	2026-11-26T12:33:11.9812772Z Working directory is '/home/runner/work/lyricsflip/lyricsflip'
+test	UNKNOWN STEP	2026-11-26T12:33:11.9815262Z [command]/usr/bin/git version
+test	UNKNOWN STEP	2026-11-26T12:33:11.9831782Z git version 2.56.1
+test	UNKNOWN STEP	2026-11-26T12:33:11.9853105Z ##[endgroup]
+test	UNKNOWN STEP	2026-11-26T12:33:11.9869527Z Temporarily overriding HOME='/home/runner/work/_temp/a9bde99b-57a9-4d56-bec0-d4a41f96fda4' before making global git config changes
+test	UNKNOWN STEP	2026-11-26T12:33:11.9872173Z Adding repository directory to the temporary git global config as a safe directory
+test	UNKNOWN STEP	2026-11-26T12:33:11.9875598Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/lyricsflip/lyricsflip
+test	UNKNOWN STEP	2026-11-26T12:33:11.9948365Z Deleting the contents of '/home/runner/work/lyricsflip/lyricsflip'
+test	UNKNOWN STEP	2026-11-26T12:33:11.9951224Z ##[group]Initializing the repository
+test	UNKNOWN STEP	2026-11-26T12:33:11.9956686Z [command]/usr/bin/git init /home/runner/work/lyricsflip/lyricsflip
+test	UNKNOWN STEP	2026-11-26T12:33:12.0089446Z hint: Using 'master' as the name for the initial branch. This default branch name
+test	UNKNOWN STEP	2026-11-26T12:33:12.0092146Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+test	UNKNOWN STEP	2026-11-26T12:33:12.0094393Z hint: to use in all of your new repositories, which will suppress this warning,
+test	UNKNOWN STEP	2026-11-26T12:33:12.0096148Z hint: call:
+test	UNKNOWN STEP	2026-11-26T12:33:12.0096942Z hint:
+test	UNKNOWN STEP	2026-11-26T12:33:12.0097860Z hint: 	git config --global init.defaultBranch <name>
+test	UNKNOWN STEP	2026-11-26T12:33:12.0098980Z hint:
+test	UNKNOWN STEP	2026-11-26T12:33:12.0100126Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+test	UNKNOWN STEP	2026-11-26T12:33:12.0101860Z hint: 'development'. The just-created branch can be renamed via this command:
+test	UNKNOWN STEP	2026-11-26T12:33:12.0103226Z hint:
+test	UNKNOWN STEP	2026-11-26T12:33:12.0104322Z hint: 	git branch -m <name>
+test	UNKNOWN STEP	2026-11-26T12:33:12.0105238Z hint:
+test	UNKNOWN STEP	2026-11-26T12:33:12.0107183Z hint: Disable this message with "git config set advice.defaultBranchName false"
+test	UNKNOWN STEP	2026-11-26T12:33:12.0110550Z Initialized empty Git repository in /home/runner/work/lyricsflip/lyricsflip/.git/
+test	UNKNOWN STEP	2026-11-26T12:33:12.0130225Z [command]/usr/bin/git remote add origin https://github.com/Stellar-songifi/lyricsflip
+test	UNKNOWN STEP	2026-11-26T12:33:12.0181871Z ##[endgroup]
+test	UNKNOWN STEP	2026-11-26T12:33:12.0185137Z ##[group]Disabling automatic garbage collection
+test	UNKNOWN STEP	2026-11-26T12:33:12.0187719Z [command]/usr/bin/git config --local gc.auto 0
+test	UNKNOWN STEP	2026-11-26T12:33:12.0222621Z ##[endgroup]
+test	UNKNOWN STEP	2026-11-26T12:33:12.0225057Z ##[group]Setting up auth
+test	UNKNOWN STEP	2026-11-26T12:33:12.0231540Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+test	UNKNOWN STEP	2026-11-26T12:33:12.0272343Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+test	UNKNOWN STEP	2026-11-26T12:33:12.0754642Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+test	UNKNOWN STEP	2026-11-26T12:33:12.0800722Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+test	UNKNOWN STEP	2026-11-26T12:33:12.1082814Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+test	UNKNOWN STEP	2026-11-26T12:33:12.1118433Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+test	UNKNOWN STEP	2026-11-26T12:33:12.1390155Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+test	UNKNOWN STEP	2026-11-26T12:33:12.1430679Z ##[endgroup]
+test	UNKNOWN STEP	2026-11-26T12:33:12.1441522Z ##[group]Fetching the repository
+test	UNKNOWN STEP	2026-11-26T12:33:12.1444688Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +f71c66b7d1173f73967dfdcb2decd57ecf0e59aa:refs/remotes/pull/1031/merge
+test	UNKNOWN STEP	2026-11-26T12:33:12.6575754Z From https://github.com/Stellar-songifi/lyricsflip
+test	UNKNOWN STEP	2026-11-26T12:33:12.6576761Z  * [new ref]         f71c66b7d1173f73967dfdcb2decd57ecf0e59aa -> pull/1031/merge
+test	UNKNOWN STEP	2026-11-26T12:33:12.6580809Z ##[endgroup]
+test	UNKNOWN STEP	2026-11-26T12:33:12.6581766Z ##[group]Determining the checkout info
+test	UNKNOWN STEP	2026-11-26T12:33:12.6585644Z ##[endgroup]
+test	UNKNOWN STEP	2026-11-26T12:33:12.6590332Z [command]/usr/bin/git sparse-checkout disable
+test	UNKNOWN STEP	2026-11-26T12:33:12.6654264Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+test	UNKNOWN STEP	2026-11-26T12:33:12.6682701Z ##[group]Checking out the ref
+test	UNKNOWN STEP	2026-11-26T12:33:12.6685608Z [command]/usr/bin/git checkout --progress --force refs/remotes/pull/1031/merge
+test	UNKNOWN STEP	2026-11-26T12:33:12.7405574Z Note: switching to 'refs/remotes/pull/1031/merge'.
+test	UNKNOWN STEP	2026-11-26T12:33:12.7406147Z 
+test	UNKNOWN STEP	2026-11-26T12:33:12.7407034Z You are in 'detached HEAD' state. You can look around, make experimental
+test	UNKNOWN STEP	2026-11-26T12:33:12.7408125Z changes and commit them, and you can discard any commits you make in this
+test	UNKNOWN STEP	2026-11-26T12:33:12.7409253Z state without impacting any branches by switching back to a branch.
+test	UNKNOWN STEP	2026-11-26T12:33:12.7409792Z 
+test	UNKNOWN STEP	2026-11-26T12:33:12.7410483Z If you want to create a new branch to retain commits you create, you may
+test	UNKNOWN STEP	2026-11-26T12:33:12.7412125Z do so (now or later) by using -c with the switch command. Example:
+test	UNKNOWN STEP	2026-11-26T12:33:12.7413031Z 
+test	UNKNOWN STEP	2026-11-26T12:33:12.7413792Z   git switch -c <new-branch-name>
+test	UNKNOWN STEP	2026-11-26T12:33:12.7414664Z 
+test	UNKNOWN STEP	2026-11-26T12:33:12.7415178Z Or undo this operation with:
+test	UNKNOWN STEP	2026-11-26T12:33:12.7415810Z 
+test	UNKNOWN STEP	2026-11-26T12:33:12.7416301Z   git switch -
+test	UNKNOWN STEP	2026-11-26T12:33:12.7416864Z 
+test	UNKNOWN STEP	2026-11-26T12:33:12.7417685Z Turn off this advice by setting config variable advice.detachedHead to false
+test	UNKNOWN STEP	2026-11-26T12:33:12.7418630Z 
+test	UNKNOWN STEP	2026-11-26T12:33:12.7419730Z HEAD is now at f71c66b Merge a8e6e3a87cab92dbed2d6f0f6c1fe952d234aba5 into b3ea2d2ed7657939c2882d191b8edc2272586ee3
+test	UNKNOWN STEP	2026-11-26T12:33:12.7423419Z ##[endgroup]
+test	UNKNOWN STEP	2026-11-26T12:33:12.7471656Z [command]/usr/bin/git log -1 --format=%H
+test	UNKNOWN STEP	2026-11-26T12:33:12.7497755Z f71c66b7d1173f73967dfdcb2decd57ecf0e59aa
+test	UNKNOWN STEP	2026-11-26T12:33:12.7928109Z ##[group]Run dtolnay/rust-toolchain@stable
+test	UNKNOWN STEP	2026-11-26T12:33:12.7928756Z with:
+test	UNKNOWN STEP	2026-11-26T12:33:12.7929267Z   components: llvm-tools-preview
+test	UNKNOWN STEP	2026-11-26T12:33:12.7929825Z   toolchain: stable
+test	UNKNOWN STEP	2026-11-26T12:33:12.7930324Z ##[endgroup]
+test	UNKNOWN STEP	2026-11-26T12:33:12.8006009Z ##[start-action display=Parse toolchain version;id=__dtolnay_rust-toolchain.parse]
+test	UNKNOWN STEP	2026-11-26T12:33:12.8079090Z ##[group]Run if [[ -z $toolchain ]]; then
+test	UNKNOWN STEP	2026-11-26T12:33:12.8079818Z ^[[36;1mif [[ -z $toolchain ]]; then^[[0m
+test	UNKNOWN STEP	2026-11-26T12:33:12.8080758Z ^[[36;1m  # GitHub does not enforce `required: true` inputs itself. https://github.com/actions/runner/issues/1070^[[0m
+test	UNKNOWN STEP	2026-11-26T12:33:12.8081691Z ^[[36;1m  echo "'toolchain' is a required input" >&2^[[0m
+test	UNKNOWN STEP	2026-11-26T12:33:12.8082295Z ^[[36;1m  exit 1^[[0m
+test	UNKNOWN STEP	2026-11-26T12:33:12.8082983Z ^[[36;1melif [[ $toolchain =~ ^stable' '[0-9]+' '(year|month|week|day)s?' 'ago$ ]]; then^[[0m
+test	UNKNOWN STEP	2026-11-26T12:33:12.8083771Z ^[[36;1m  if [[ Linux == macOS ]]; then^[[0m
+test	UNKNOWN STEP	2026-11-26T12:33:12.8084979Z ^[[36;1m    echo "toolchain=1.$((($(date -v-$(sed 's/stable \([0-9]*\) \(.\).*/\1\2/' <<< $toolchain) +%s)/60/60/24-16569)/7/6))" >> $GITHUB_OUTPUT^[[0m
+test	UNKNOWN STEP	2026-11-26T12:33:12.8085863Z ^[[36;1m  else^[[0m
+test	UNKNOWN STEP	2026-11-26T12:33:12.8086618Z ^[[36;1m    echo "toolchain=1.$((($(date --date "${toolchain#stable }" +%s)/60/60/24-16569)/7/6))" >> $GITHUB_OUTPUT^[[0m
+test	UNKNOWN STEP	2026-11-26T12:33:12.8087426Z ^[[36;1m  fi^[[0m
+test	UNKNOWN STEP	2026-11-26T12:33:12.8088044Z ^[[36;1melif [[ $toolchain =~ ^stable' 'minus' '[0-9]+' 'releases?$ ]]; then^[[0m
+test	UNKNOWN STEP	2026-11-26T12:33:12.8088967Z ^[[36;1m  echo "toolchain=1.$((($(date +%s)/60/60/24-16569)/7/6-${toolchain//[^0-9]/}))" >> $GITHUB_OUTPUT^[[0m
+test	UNKNOWN STEP	2026-11-26T12:33:12.8089791Z ^[[36;1melif [[ $toolchain =~ ^1\.[0-9]+$ ]]; then^[[0m
+test	UNKNOWN STEP	2026-11-26T12:33:12.8090697Z ^[[36;1m  echo "toolchain=1.$((i=${toolchain#1.}, c=($(date +%s)/60/60/24-16569)/7/6, i+9*i*(10*i<=c)+90*i*(100*i<=c)))" >> $GITHUB_OUTPUT^[[0m
+test	UNKNOWN STEP	2026-11-26T12:33:12.8091554Z ^[[36;1melse^[[0m
+test	UNKNOWN STEP	2026-11-26T12:33:12.8092031Z ^[[36;1m  delimiter=EOF^[[0m
+test	UNKNOWN STEP	2026-11-26T12:33:12.8092675Z ^[[36;1m  while [[ $toolchain == *$delimiter* ]]; do delimiter+=_; done^[[0m
+test	UNKNOWN STEP	2026-11-26T12:33:12.8093575Z ^[[36;1m  printf 'toolchain<<%s\n%s\n%s\n' "$delimiter" "$toolchain" "$delimiter" >> $GITHUB_OUTPUT^[[0m
+test	UNKNOWN STEP	2026-11-26T12:33:12.8094457Z ^[[36;1mfi^[[0m
+test	UNKNOWN STEP	2026-11-26T12:33:12.8133592Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+test	UNKNOWN STEP	2026-11-26T12:33:12.8134441Z env:
+test	UNKNOWN STEP	2026-11-26T12:33:12.8134897Z   toolchain: stable
+test	UNKNOWN STEP	2026-11-26T12:33:12.8135368Z ##[endgroup]
+test	UNKNOWN STEP	2026-11-26T12:33:12.8251783Z ##[end-action id=__dtolnay_rust-toolchain.parse;outcome=success;conclusion=success;duration_ms=24]
+test	UNKNOWN STEP	2026-11-26T12:33:12.8257957Z ##[start-action display=Set $CARGO_HOME;id=__dtolnay_rust-toolchain.__run]
+test	UNKNOWN STEP	2026-11-26T12:33:12.8308513Z ##[group]Run echo CARGO_HOME=${CARGO_HOME:-"$HOME/.cargo"} >> $GITHUB_ENV
+test	UNKNOWN STEP	2026-11-26T12:33:12.8309552Z ^[[36;1mecho CARGO_HOME=${CARGO_HOME:-"$HOME/.cargo"} >> $GITHUB_ENV^[[0m
+test	UNKNOWN STEP	2026-11-26T12:33:12.8342815Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+test	UNKNOWN STEP	2026-11-26T12:33:12.8343480Z ##[endgroup]
+test	UNKNOWN STEP	2026-11-26T12:33:12.8412410Z ##[end-action id=__dtolnay_rust-toolchain.__run;outcome=success;conclusion=success;duration_ms=15]
+test	UNKNOWN STEP	2026-11-26T12:33:12.8416238Z ##[start-action display=Install rustup if needed;id=__dtolnay_rust-toolchain.__run_2]
+test	UNKNOWN STEP	2026-11-26T12:33:12.8462092Z ##[group]Run if ! command -v rustup &>/dev/null; then
+test	UNKNOWN STEP	2026-11-26T12:33:12.8462781Z ^[[36;1mif ! command -v rustup &>/dev/null; then^[[0m
+test	UNKNOWN STEP	2026-11-26T12:33:12.8464172Z ^[[36;1m  curl --proto '=https' --tlsv1.2 --retry 10 --retry-connrefused --location --silent --show-error --fail https://sh.rustup.rs | sh -s -- --default-toolchain none -y^[[0m
+test	UNKNOWN STEP	2026-11-26T12:33:12.8465309Z ^[[36;1m  echo "$CARGO_HOME/bin" >> $GITHUB_PATH^[[0m
+test	UNKNOWN STEP	2026-11-26T12:33:12.8465866Z ^[[36;1mfi^[[0m
+test	UNKNOWN STEP	2026-11-26T12:33:12.8498157Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+test	UNKNOWN STEP	2026-11-26T12:33:12.8498854Z env:
+test	UNKNOWN STEP	2026-11-26T12:33:12.8499321Z   CARGO_HOME: /home/runner/.cargo
+test	UNKNOWN STEP	2026-11-26T12:33:12.8499850Z ##[endgroup]
+test	UNKNOWN STEP	2026-11-26T12:33:12.8566405Z ##[end-action id=__dtolnay_rust-toolchain.__run_2;outcome=success;conclusion=success;duration_ms=14]
+test	UNKNOWN STEP	2026-11-26T12:33:12.8570184Z ##[start-action display=Install rustup if needed on windows;id=__dtolnay_rust-toolchain.__run_3]
+test	UNKNOWN STEP	2026-11-26T12:33:12.8603675Z ##[end-action id=__dtolnay_rust-toolchain.__run_3;outcome=skipped;conclusion=skipped;duration_ms=0]
+test	UNKNOWN STEP	2026-11-26T12:33:12.8622412Z ##[start-action display=rustup toolchain install stable;id=__dtolnay_rust-toolchain.__run_4]
+test	UNKNOWN STEP	2026-11-26T12:33:12.8659829Z ##[group]Run set -f  # split targets and components on commas and whitespace, without glob expansion
+test	UNKNOWN STEP	2026-11-26T12:33:12.8660876Z ^[[36;1mset -f  # split targets and components on commas and whitespace, without glob expansion^[[0m
+test	UNKNOWN STEP	2026-11-26T12:33:12.8661640Z ^[[36;1mflags=()^[[0m
+test	UNKNOWN STEP	2026-11-26T12:33:12.8662201Z ^[[36;1mfor t in ${targets//,/ }; do flags+=(--target "$t"); done^[[0m
+test	UNKNOWN STEP	2026-11-26T12:33:12.8662967Z ^[[36;1mfor c in ${components//,/ }; do flags+=(--component "$c"); done^[[0m
+test	UNKNOWN STEP	2026-11-26T12:33:12.8663989Z ^[[36;1mif [[ $toolchain == nightly && -n $components ]]; then flags+=(--allow-downgrade); fi^[[0m
+test	UNKNOWN STEP	2026-11-26T12:33:12.8664741Z ^[[36;1mlog=$(mktemp)^[[0m
+test	UNKNOWN STEP	2026-11-26T12:33:12.8665241Z ^[[36;1mtrap 'rm -f "$log"' EXIT^[[0m
+test	UNKNOWN STEP	2026-11-26T12:33:12.8665770Z ^[[36;1mfor attempt in 1 2 3 4 5; do^[[0m
+test	UNKNOWN STEP	2026-11-26T12:33:12.8666702Z ^[[36;1m  if rustup toolchain install "$toolchain" "${flags[@]}" --profile minimal --no-self-update --force-non-host 2>&1 | tee "$log"; then^[[0m
+test	UNKNOWN STEP	2026-11-26T12:33:12.8667622Z ^[[36;1m    break^[[0m
+test	UNKNOWN STEP	2026-11-26T12:33:12.8668081Z ^[[36;1m  else^[[0m
+test	UNKNOWN STEP	2026-11-26T12:33:12.8668532Z ^[[36;1m    status=$?^[[0m
+test	UNKNOWN STEP	2026-11-26T12:33:12.8668988Z ^[[36;1m  fi^[[0m
+test	UNKNOWN STEP	2026-11-26T12:33:12.8669573Z ^[[36;1m  if [[ $attempt == 5 ]] || ! grep -Fq 'checksum failed for ' "$log" \^[[0m
+test	UNKNOWN STEP	2026-11-26T12:33:12.8670475Z ^[[36;1m      || ! grep -Fq 'this is likely due to an ongoing update of the official release server' "$log"; then^[[0m
+test	UNKNOWN STEP	2026-11-26T12:33:12.8671275Z ^[[36;1m    exit "$status"^[[0m
+test	UNKNOWN STEP	2026-11-26T12:33:12.8671775Z ^[[36;1m  fi^[[0m
+test	UNKNOWN STEP	2026-11-26T12:33:12.8672436Z ^[[36;1m  echo "Retrying rustup toolchain install in 30 seconds (retry $attempt of 4)" >&2^[[0m
+test	UNKNOWN STEP	2026-11-26T12:33:12.8673175Z ^[[36;1m  sleep 30^[[0m
+test	UNKNOWN STEP	2026-11-26T12:33:12.8673628Z ^[[36;1mdone^[[0m
+test	UNKNOWN STEP	2026-11-26T12:33:12.8708816Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+test	UNKNOWN STEP	2026-11-26T12:33:12.8709440Z env:
+test	UNKNOWN STEP	2026-11-26T12:33:12.8709905Z   CARGO_HOME: /home/runner/.cargo
+test	UNKNOWN STEP	2026-11-26T12:33:12.8710411Z   toolchain: stable
+test	UNKNOWN STEP	2026-11-26T12:33:12.8710904Z   targets: 
+test	UNKNOWN STEP	2026-11-26T12:33:12.8711366Z   components: llvm-tools-preview
+test	UNKNOWN STEP	2026-11-26T12:33:12.8711892Z   RUSTUP_PERMIT_COPY_RENAME: 1
+test	UNKNOWN STEP	2026-11-26T12:33:12.8712386Z ##[endgroup]
+test	UNKNOWN STEP	2026-11-26T12:33:13.0689263Z info: syncing channel updates for stable-x86_64-unknown-linux-gnu
+test	UNKNOWN STEP	2026-11-26T12:33:13.1997408Z info: latest update on 2026-11-12 for version 1.100.0 (0ef1bc386 2026-11-09)
+test	UNKNOWN STEP	2026-11-26T12:33:13.2148864Z info: downloading component llvm-tools
+test	UNKNOWN STEP	2026-11-26T12:33:15.9767050Z 
+test	UNKNOWN STEP	2026-11-26T12:33:15.9848939Z   stable-x86_64-unknown-linux-gnu updated - rustc 1.100.0 (0ef1bc386 2026-11-09) (from rustc 1.100.0 (0ef1bc386 2026-11-09))
+test	UNKNOWN STEP	2026-11-26T12:33:15.9849845Z 
+test	UNKNOWN STEP	2026-11-26T12:33:15.9909354Z ##[end-action id=__dtolnay_rust-toolchain.__run_4;outcome=success;conclusion=success;duration_ms=3128]
+test	UNKNOWN STEP	2026-11-26T12:33:15.9918091Z ##[start-action display=rustup default stable;id=__dtolnay_rust-toolchain.__run_5]
+test	UNKNOWN STEP	2026-11-26T12:33:15.9940783Z ##[group]Run rustup default "$toolchain" --force-non-host
+test	UNKNOWN STEP	2026-11-26T12:33:15.9941210Z ^[[36;1mrustup default "$toolchain" --force-non-host^[[0m
+test	UNKNOWN STEP	2026-11-26T12:33:15.9973661Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+test	UNKNOWN STEP	2026-11-26T12:33:15.9974287Z env:
+test	UNKNOWN STEP	2026-11-26T12:33:15.9974497Z   CARGO_HOME: /home/runner/.cargo
+test	UNKNOWN STEP	2026-11-26T12:33:15.9974770Z   toolchain: stable
+test	UNKNOWN STEP	2026-11-26T12:33:15.9974983Z ##[endgroup]
+test	UNKNOWN STEP	2026-11-26T12:33:16.0070680Z info: using existing install for stable-x86_64-unknown-linux-gnu
+test	UNKNOWN STEP	2026-11-26T12:33:16.0077790Z info: default toolchain set to stable-x86_64-unknown-linux-gnu
+test	UNKNOWN STEP	2026-11-26T12:33:16.0078163Z 
+test	UNKNOWN STEP	2026-11-26T12:33:16.0157941Z   stable-x86_64-unknown-linux-gnu unchanged - rustc 1.100.0 (0ef1bc386 2026-11-09)
+test	UNKNOWN STEP	2026-11-26T12:33:16.0158584Z 
+test	UNKNOWN STEP	2026-11-26T12:33:16.0176401Z ##[end-action id=__dtolnay_rust-toolchain.__run_5;outcome=success;conclusion=success;duration_ms=25]
+test	UNKNOWN STEP	2026-11-26T12:33:16.0180567Z ##[start-action display=Create cachekey;id=__dtolnay_rust-toolchain.rustc-version]
+test	UNKNOWN STEP	2026-11-26T12:33:16.0202227Z ##[group]Run DATE=$(rustc +"$toolchain" --version --verbose | sed -ne 's/^commit-date: \(20[0-9][0-9]\)-\([01][0-9]\)-\([0-3][0-9]\)$/\1\2\3/p')
+test	UNKNOWN STEP	2026-11-26T12:33:16.0203107Z ^[[36;1mDATE=$(rustc +"$toolchain" --version --verbose | sed -ne 's/^commit-date: \(20[0-9][0-9]\)-\([01][0-9]\)-\([0-3][0-9]\)$/\1\2\3/p')^[[0m
+test	UNKNOWN STEP	2026-11-26T12:33:16.0203795Z ^[[36;1mHASH=$(rustc +"$toolchain" --version --verbose | sed -ne 's/^commit-hash: //p')^[[0m
+test	UNKNOWN STEP	2026-11-26T12:33:16.0204667Z ^[[36;1mecho "cachekey=$(echo $DATE$HASH | head -c12)" >> $GITHUB_OUTPUT^[[0m
+test	UNKNOWN STEP	2026-11-26T12:33:16.0236912Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+test	UNKNOWN STEP	2026-11-26T12:33:16.0237261Z env:
+test	UNKNOWN STEP	2026-11-26T12:33:16.0237478Z   CARGO_HOME: /home/runner/.cargo
+test	UNKNOWN STEP	2026-11-26T12:33:16.0237751Z   toolchain: stable
+test	UNKNOWN STEP	2026-11-26T12:33:16.0237970Z ##[endgroup]
+test	UNKNOWN STEP	2026-11-26T12:33:16.0608974Z ##[end-action id=__dtolnay_rust-toolchain.rustc-version;outcome=success;conclusion=success;duration_ms=42]
+test	UNKNOWN STEP	2026-11-26T12:33:16.0611800Z ##[start-action display=Disable incremental compilation;id=__dtolnay_rust-toolchain.__run_6]
+test	UNKNOWN STEP	2026-11-26T12:33:16.0634776Z ##[group]Run if [ -z "${CARGO_INCREMENTAL+set}" ]; then
+test	UNKNOWN STEP	2026-11-26T12:33:16.0635185Z ^[[36;1mif [ -z "${CARGO_INCREMENTAL+set}" ]; then^[[0m
+test	UNKNOWN STEP	2026-11-26T12:33:16.0635526Z ^[[36;1m  echo CARGO_INCREMENTAL=0 >> $GITHUB_ENV^[[0m
+test	UNKNOWN STEP	2026-11-26T12:33:16.0635821Z ^[[36;1mfi^[[0m
+test	UNKNOWN STEP	2026-11-26T12:33:16.0668300Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+test	UNKNOWN STEP	2026-11-26T12:33:16.0668687Z env:
+test	UNKNOWN STEP	2026-11-26T12:33:16.0668896Z   CARGO_HOME: /home/runner/.cargo
+test	UNKNOWN STEP	2026-11-26T12:33:16.0669151Z ##[endgroup]
+test	UNKNOWN STEP	2026-11-26T12:33:16.0729685Z ##[end-action id=__dtolnay_rust-toolchain.__run_6;outcome=success;conclusion=success;duration_ms=11]
+test	UNKNOWN STEP	2026-11-26T12:33:16.0732008Z ##[start-action display=Enable colors in Cargo output;id=__dtolnay_rust-toolchain.__run_7]
+test	UNKNOWN STEP	2026-11-26T12:33:16.0752280Z ##[group]Run if [ -z "${CARGO_TERM_COLOR+set}" ]; then
+test	UNKNOWN STEP	2026-11-26T12:33:16.0752654Z ^[[36;1mif [ -z "${CARGO_TERM_COLOR+set}" ]; then^[[0m
+test	UNKNOWN STEP	2026-11-26T12:33:16.0752983Z ^[[36;1m  echo CARGO_TERM_COLOR=always >> $GITHUB_ENV^[[0m
+test	UNKNOWN STEP	2026-11-26T12:33:16.0753282Z ^[[36;1mfi^[[0m
+test	UNKNOWN STEP	2026-11-26T12:33:16.0784476Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+test	UNKNOWN STEP	2026-11-26T12:33:16.0784823Z env:
+test	UNKNOWN STEP	2026-11-26T12:33:16.0785022Z   CARGO_HOME: /home/runner/.cargo
+test	UNKNOWN STEP	2026-11-26T12:33:16.0785279Z   CARGO_INCREMENTAL: 0
+test	UNKNOWN STEP	2026-11-26T12:33:16.0785493Z ##[endgroup]
+test	UNKNOWN STEP	2026-11-26T12:33:16.0841888Z ##[end-action id=__dtolnay_rust-toolchain.__run_7;outcome=success;conclusion=success;duration_ms=10]
+test	UNKNOWN STEP	2026-11-26T12:33:16.0845855Z ##[start-action display=Enable Cargo sparse registry;id=__dtolnay_rust-toolchain.__run_8]
+test	UNKNOWN STEP	2026-11-26T12:33:16.0867870Z ##[group]Run # implemented in 1.66, stabilized in 1.68, made default in 1.70
+test	UNKNOWN STEP	2026-11-26T12:33:16.0868384Z ^[[36;1m# implemented in 1.66, stabilized in 1.68, made default in 1.70^[[0m
+test	UNKNOWN STEP	2026-11-26T12:33:16.0869098Z ^[[36;1mif [ -z "${CARGO_REGISTRIES_CRATES_IO_PROTOCOL+set}" -o -f "/home/runner/work/_temp"/.implicit_cargo_registries_crates_io_protocol ]; then^[[0m
+test	UNKNOWN STEP	2026-11-26T12:33:16.0869854Z ^[[36;1m  if rustc +"$toolchain" --version --verbose | grep -q '^release: 1\.6[89]\.'; then^[[0m
+test	UNKNOWN STEP	2026-11-26T12:33:16.0870443Z ^[[36;1m    touch "/home/runner/work/_temp"/.implicit_cargo_registries_crates_io_protocol || true^[[0m
+test	UNKNOWN STEP	2026-11-26T12:33:16.0870982Z ^[[36;1m    echo CARGO_REGISTRIES_CRATES_IO_PROTOCOL=sparse >> $GITHUB_ENV^[[0m
+test	UNKNOWN STEP	2026-11-26T12:33:16.0871519Z ^[[36;1m  elif rustc +"$toolchain" --version --verbose | grep -q '^release: 1\.6[67]\.'; then^[[0m
+test	UNKNOWN STEP	2026-11-26T12:33:16.0872110Z ^[[36;1m    touch "/home/runner/work/_temp"/.implicit_cargo_registries_crates_io_protocol || true^[[0m
+test	UNKNOWN STEP	2026-11-26T12:33:16.0872797Z ^[[36;1m    echo CARGO_REGISTRIES_CRATES_IO_PROTOCOL=git >> $GITHUB_ENV^[[0m
+test	UNKNOWN STEP	2026-11-26T12:33:16.0873166Z ^[[36;1m  fi^[[0m
+test	UNKNOWN STEP	2026-11-26T12:33:16.0873364Z ^[[36;1mfi^[[0m
+test	UNKNOWN STEP	2026-11-26T12:33:16.0904454Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+test	UNKNOWN STEP	2026-11-26T12:33:16.0904809Z env:
+test	UNKNOWN STEP	2026-11-26T12:33:16.0905015Z   CARGO_HOME: /home/runner/.cargo
+test	UNKNOWN STEP	2026-11-26T12:33:16.0905282Z   CARGO_INCREMENTAL: 0
+test	UNKNOWN STEP	2026-11-26T12:33:16.0905507Z   CARGO_TERM_COLOR: always
+test	UNKNOWN STEP	2026-11-26T12:33:16.0905740Z   toolchain: stable
+test	UNKNOWN STEP	2026-11-26T12:33:16.0905945Z ##[endgroup]
+test	UNKNOWN STEP	2026-11-26T12:33:16.1225839Z ##[end-action id=__dtolnay_rust-toolchain.__run_8;outcome=success;conclusion=success;duration_ms=37]
+test	UNKNOWN STEP	2026-11-26T12:33:16.1230189Z ##[start-action display=Work around spurious network errors in curl 8.0;id=__dtolnay_rust-toolchain.__run_9]
+test	UNKNOWN STEP	2026-11-26T12:33:16.1251918Z ##[group]Run # https://rust-lang.zulipchat.com/#narrow/stream/246057-t-cargo/topic/timeout.20investigation
+test	UNKNOWN STEP	2026-11-26T12:33:16.1252777Z ^[[36;1m# https://rust-lang.zulipchat.com/#narrow/stream/246057-t-cargo/topic/timeout.20investigation^[[0m
+test	UNKNOWN STEP	2026-11-26T12:33:16.1253428Z ^[[36;1mif rustc +"$toolchain" --version --verbose | grep -q '^release: 1\.7[01]\.'; then^[[0m
+test	UNKNOWN STEP	2026-11-26T12:33:16.1254208Z ^[[36;1m  echo CARGO_HTTP_MULTIPLEXING=false >> $GITHUB_ENV^[[0m
+test	UNKNOWN STEP	2026-11-26T12:33:16.1254548Z ^[[36;1mfi^[[0m
+test	UNKNOWN STEP	2026-11-26T12:33:16.1287256Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+test	UNKNOWN STEP	2026-11-26T12:33:16.1287613Z env:
+test	UNKNOWN STEP	2026-11-26T12:33:16.1287817Z   CARGO_HOME: /home/runner/.cargo
+test	UNKNOWN STEP	2026-11-26T12:33:16.1288078Z   CARGO_INCREMENTAL: 0
+test	UNKNOWN STEP	2026-11-26T12:33:16.1288300Z   CARGO_TERM_COLOR: always
+test	UNKNOWN STEP	2026-11-26T12:33:16.1288521Z   toolchain: stable
+test	UNKNOWN STEP	2026-11-26T12:33:16.1288724Z ##[endgroup]
+test	UNKNOWN STEP	2026-11-26T12:33:16.1477484Z ##[end-action id=__dtolnay_rust-toolchain.__run_9;outcome=success;conclusion=success;duration_ms=24]
+test	UNKNOWN STEP	2026-11-26T12:33:16.1482590Z ##[start-action display=rustc +stable --version --verbose;id=__dtolnay_rust-toolchain.__run_10]
+test	UNKNOWN STEP	2026-11-26T12:33:16.1506050Z ##[group]Run rustc +"$toolchain" --version --verbose
+test	UNKNOWN STEP	2026-11-26T12:33:16.1506599Z ^[[36;1mrustc +"$toolchain" --version --verbose^[[0m
+test	UNKNOWN STEP	2026-11-26T12:33:16.1538466Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+test	UNKNOWN STEP	2026-11-26T12:33:16.1538929Z env:
+test	UNKNOWN STEP	2026-11-26T12:33:16.1539223Z   CARGO_HOME: /home/runner/.cargo
+test	UNKNOWN STEP	2026-11-26T12:33:16.1539624Z   CARGO_INCREMENTAL: 0
+test	UNKNOWN STEP	2026-11-26T12:33:16.1557843Z   CARGO_TERM_COLOR: always
+test	UNKNOWN STEP	2026-11-26T12:33:16.1558162Z   toolchain: stable
+test	UNKNOWN STEP	2026-11-26T12:33:16.1558386Z ##[endgroup]
+test	UNKNOWN STEP	2026-11-26T12:33:16.1723746Z rustc 1.100.0 (0ef1bc386 2026-11-09)
+test	UNKNOWN STEP	2026-11-26T12:33:16.1724498Z binary: rustc
+test	UNKNOWN STEP	2026-11-26T12:33:16.1724987Z commit-hash: 0ef1bc386059596dada8fb65b50425aab2ea637a
+test	UNKNOWN STEP	2026-11-26T12:33:16.1725570Z commit-date: 2026-11-09
+test	UNKNOWN STEP	2026-11-26T12:33:16.1725996Z host: x86_64-unknown-linux-gnu
+test	UNKNOWN STEP	2026-11-26T12:33:16.1726441Z release: 1.100.0
+test	UNKNOWN STEP	2026-11-26T12:33:16.1727180Z LLVM version: 23.1.5
+test	UNKNOWN STEP	2026-11-26T12:33:16.1746534Z ##[end-action id=__dtolnay_rust-toolchain.__run_10;outcome=success;conclusion=success;duration_ms=26]
+test	UNKNOWN STEP	2026-11-26T12:33:16.1867352Z ##[group]Run Swatinem/rust-cache@v2
+test	UNKNOWN STEP	2026-11-26T12:33:16.1867656Z with:
+test	UNKNOWN STEP	2026-11-26T12:33:16.1867857Z   workspaces: onchain
+test	UNKNOWN STEP	2026-11-26T12:33:16.1868084Z   prefix-key: v0-rust
+test	UNKNOWN STEP	2026-11-26T12:33:16.1868303Z   add-job-id-key: true
+test	UNKNOWN STEP	2026-11-26T12:33:16.1868546Z   add-rust-environment-hash-key: true
+test	UNKNOWN STEP	2026-11-26T12:33:16.1868819Z   cache-targets: true
+test	UNKNOWN STEP	2026-11-26T12:33:16.1869038Z   cache-all-crates: false
+test	UNKNOWN STEP	2026-11-26T12:33:16.1869272Z   cache-workspace-crates: false
+test	UNKNOWN STEP	2026-11-26T12:33:16.1869515Z   save-if: true
+test	UNKNOWN STEP	2026-11-26T12:33:16.1869717Z   cache-provider: github
+test	UNKNOWN STEP	2026-11-26T12:33:16.1869932Z   cache-bin: true
+test	UNKNOWN STEP	2026-11-26T12:33:16.1870128Z   lookup-only: false
+test	UNKNOWN STEP	2026-11-26T12:33:16.1870330Z   cmd-format: {0}
+test	UNKNOWN STEP	2026-11-26T12:33:16.1870522Z env:
+test	UNKNOWN STEP	2026-11-26T12:33:16.1870712Z   CARGO_HOME: /home/runner/.cargo
+test	UNKNOWN STEP	2026-11-26T12:33:16.1870978Z   CARGO_INCREMENTAL: 0
+test	UNKNOWN STEP	2026-11-26T12:33:16.1871191Z   CARGO_TERM_COLOR: always
+test	UNKNOWN STEP	2026-11-26T12:33:16.1871407Z ##[endgroup]
+test	UNKNOWN STEP	2026-11-26T12:33:16.5796071Z ##[group]Cache Configuration
+test	UNKNOWN STEP	2026-11-26T12:33:16.5824709Z Cache Provider:
+test	UNKNOWN STEP	2026-11-26T12:33:16.5834356Z     github
+test	UNKNOWN STEP	2026-11-26T12:33:16.5837931Z Workspaces:
+test	UNKNOWN STEP	2026-11-26T12:33:16.5838704Z     /home/runner/work/lyricsflip/lyricsflip/onchain
+test	UNKNOWN STEP	2026-11-26T12:33:16.5841911Z Cache Paths:
+test	UNKNOWN STEP	2026-11-26T12:33:16.5842308Z     /home/runner/.cargo/bin
+test	UNKNOWN STEP	2026-11-26T12:33:16.5842738Z     /home/runner/.cargo/.crates.toml
+test	UNKNOWN STEP	2026-11-26T12:33:16.5843217Z     /home/runner/.cargo/.crates2.json
+test	UNKNOWN STEP	2026-11-26T12:33:16.5843668Z     /home/runner/.cargo/registry
+test	UNKNOWN STEP	2026-11-26T12:33:16.5846823Z     /home/runner/.cargo/git
+test	UNKNOWN STEP	2026-11-26T12:33:16.5847326Z     /home/runner/work/lyricsflip/lyricsflip/onchain/target
+test	UNKNOWN STEP	2026-11-26T12:33:16.5847868Z Restore Key:
+test	UNKNOWN STEP	2026-11-26T12:33:16.5848202Z     v0-rust-test-Linux-x64-2fd77104
+test	UNKNOWN STEP	2026-11-26T12:33:16.5848459Z Cache Key:
+test	UNKNOWN STEP	2026-11-26T12:33:16.5848691Z     v0-rust-test-Linux-x64-2fd77104-20a3a1c0
+test	UNKNOWN STEP	2026-11-26T12:33:16.5848990Z .. Prefix:
+test	UNKNOWN STEP	2026-11-26T12:33:16.5849322Z   - v0-rust-test-Linux-x64
+test	UNKNOWN STEP	2026-11-26T12:33:16.5849766Z .. Environment considered:
+test	UNKNOWN STEP	2026-11-26T12:33:16.5850167Z   - Rust Versions:
+test	UNKNOWN STEP	2026-11-26T12:33:16.5850708Z     - 1.100.0 x86_64-unknown-linux-gnu 0ef1bc386059596dada8fb65b50425aab2ea637a
+test	UNKNOWN STEP	2026-11-26T12:33:16.5851341Z   - CARGO_HOME
+test	UNKNOWN STEP	2026-11-26T12:33:16.5851665Z   - CARGO_INCREMENTAL
+test	UNKNOWN STEP	2026-11-26T12:33:16.5852013Z   - CARGO_TERM_COLOR
+test	UNKNOWN STEP	2026-11-26T12:33:16.5852369Z .. Lockfiles considered:
+test	UNKNOWN STEP	2026-11-26T12:33:16.5852871Z   - /home/runner/work/lyricsflip/lyricsflip/onchain/Cargo.lock
+test	UNKNOWN STEP	2026-11-26T12:33:16.5853753Z   - /home/runner/work/lyricsflip/lyricsflip/onchain/contracts/lyricsflip-escrow/Cargo.toml
+test	UNKNOWN STEP	2026-11-26T12:33:16.5854936Z   - /home/runner/work/lyricsflip/lyricsflip/onchain/contracts/lyricsflip-nft/Cargo.toml
+test	UNKNOWN STEP	2026-11-26T12:33:16.5855526Z   - /home/runner/work/lyricsflip/lyricsflip/onchain/contracts/lyricsflip/Cargo.toml
+test	UNKNOWN STEP	2026-11-26T12:33:16.5856097Z   - /home/runner/work/lyricsflip/lyricsflip/onchain/contracts/upgrade-fixture/Cargo.toml
+test	UNKNOWN STEP	2026-11-26T12:33:16.5856779Z ##[endgroup]
+test	UNKNOWN STEP	2026-11-26T12:33:16.5856898Z 
+test	UNKNOWN STEP	2026-11-26T12:33:16.5856988Z ... Restoring cache ...
+test	UNKNOWN STEP	2026-11-26T12:33:16.6585253Z No cache found.
+test	UNKNOWN STEP	2026-11-26T12:33:16.6749107Z ##[group]Run taiki-e/install-action@cargo-llvm-cov
+test	UNKNOWN STEP	2026-11-26T12:33:16.6749448Z with:
+test	UNKNOWN STEP	2026-11-26T12:33:16.6749653Z   tool: cargo-llvm-cov
+test	UNKNOWN STEP	2026-11-26T12:33:16.6749874Z   checksum: true
+test	UNKNOWN STEP	2026-11-26T12:33:16.6750081Z   fallback: cargo-binstall
+test	UNKNOWN STEP	2026-11-26T12:33:16.6750303Z env:
+test	UNKNOWN STEP	2026-11-26T12:33:16.6750494Z   CARGO_HOME: /home/runner/.cargo
+test	UNKNOWN STEP	2026-11-26T12:33:16.6750754Z   CARGO_INCREMENTAL: 0
+test	UNKNOWN STEP	2026-11-26T12:33:16.6750980Z   CARGO_TERM_COLOR: always
+test	UNKNOWN STEP	2026-11-26T12:33:16.6751216Z   CACHE_ON_FAILURE: false
+test	UNKNOWN STEP	2026-11-26T12:33:16.6751433Z ##[endgroup]
+test	UNKNOWN STEP	2026-11-26T12:33:16.6757464Z ##[start-action display=Run bail() {;id=__taiki-e_install-action.__run]
+test	UNKNOWN STEP	2026-11-26T12:33:16.6776190Z ##[group]Run bail() {
+test	UNKNOWN STEP	2026-11-26T12:33:16.6776452Z ^[[36;1mbail() {^[[0m
+test	UNKNOWN STEP	2026-11-26T12:33:16.6776885Z ^[[36;1m  printf '::error::install-action: %s\n' "$*"^[[0m
+test	UNKNOWN STEP	2026-11-26T12:33:16.6777184Z ^[[36;1m  exit 1^[[0m
+test	UNKNOWN STEP	2026-11-26T12:33:16.6777372Z ^[[36;1m}^[[0m
+test	UNKNOWN STEP	2026-11-26T12:33:16.6777746Z ^[[36;1m# If /bin/sh is dash, environment variable containing % is not imported, but is fine^[[0m
+test	UNKNOWN STEP	2026-11-26T12:33:16.6778274Z ^[[36;1m# because it also means that it will not be exposed to subprocess.^[[0m
+test	UNKNOWN STEP	2026-11-26T12:33:16.6778690Z ^[[36;1mif /usr/bin/env | grep -Eq '^BASH_FUNC_'; then^[[0m
+test	UNKNOWN STEP	2026-11-26T12:33:16.6779229Z ^[[36;1m  bail 'bash function injection via BASH_FUNC_ environment variable is not allowed for security reasons'^[[0m
+test	UNKNOWN STEP	2026-11-26T12:33:16.6779711Z ^[[36;1mfi^[[0m
+test	UNKNOWN STEP	2026-11-26T12:33:16.6779934Z ^[[36;1mif ! command -v bash >/dev/null; then^[[0m
+test	UNKNOWN STEP	2026-11-26T12:33:16.6780278Z ^[[36;1m  if grep -Eq '^ID=alpine' /etc/os-release; then^[[0m
+test	UNKNOWN STEP	2026-11-26T12:33:16.6780714Z ^[[36;1m    printf '::group::Install packages required for install-action (bash)\n'^[[0m
+test	UNKNOWN STEP	2026-11-26T12:33:16.6781172Z ^[[36;1m    # NB: sync with apk_install in main.sh^[[0m
+test	UNKNOWN STEP	2026-11-26T12:33:16.6781486Z ^[[36;1m    if command -v sudo >/dev/null; then^[[0m
+test	UNKNOWN STEP	2026-11-26T12:33:16.6781786Z ^[[36;1m      sudo apk --no-cache add bash^[[0m
+test	UNKNOWN STEP	2026-11-26T12:33:16.6782086Z ^[[36;1m    elif command -v doas >/dev/null; then^[[0m
+test	UNKNOWN STEP	2026-11-26T12:33:16.6782378Z ^[[36;1m      doas apk --no-cache add bash^[[0m
+test	UNKNOWN STEP	2026-11-26T12:33:16.6782636Z ^[[36;1m    else^[[0m
+test	UNKNOWN STEP	2026-11-26T12:33:16.6782847Z ^[[36;1m      apk --no-cache add bash^[[0m
+test	UNKNOWN STEP	2026-11-26T12:33:16.6783099Z ^[[36;1m    fi^[[0m
+test	UNKNOWN STEP	2026-11-26T12:33:16.6783302Z ^[[36;1m    printf '::endgroup::\n'^[[0m
+test	UNKNOWN STEP	2026-11-26T12:33:16.6783540Z ^[[36;1m  else^[[0m
+test	UNKNOWN STEP	2026-11-26T12:33:16.6783750Z ^[[36;1m    bail 'this action requires bash'^[[0m
+test	UNKNOWN STEP	2026-11-26T12:33:16.6784283Z ^[[36;1m  fi^[[0m
+test	UNKNOWN STEP	2026-11-26T12:33:16.6784461Z ^[[36;1mfi^[[0m
+test	UNKNOWN STEP	2026-11-26T12:33:16.6784730Z ^[[36;1mbash --noprofile --norc "${GITHUB_ACTION_PATH:?}/main.sh"^[[0m
+test	UNKNOWN STEP	2026-11-26T12:33:16.6785716Z shell: /usr/bin/env -u ENV -u BASH_ENV -u CDPATH -u SHELLOPTS -u BASHOPTS /bin/sh -eu {0}
+test	UNKNOWN STEP	2026-11-26T12:33:16.6786133Z env:
+test	UNKNOWN STEP	2026-11-26T12:33:16.6786328Z   CARGO_HOME: /home/runner/.cargo
+test	UNKNOWN STEP	2026-11-26T12:33:16.6786576Z   CARGO_INCREMENTAL: 0
+test	UNKNOWN STEP	2026-11-26T12:33:16.6786793Z   CARGO_TERM_COLOR: always
+test	UNKNOWN STEP	2026-11-26T12:33:16.6787018Z   CACHE_ON_FAILURE: false
+test	UNKNOWN STEP	2026-11-26T12:33:16.6787248Z   INPUT_TOOL: cargo-llvm-cov
+test	UNKNOWN STEP	2026-11-26T12:33:16.6787481Z   INPUT_CHECKSUM: true
+test	UNKNOWN STEP	2026-11-26T12:33:16.6787698Z   INPUT_FALLBACK: cargo-binstall
+test	UNKNOWN STEP	2026-11-26T12:33:16.6790404Z   DEFAULT_GITHUB_TOKEN: ***
+test	UNKNOWN STEP	2026-11-26T12:33:16.6790730Z   ACTION_USER_AGENT: taiki-e/install-action (cargo-llvm-cov)
+test	UNKNOWN STEP	2026-11-26T12:33:16.6791063Z   RUNNER_OS: Linux
+test	UNKNOWN STEP	2026-11-26T12:33:16.6791268Z   RUNNER_ARCH: X64
+test	UNKNOWN STEP	2026-11-26T12:33:16.6791459Z ##[endgroup]
+test	UNKNOWN STEP	2026-11-26T12:33:16.6951308Z info: host platform: x86_64_linux
+test	UNKNOWN STEP	2026-11-26T12:33:16.7145846Z info: installing cargo-llvm-cov@latest
+test	UNKNOWN STEP	2026-11-26T12:33:16.7365014Z info: downloading https://github.com/taiki-e/cargo-llvm-cov/releases/download/v0.9.2/cargo-llvm-cov-x86_64-unknown-linux-musl.tar.gz
+test	UNKNOWN STEP	2026-11-26T12:33:16.8630972Z info: verifying sha256 checksum for cargo-llvm-cov-x86_64-unknown-linux-musl.tar.gz
+test	UNKNOWN STEP	2026-11-26T12:33:16.8964886Z info: cargo-llvm-cov installed at /home/runner/.cargo/bin/cargo-llvm-cov
+test	UNKNOWN STEP	2026-11-26T12:33:16.8968568Z + cargo-llvm-cov llvm-cov --version
+test	UNKNOWN STEP	2026-11-26T12:33:16.8975037Z cargo-llvm-cov 0.9.2
+test	UNKNOWN STEP	2026-11-26T12:33:16.8976222Z 
+test	UNKNOWN STEP	2026-11-26T12:33:16.8995091Z ##[end-action id=__taiki-e_install-action.__run;outcome=success;conclusion=success;duration_ms=223]
+test	UNKNOWN STEP	2026-11-26T12:33:16.8999853Z ##[start-action display=Run Set-StrictMode -Version Latest;id=__taiki-e_install-action.__run_2]
+test	UNKNOWN STEP	2026-11-26T12:33:16.9003589Z ##[end-action id=__taiki-e_install-action.__run_2;outcome=skipped;conclusion=skipped;duration_ms=0]
+test	UNKNOWN STEP	2026-11-26T12:33:16.9031699Z ##[group]Run set -o pipefail
+test	UNKNOWN STEP	2026-11-26T12:33:16.9032017Z ^[[36;1mset -o pipefail^[[0m
+test	UNKNOWN STEP	2026-11-26T12:33:16.9032345Z ^[[36;1mcargo llvm-cov --workspace --lcov --output-path lcov.info^[[0m
+test	UNKNOWN STEP	2026-11-26T12:33:16.9032778Z ^[[36;1mcargo llvm-cov --workspace --text | tee coverage.txt^[[0m
+test	UNKNOWN STEP	2026-11-26T12:33:16.9033383Z ^[[36;1mcargo llvm-cov --workspace --json --output-path coverage.json^[[0m
+test	UNKNOWN STEP	2026-11-26T12:33:16.9033735Z ^[[36;1m{^[[0m
+test	UNKNOWN STEP	2026-11-26T12:33:16.9034281Z ^[[36;1m  echo "### Coverage"^[[0m
+test	UNKNOWN STEP	2026-11-26T12:33:16.9034529Z ^[[36;1m  echo '```'^[[0m
+test	UNKNOWN STEP	2026-11-26T12:33:16.9034743Z ^[[36;1m  cat coverage.txt^[[0m
+test	UNKNOWN STEP	2026-11-26T12:33:16.9034967Z ^[[36;1m  echo '```'^[[0m
+test	UNKNOWN STEP	2026-11-26T12:33:16.9035182Z ^[[36;1m} >> "$GITHUB_STEP_SUMMARY"^[[0m
+test	UNKNOWN STEP	2026-11-26T12:33:16.9035773Z ^[[36;1mlib_coverage=$(cargo llvm-cov --package lyricsflip --include contracts/lyricsflip/src/lib.rs --fail-under-lines 90 --summary-only)^[[0m
+test	UNKNOWN STEP	2026-11-26T12:33:16.9036362Z ^[[36;1m{^[[0m
+test	UNKNOWN STEP	2026-11-26T12:33:16.9036635Z ^[[36;1m  echo "### lyricsflip lib.rs coverage (minimum 90%)"^[[0m
+test	UNKNOWN STEP	2026-11-26T12:33:16.9036958Z ^[[36;1m  echo '```'^[[0m
+test	UNKNOWN STEP	2026-11-26T12:33:16.9037172Z ^[[36;1m  echo "$lib_coverage"^[[0m
+test	UNKNOWN STEP	2026-11-26T12:33:16.9037399Z ^[[36;1m  echo '```'^[[0m
+test	UNKNOWN STEP	2026-11-26T12:33:16.9037608Z ^[[36;1m} >> "$GITHUB_STEP_SUMMARY"^[[0m
+test	UNKNOWN STEP	2026-11-26T12:33:16.9070034Z shell: /usr/bin/bash -e {0}
+test	UNKNOWN STEP	2026-11-26T12:33:16.9070288Z env:
+test	UNKNOWN STEP	2026-11-26T12:33:16.9070488Z   CARGO_HOME: /home/runner/.cargo
+test	UNKNOWN STEP	2026-11-26T12:33:16.9070754Z   CARGO_INCREMENTAL: 0
+test	UNKNOWN STEP	2026-11-26T12:33:16.9070978Z   CARGO_TERM_COLOR: always
+test	UNKNOWN STEP	2026-11-26T12:33:16.9071203Z   CACHE_ON_FAILURE: false
+test	UNKNOWN STEP	2026-11-26T12:33:16.9071416Z ##[endgroup]
+test	UNKNOWN STEP	2026-11-26T12:33:17.0119407Z info: cargo-llvm-cov currently setting cfg(coverage); you can opt-out it by passing --no-cfg-coverage
+test	UNKNOWN STEP	2026-11-26T12:33:17.4454725Z ^[[1m^[[92m Downloading^[[0m crates ...
+test	UNKNOWN STEP	2026-11-26T12:33:17.5511959Z ^[[1m^[[92m  Downloaded^[[0m ark-bn254 v0.5.0
+test	UNKNOWN STEP	2026-11-26T12:33:17.5538419Z ^[[1m^[[92m  Downloaded^[[0m ahash v0.8.12
+test	UNKNOWN STEP	2026-11-26T12:33:17.5568659Z ^[[1m^[[92m  Downloaded^[[0m arbitrary v1.3.2
+test	UNKNOWN STEP	2026-11-26T12:33:17.5598427Z ^[[1m^[[92m  Downloaded^[[0m allocator-api2 v0.2.21
+test	UNKNOWN STEP	2026-11-26T12:33:17.5627796Z ^[[1m^[[92m  Downloaded^[[0m ark-ec v0.5.0
+test	UNKNOWN STEP	2026-11-26T12:33:17.5682040Z ^[[1m^[[92m  Downloaded^[[0m ark-ff v0.5.0
+test	UNKNOWN STEP	2026-11-26T12:33:17.5730334Z ^[[1m^[[92m  Downloaded^[[0m defmt-parser v1.0.0
+test	UNKNOWN STEP	2026-11-26T12:33:17.5740784Z ^[[1m^[[92m  Downloaded^[[0m dtor-proc-macro v0.0.6
+test	UNKNOWN STEP	2026-11-26T12:33:17.5748355Z ^[[1m^[[92m  Downloaded^[[0m ark-bls12-381 v0.5.0
+test	UNKNOWN STEP	2026-11-26T12:33:17.5792356Z ^[[1m^[[92m  Downloaded^[[0m bs58 v0.5.1
+test	UNKNOWN STEP	2026-11-26T12:33:17.5818869Z ^[[1m^[[92m  Downloaded^[[0m der v0.7.10
+test	UNKNOWN STEP	2026-11-26T12:33:17.5895758Z ^[[1m^[[92m  Downloaded^[[0m defmt v1.1.1
+test	UNKNOWN STEP	2026-11-26T12:33:17.5966371Z ^[[1m^[[92m  Downloaded^[[0m crypto-common v0.1.6
+test	UNKNOWN STEP	2026-11-26T12:33:17.5979000Z ^[[1m^[[92m  Downloaded^[[0m deranged v0.5.8
+test	UNKNOWN STEP	2026-11-26T12:33:17.5997916Z ^[[1m^[[92m  Downloaded^[[0m defmt-macros v1.1.1
+test	UNKNOWN STEP	2026-11-26T12:33:17.6050543Z ^[[1m^[[92m  Downloaded^[[0m dtor v0.1.1
+test	UNKNOWN STEP	2026-11-26T12:33:17.6064886Z ^[[1m^[[92m  Downloaded^[[0m crate-git-revision v0.0.6
+test	UNKNOWN STEP	2026-11-26T12:33:17.6084401Z ^[[1m^[[92m  Downloaded^[[0m derive_arbitrary v1.3.2
+test	UNKNOWN STEP	2026-11-26T12:33:17.6099282Z ^[[1m^[[92m  Downloaded^[[0m digest v0.10.7
+test	UNKNOWN STEP	2026-11-26T12:33:17.6125727Z ^[[1m^[[92m  Downloaded^[[0m digest v0.11.3
+test	UNKNOWN STEP	2026-11-26T12:33:17.6158220Z ^[[1m^[[92m  Downloaded^[[0m cfg_eval v0.1.2
+test	UNKNOWN STEP	2026-11-26T12:33:17.6178000Z ^[[1m^[[92m  Downloaded^[[0m autocfg v1.5.1
+test	UNKNOWN STEP	2026-11-26T12:33:17.6200062Z ^[[1m^[[92m  Downloaded^[[0m downcast-rs v1.2.1
+test	UNKNOWN STEP	2026-11-26T12:33:17.6213205Z ^[[1m^[[92m  Downloaded^[[0m ark-ff-asm v0.5.0
+test	UNKNOWN STEP	2026-11-26T12:33:17.6222782Z ^[[1m^[[92m  Downloaded^[[0m ark-serialize-derive v0.5.0
+test	UNKNOWN STEP	2026-11-26T12:33:17.6231339Z ^[[1m^[[92m  Downloaded^[[0m base16ct v0.2.0
+test	UNKNOWN STEP	2026-11-26T12:33:17.6246064Z ^[[1m^[[92m  Downloaded^[[0m darling v0.24.1
+test	UNKNOWN STEP	2026-11-26T12:33:17.6325135Z ^[[1m^[[92m  Downloaded^[[0m data-encoding v2.11.1
+test	UNKNOWN STEP	2026-11-26T12:33:17.6339347Z ^[[1m^[[92m  Downloaded^[[0m hex v0.4.3
+test	UNKNOWN STEP	2026-11-26T12:33:17.6357928Z ^[[1m^[[92m  Downloaded^[[0m chrono v0.4.45
+test	UNKNOWN STEP	2026-11-26T12:33:17.6440969Z ^[[1m^[[92m  Downloaded^[[0m base64ct v1.8.3
+test	UNKNOWN STEP	2026-11-26T12:33:17.6465409Z ^[[1m^[[92m  Downloaded^[[0m block-buffer v0.10.4
+test	UNKNOWN STEP	2026-11-26T12:33:17.6474795Z ^[[1m^[[92m  Downloaded^[[0m byteorder v1.5.0
+test	UNKNOWN STEP	2026-11-26T12:33:17.6489484Z ^[[1m^[[92m  Downloaded^[[0m cpufeatures v0.2.17
+test	UNKNOWN STEP	2026-11-26T12:33:17.6502636Z ^[[1m^[[92m  Downloaded^[[0m ctor v0.5.0
+test	UNKNOWN STEP	2026-11-26T12:33:17.6512924Z ^[[1m^[[92m  Downloaded^[[0m dyn-clone v1.0.20
+test	UNKNOWN STEP	2026-11-26T12:33:17.6528661Z ^[[1m^[[92m  Downloaded^[[0m hex-literal v0.4.1
+test	UNKNOWN STEP	2026-11-26T12:33:17.6538186Z ^[[1m^[[92m  Downloaded^[[0m ark-std v0.5.0
+test	UNKNOWN STEP	2026-11-26T12:33:17.6551312Z ^[[1m^[[92m  Downloaded^[[0m bytes-lit v0.0.6
+test	UNKNOWN STEP	2026-11-26T12:33:17.6564802Z ^[[1m^[[92m  Downloaded^[[0m crypto-bigint v0.5.5
+test	UNKNOWN STEP	2026-11-26T12:33:17.6633506Z ^[[1m^[[92m  Downloaded^[[0m ff v0.13.1
+test	UNKNOWN STEP	2026-11-26T12:33:17.6655735Z ^[[1m^[[92m  Downloaded^[[0m getrandom v0.2.17
+test	UNKNOWN STEP	2026-11-26T12:33:17.6677153Z ^[[1m^[[92m  Downloaded^[[0m hmac v0.12.1
+test	UNKNOWN STEP	2026-11-26T12:33:17.6695866Z ^[[1m^[[92m  Downloaded^[[0m iana-time-zone v0.1.65
+test	UNKNOWN STEP	2026-11-26T12:33:17.6723157Z ^[[1m^[[92m  Downloaded^[[0m cpufeatures v0.3.1
+test	UNKNOWN STEP	2026-11-26T12:33:17.6737166Z ^[[1m^[[92m  Downloaded^[[0m darling_core v0.20.11
+test	UNKNOWN STEP	2026-11-26T12:33:17.6786486Z ^[[1m^[[92m  Downloaded^[[0m group v0.13.0
+test	UNKNOWN STEP	2026-11-26T12:33:17.6800887Z ^[[1m^[[92m  Downloaded^[[0m ark-ff-macros v0.5.0
+test	UNKNOWN STEP	2026-11-26T12:33:17.6813643Z ^[[1m^[[92m  Downloaded^[[0m ark-poly v0.5.0
+test	UNKNOWN STEP	2026-11-26T12:33:17.6840732Z ^[[1m^[[92m  Downloaded^[[0m ark-serialize v0.5.0
+test	UNKNOWN STEP	2026-11-26T12:33:17.6851426Z ^[[1m^[[92m  Downloaded^[[0m arrayvec v0.7.8
+test	UNKNOWN STEP	2026-11-26T12:33:17.6870985Z ^[[1m^[[92m  Downloaded^[[0m bitflags v1.3.2
+test	UNKNOWN STEP	2026-11-26T12:33:17.6902012Z ^[[1m^[[92m  Downloaded^[[0m const-oid v0.9.6
+test	UNKNOWN STEP	2026-11-26T12:33:17.6920113Z ^[[1m^[[92m  Downloaded^[[0m crate-git-revision v0.0.9
+test	UNKNOWN STEP	2026-11-26T12:33:17.6932885Z ^[[1m^[[92m  Downloaded^[[0m ctor-proc-macro v0.0.6
+test	UNKNOWN STEP	2026-11-26T12:33:17.6940377Z ^[[1m^[[92m  Downloaded^[[0m curve25519-dalek v4.1.3
+test	UNKNOWN STEP	2026-11-26T12:33:17.7019480Z ^[[1m^[[92m  Downloaded^[[0m curve25519-dalek-derive v0.1.1
+test	UNKNOWN STEP	2026-11-26T12:33:17.7029598Z ^[[1m^[[92m  Downloaded^[[0m darling v0.20.11
+test	UNKNOWN STEP	2026-11-26T12:33:17.7076451Z ^[[1m^[[92m  Downloaded^[[0m ed25519 v2.2.3
+test	UNKNOWN STEP	2026-11-26T12:33:17.7093001Z ^[[1m^[[92m  Downloaded^[[0m either v1.18.0
+test	UNKNOWN STEP	2026-11-26T12:33:17.7107235Z ^[[1m^[[92m  Downloaded^[[0m elliptic-curve v0.13.8
+test	UNKNOWN STEP	2026-11-26T12:33:17.7143651Z ^[[1m^[[92m  Downloaded^[[0m escape-bytes v0.1.1
+test	UNKNOWN STEP	2026-11-26T12:33:17.7157799Z ^[[1m^[[92m  Downloaded^[[0m fnv v1.0.7
+test	UNKNOWN STEP	2026-11-26T12:33:17.7166059Z ^[[1m^[[92m  Downloaded^[[0m heapless v0.8.0
+test	UNKNOWN STEP	2026-11-26T12:33:17.7201947Z ^[[1m^[[92m  Downloaded^[[0m heck v0.5.0
+test	UNKNOWN STEP	2026-11-26T12:33:17.7214393Z ^[[1m^[[92m  Downloaded^[[0m indexmap v2.14.2
+test	UNKNOWN STEP	2026-11-26T12:33:17.7255057Z ^[[1m^[[92m  Downloaded^[[0m k256 v0.13.4
+test	UNKNOWN STEP	2026-11-26T12:33:17.7289871Z ^[[1m^[[92m  Downloaded^[[0m keccak v0.1.6
+test	UNKNOWN STEP	2026-11-26T12:33:17.7306156Z ^[[1m^[[92m  Downloaded^[[0m log v0.4.34
+test	UNKNOWN STEP	2026-11-26T12:33:17.7330090Z ^[[1m^[[92m  Downloaded^[[0m num-integer v0.1.47
+test	UNKNOWN STEP	2026-11-26T12:33:17.7345684Z ^[[1m^[[92m  Downloaded^[[0m primeorder v0.13.6
+test	UNKNOWN STEP	2026-11-26T12:33:17.7357918Z ^[[1m^[[92m  Downloaded^[[0m rfc6979 v0.4.0
+test	UNKNOWN STEP	2026-11-26T12:33:17.7367737Z ^[[1m^[[92m  Downloaded^[[0m base64 v0.22.1
+test	UNKNOWN STEP	2026-11-26T12:33:17.7404111Z ^[[1m^[[92m  Downloaded^[[0m base64 v0.23.1
+test	UNKNOWN STEP	2026-11-26T12:33:17.7441483Z ^[[1m^[[92m  Downloaded^[[0m block-buffer v0.12.1
+test	UNKNOWN STEP	2026-11-26T12:33:17.7454100Z ^[[1m^[[92m  Downloaded^[[0m darling_core v0.24.1
+test	UNKNOWN STEP	2026-11-26T12:33:17.7511392Z ^[[1m^[[92m  Downloaded^[[0m darling_macro v0.20.11
+test	UNKNOWN STEP	2026-11-26T12:33:17.7517703Z ^[[1m^[[92m  Downloaded^[[0m darling_macro v0.24.1
+test	UNKNOWN STEP	2026-11-26T12:33:17.7523567Z ^[[1m^[[92m  Downloaded^[[0m ed25519-dalek v2.2.0
+test	UNKNOWN STEP	2026-11-26T12:33:17.7553323Z ^[[1m^[[92m  Downloaded^[[0m educe v0.6.0
+test	UNKNOWN STEP	2026-11-26T12:33:17.7630184Z ^[[1m^[[92m  Downloaded^[[0m enum-ordinalize-derive v4.4.2
+test	UNKNOWN STEP	2026-11-26T12:33:17.7639960Z ^[[1m^[[92m  Downloaded^[[0m equivalent v1.0.2
+test	UNKNOWN STEP	2026-11-26T12:33:17.7649583Z ^[[1m^[[92m  Downloaded^[[0m ethnum v1.5.3
+test	UNKNOWN STEP	2026-11-26T12:33:17.7689325Z ^[[1m^[[92m  Downloaded^[[0m ident_case v1.0.1
+test	UNKNOWN STEP	2026-11-26T12:33:17.7697441Z ^[[1m^[[92m  Downloaded^[[0m indexmap v1.9.3
+test	UNKNOWN STEP	2026-11-26T12:33:17.7727209Z ^[[1m^[[92m  Downloaded^[[0m indexmap-nostd v0.4.0
+test	UNKNOWN STEP	2026-11-26T12:33:17.7739954Z ^[[1m^[[92m  Downloaded^[[0m itoa v1.0.18
+test	UNKNOWN STEP	2026-11-26T12:33:17.7754109Z ^[[1m^[[92m  Downloaded^[[0m macro-string v0.1.4
+test	UNKNOWN STEP	2026-11-26T12:33:17.7771250Z ^[[1m^[[92m  Downloaded^[[0m memchr v2.8.3
+test	UNKNOWN STEP	2026-11-26T12:33:17.7824193Z ^[[1m^[[92m  Downloaded^[[0m prettyplease v0.2.37
+test	UNKNOWN STEP	2026-11-26T12:33:17.7858490Z ^[[1m^[[92m  Downloaded^[[0m time-core v0.1.9
+test	UNKNOWN STEP	2026-11-26T12:33:17.7869404Z ^[[1m^[[92m  Downloaded^[[0m version_check v0.9.5
+test	UNKNOWN STEP	2026-11-26T12:33:17.7881604Z ^[[1m^[[92m  Downloaded^[[0m cfg-if v1.0.4
+test	UNKNOWN STEP	2026-11-26T12:33:17.7894051Z ^[[1m^[[92m  Downloaded^[[0m crypto-common v0.2.2
+test	UNKNOWN STEP	2026-11-26T12:33:17.7904554Z ^[[1m^[[92m  Downloaded^[[0m ecdsa v0.16.9
+test	UNKNOWN STEP	2026-11-26T12:33:17.7921083Z ^[[1m^[[92m  Downloaded^[[0m enum-ordinalize v4.4.2
+test	UNKNOWN STEP	2026-11-26T12:33:17.7929289Z ^[[1m^[[92m  Downloaded^[[0m hash32 v0.3.1
+test	UNKNOWN STEP	2026-11-26T12:33:17.7942812Z ^[[1m^[[92m  Downloaded^[[0m hashbrown v0.12.3
+test	UNKNOWN STEP	2026-11-26T12:33:17.7978750Z ^[[1m^[[92m  Downloaded^[[0m hashbrown v0.15.5
+test	UNKNOWN STEP	2026-11-26T12:33:17.8026938Z ^[[1m^[[92m  Downloaded^[[0m hashbrown v0.17.1
+test	UNKNOWN STEP	2026-11-26T12:33:17.8077731Z ^[[1m^[[92m  Downloaded^[[0m hybrid-array v0.4.15
+test	UNKNOWN STEP	2026-11-26T12:33:17.8098862Z ^[[1m^[[92m  Downloaded^[[0m jiff-core v0.1.0
+test	UNKNOWN STEP	2026-11-26T12:33:17.8132794Z ^[[1m^[[92m  Downloaded^[[0m once_cell v1.21.4
+test	UNKNOWN STEP	2026-11-26T12:33:17.8156733Z ^[[1m^[[92m  Downloaded^[[0m paste v1.0.15
+test	UNKNOWN STEP	2026-11-26T12:33:17.8187331Z ^[[1m^[[92m  Downloaded^[[0m ppv-lite86 v0.2.21
+test	UNKNOWN STEP	2026-11-26T12:33:17.8199830Z ^[[1m^[[92m  Downloaded^[[0m generic-array v0.14.9
+test	UNKNOWN STEP	2026-11-26T12:33:17.8213248Z ^[[1m^[[92m  Downloaded^[[0m smallvec v1.16.0
+test	UNKNOWN STEP	2026-11-26T12:33:17.8226092Z ^[[1m^[[92m  Downloaded^[[0m rand_core v0.6.4
+test	UNKNOWN STEP	2026-11-26T12:33:17.8238933Z ^[[1m^[[92m  Downloaded^[[0m stable_deref_trait v1.2.1
+test	UNKNOWN STEP	2026-11-26T12:33:17.8247327Z ^[[1m^[[92m  Downloaded^[[0m subtle v2.6.1
+test	UNKNOWN STEP	2026-11-26T12:33:17.8258290Z ^[[1m^[[92m  Downloaded^[[0m unicode-ident v1.0.24
+test	UNKNOWN STEP	2026-11-26T12:33:17.8285624Z ^[[1m^[[92m  Downloaded^[[0m signature v2.2.0
+test	UNKNOWN STEP	2026-11-26T12:33:17.8299273Z ^[[1m^[[92m  Downloaded^[[0m thiserror-impl v1.0.69
+test	UNKNOWN STEP	2026-11-26T12:33:17.8312178Z ^[[1m^[[92m  Downloaded^[[0m num-derive v0.4.2
+test	UNKNOWN STEP	2026-11-26T12:33:17.8328923Z ^[[1m^[[92m  Downloaded^[[0m strsim v0.11.1
+test	UNKNOWN STEP	2026-11-26T12:33:17.8341331Z ^[[1m^[[92m  Downloaded^[[0m num-conv v0.2.2
+test	UNKNOWN STEP	2026-11-26T12:33:17.8349347Z ^[[1m^[[92m  Downloaded^[[0m spin v0.9.9
+test	UNKNOWN STEP	2026-11-26T12:33:17.8371405Z ^[[1m^[[92m  Downloaded^[[0m powerfmt v0.2.0
+test	UNKNOWN STEP	2026-11-26T12:33:17.8381937Z ^[[1m^[[92m  Downloaded^[[0m zeroize_derive v1.5.0
+test	UNKNOWN STEP	2026-11-26T12:33:17.8391470Z ^[[1m^[[92m  Downloaded^[[0m zmij v1.0.23
+test	UNKNOWN STEP	2026-11-26T12:33:17.8408393Z ^[[1m^[[92m  Downloaded^[[0m thiserror v2.0.20
+test	UNKNOWN STEP	2026-11-26T12:33:17.8471192Z ^[[1m^[[92m  Downloaded^[[0m pkcs8 v0.10.2
+test	UNKNOWN STEP	2026-11-26T12:33:17.8498153Z ^[[1m^[[92m  Downloaded^[[0m quote v1.0.47
+test	UNKNOWN STEP	2026-11-26T12:33:17.8524444Z ^[[1m^[[92m  Downloaded^[[0m semver v1.0.28
+test	UNKNOWN STEP	2026-11-26T12:33:17.8546604Z ^[[1m^[[92m  Downloaded^[[0m serde v1.0.229
+test	UNKNOWN STEP	2026-11-26T12:33:17.8579719Z ^[[1m^[[92m  Downloaded^[[0m thiserror v1.0.69
+test	UNKNOWN STEP	2026-11-26T12:33:17.8633409Z ^[[1m^[[92m  Downloaded^[[0m num-traits v0.2.19
+test	UNKNOWN STEP	2026-11-26T12:33:17.8658743Z ^[[1m^[[92m  Downloaded^[[0m proc-macro2 v1.0.107
+test	UNKNOWN STEP	2026-11-26T12:33:17.8687501Z ^[[1m^[[92m  Downloaded^[[0m schemars v0.8.22
+test	UNKNOWN STEP	2026-11-26T12:33:17.8811989Z ^[[1m^[[92m  Downloaded^[[0m typenum v1.20.1
+test	UNKNOWN STEP	2026-11-26T12:33:17.8846309Z ^[[1m^[[92m  Downloaded^[[0m p256 v0.13.2
+test	UNKNOWN STEP	2026-11-26T12:33:17.8877979Z ^[[1m^[[92m  Downloaded^[[0m serde_core v1.0.229
+test	UNKNOWN STEP	2026-11-26T12:33:17.8904346Z ^[[1m^[[92m  Downloaded^[[0m itertools v0.13.0
+test	UNKNOWN STEP	2026-11-26T12:33:17.8969733Z ^[[1m^[[92m  Downloaded^[[0m ref-cast v1.0.27
+test	UNKNOWN STEP	2026-11-26T12:33:17.8998150Z ^[[1m^[[92m  Downloaded^[[0m libc v0.2.189
+test	UNKNOWN STEP	2026-11-26T12:33:17.9411626Z ^[[1m^[[92m  Downloaded^[[0m wasmi_arena v0.4.1
+test	UNKNOWN STEP	2026-11-26T12:33:17.9420877Z ^[[1m^[[92m  Downloaded^[[0m wasmi_core v0.13.0
+test	UNKNOWN STEP	2026-11-26T12:33:17.9432494Z ^[[1m^[[92m  Downloaded^[[0m libm v0.2.16
+test	UNKNOWN STEP	2026-11-26T12:33:17.9537886Z ^[[1m^[[92m  Downloaded^[[0m rustc_version v0.4.1
+test	UNKNOWN STEP	2026-11-26T12:33:17.9550179Z ^[[1m^[[92m  Downloaded^[[0m zeroize v1.9.0
+test	UNKNOWN STEP	2026-11-26T12:33:17.9564882Z ^[[1m^[[92m  Downloaded^[[0m ref-cast-impl v1.0.27
+test	UNKNOWN STEP	2026-11-26T12:33:17.9572690Z ^[[1m^[[92m  Downloaded^[[0m soroban-spec v27.0.6
+test	UNKNOWN STEP	2026-11-26T12:33:17.9581525Z ^[[1m^[[92m  Downloaded^[[0m thiserror-impl v2.0.20
+test	UNKNOWN STEP	2026-11-26T12:33:17.9595962Z ^[[1m^[[92m  Downloaded^[[0m visibility v0.1.1
+test	UNKNOWN STEP	2026-11-26T12:33:17.9607924Z ^[[1m^[[92m  Downloaded^[[0m serde_with v3.23.0
+test	UNKNOWN STEP	2026-11-26T12:33:17.9734755Z ^[[1m^[[92m  Downloaded^[[0m soroban-wasmi v0.31.1-soroban.20.0.1
+test	UNKNOWN STEP	2026-11-26T12:33:17.9799980Z ^[[1m^[[92m  Downloaded^[[0m wasmparser-nostd v0.100.2
+test	UNKNOWN STEP	2026-11-26T12:33:17.9845800Z ^[[1m^[[92m  Downloaded^[[0m stellar-strkey v0.0.16
+test	UNKNOWN STEP	2026-11-26T12:33:17.9876509Z ^[[1m^[[92m  Downloaded^[[0m time-macros v0.2.32
+test	UNKNOWN STEP	2026-11-26T12:33:17.9900039Z ^[[1m^[[92m  Downloaded^[[0m tinyvec v1.13.2
+test	UNKNOWN STEP	2026-11-26T12:33:17.9933628Z ^[[1m^[[92m  Downloaded^[[0m tinyvec_macros v0.1.1
+test	UNKNOWN STEP	2026-11-26T12:33:17.9942029Z ^[[1m^[[92m  Downloaded^[[0m curve25519-dalek v5.0.0
+test	UNKNOWN STEP	2026-11-26T12:33:18.0031543Z ^[[1m^[[92m  Downloaded^[[0m num-bigint v0.4.8
+test	UNKNOWN STEP	2026-11-26T12:33:18.0077279Z ^[[1m^[[92m  Downloaded^[[0m serde_with_macros v3.23.0
+test	UNKNOWN STEP	2026-11-26T12:33:18.0095316Z ^[[1m^[[92m  Downloaded^[[0m sha2 v0.10.9
+test	UNKNOWN STEP	2026-11-26T12:33:18.0119648Z ^[[1m^[[92m  Downloaded^[[0m soroban-builtin-sdk-macros v27.0.1
+test	UNKNOWN STEP	2026-11-26T12:33:18.0127420Z ^[[1m^[[92m  Downloaded^[[0m soroban-sdk-macros v27.0.6
+test	UNKNOWN STEP	2026-11-26T12:33:18.0149255Z ^[[1m^[[92m  Downloaded^[[0m stellar-strkey v0.0.13
+test	UNKNOWN STEP	2026-11-26T12:33:18.0175291Z ^[[1m^[[92m  Downloaded^[[0m serde_derive v1.0.229
+test	UNKNOWN STEP	2026-11-26T12:33:18.0204731Z ^[[1m^[[92m  Downloaded^[[0m soroban-env-common v27.0.1
+test	UNKNOWN STEP	2026-11-26T12:33:18.0229936Z ^[[1m^[[92m  Downloaded^[[0m soroban-env-macros v27.0.1
+test	UNKNOWN STEP	2026-11-26T12:33:18.0241146Z ^[[1m^[[92m  Downloaded^[[0m soroban-sdk v27.0.6
+test	UNKNOWN STEP	2026-11-26T12:33:18.0305565Z ^[[1m^[[92m  Downloaded^[[0m spki v0.7.3
+test	UNKNOWN STEP	2026-11-26T12:33:18.0322540Z ^[[1m^[[92m  Downloaded^[[0m static_assertions v1.1.0
+test	UNKNOWN STEP	2026-11-26T12:33:18.0336442Z ^[[1m^[[92m  Downloaded^[[0m wasmparser v0.116.1
+test	UNKNOWN STEP	2026-11-26T12:33:18.0389397Z ^[[1m^[[92m  Downloaded^[[0m rand v0.8.8
+test	UNKNOWN STEP	2026-11-26T12:33:18.0421027Z ^[[1m^[[92m  Downloaded^[[0m schemars v0.9.0
+test	UNKNOWN STEP	2026-11-26T12:33:18.0558365Z ^[[1m^[[92m  Downloaded^[[0m schemars v1.2.2
+test	UNKNOWN STEP	2026-11-26T12:33:18.0735527Z ^[[1m^[[92m  Downloaded^[[0m soroban-spec-rust v27.0.6
+test	UNKNOWN STEP	2026-11-26T12:33:18.0744953Z ^[[1m^[[92m  Downloaded^[[0m sec1 v0.7.3
+test	UNKNOWN STEP	2026-11-26T12:33:18.0760478Z ^[[1m^[[92m  Downloaded^[[0m serde_json v1.0.151
+test	UNKNOWN STEP	2026-11-26T12:33:18.0832651Z ^[[1m^[[92m  Downloaded^[[0m soroban-ledger-snapshot v27.0.6
+test	UNKNOWN STEP	2026-11-26T12:33:18.0843224Z ^[[1m^[[92m  Downloaded^[[0m syn v3.0.5
+test	UNKNOWN STEP	2026-11-26T12:33:18.0947479Z ^[[1m^[[92m  Downloaded^[[0m rand_chacha v0.3.1
+test	UNKNOWN STEP	2026-11-26T12:33:18.0958568Z ^[[1m^[[92m  Downloaded^[[0m syn v2.0.119
+test	UNKNOWN STEP	2026-11-26T12:33:18.1061630Z ^[[1m^[[92m  Downloaded^[[0m zerocopy v0.8.57
+test	UNKNOWN STEP	2026-11-26T12:33:18.1273378Z ^[[1m^[[92m  Downloaded^[[0m time v0.3.55
+test	UNKNOWN STEP	2026-11-26T12:33:18.1422308Z ^[[1m^[[92m  Downloaded^[[0m jiff v0.2.35
+test	UNKNOWN STEP	2026-11-26T12:33:18.1571636Z ^[[1m^[[92m  Downloaded^[[0m soroban-env-host v27.0.1
+test	UNKNOWN STEP	2026-11-26T12:33:18.1805282Z ^[[1m^[[92m  Downloaded^[[0m sha3 v0.10.9
+test	UNKNOWN STEP	2026-11-26T12:33:18.1848650Z ^[[1m^[[92m  Downloaded^[[0m stellar-xdr v27.0.0
+test	UNKNOWN STEP	2026-11-26T12:33:18.3258540Z ^[[1m^[[92m   Compiling^[[0m proc-macro2 v1.0.107
+test	UNKNOWN STEP	2026-11-26T12:33:18.3260926Z ^[[1m^[[92m   Compiling^[[0m unicode-ident v1.0.24
+test	UNKNOWN STEP	2026-11-26T12:33:18.3262155Z ^[[1m^[[92m   Compiling^[[0m quote v1.0.47
+test	UNKNOWN STEP	2026-11-26T12:33:18.3263104Z ^[[1m^[[92m   Compiling^[[0m version_check v0.9.5
+test	UNKNOWN STEP	2026-11-26T12:33:18.6290132Z ^[[1m^[[92m   Compiling^[[0m cfg-if v1.0.4
+test	UNKNOWN STEP	2026-11-26T12:33:18.6558899Z ^[[1m^[[92m   Compiling^[[0m serde_core v1.0.229
+test	UNKNOWN STEP	2026-11-26T12:33:18.7162590Z ^[[1m^[[92m   Compiling^[[0m serde v1.0.229
+test	UNKNOWN STEP	2026-11-26T12:33:18.8156099Z ^[[1m^[[92m   Compiling^[[0m typenum v1.20.1
+test	UNKNOWN STEP	2026-11-26T12:33:18.8766435Z ^[[1m^[[92m   Compiling^[[0m zmij v1.0.23
+test	UNKNOWN STEP	2026-11-26T12:33:19.0412997Z ^[[1m^[[92m   Compiling^[[0m serde_json v1.0.151
+test	UNKNOWN STEP	2026-11-26T12:33:19.6351595Z ^[[1m^[[92m   Compiling^[[0m itoa v1.0.18
+test	UNKNOWN STEP	2026-11-26T12:33:19.6454998Z ^[[1m^[[92m   Compiling^[[0m memchr v2.8.3
+test	UNKNOWN STEP	2026-11-26T12:33:19.7885250Z ^[[1m^[[92m   Compiling^[[0m syn v2.0.119
+test	UNKNOWN STEP	2026-11-26T12:33:19.8070380Z ^[[1m^[[92m   Compiling^[[0m syn v3.0.5
+test	UNKNOWN STEP	2026-11-26T12:33:20.4105370Z ^[[1m^[[92m   Compiling^[[0m generic-array v0.14.9
+test	UNKNOWN STEP	2026-11-26T12:33:20.5485136Z ^[[1m^[[92m   Compiling^[[0m subtle v2.6.1
+test	UNKNOWN STEP	2026-11-26T12:33:20.6525278Z ^[[1m^[[92m   Compiling^[[0m libc v0.2.189
+test	UNKNOWN STEP	2026-11-26T12:33:20.8945960Z ^[[1m^[[92m   Compiling^[[0m const-oid v0.9.6
+test	UNKNOWN STEP	2026-11-26T12:33:21.0265289Z ^[[1m^[[92m   Compiling^[[0m autocfg v1.5.1
+test	UNKNOWN STEP	2026-11-26T12:33:22.4575052Z ^[[1m^[[92m   Compiling^[[0m strsim v0.11.1
+test	UNKNOWN STEP	2026-11-26T12:33:22.5365224Z ^[[1m^[[92m   Compiling^[[0m getrandom v0.2.17
+test	UNKNOWN STEP	2026-11-26T12:33:22.6925736Z ^[[1m^[[92m   Compiling^[[0m rand_core v0.6.4
+test	UNKNOWN STEP	2026-11-26T12:33:22.7135694Z ^[[1m^[[92m   Compiling^[[0m ident_case v1.0.1
+test	UNKNOWN STEP	2026-11-26T12:33:22.7715241Z ^[[1m^[[92m   Compiling^[[0m semver v1.0.28
+test	UNKNOWN STEP	2026-11-26T12:33:22.8675150Z ^[[1m^[[92m   Compiling^[[0m num-traits v0.2.19
+test	UNKNOWN STEP	2026-11-26T12:33:22.9596863Z ^[[1m^[[92m   Compiling^[[0m cpufeatures v0.2.17
+test	UNKNOWN STEP	2026-11-26T12:33:23.0755334Z ^[[1m^[[92m   Compiling^[[0m darling_core v0.24.1
+test	UNKNOWN STEP	2026-11-26T12:33:23.2825332Z ^[[1m^[[92m   Compiling^[[0m zerocopy v0.8.57
+test	UNKNOWN STEP	2026-11-26T12:33:24.4444962Z ^[[1m^[[92m   Compiling^[[0m schemars v0.8.22
+test	UNKNOWN STEP	2026-11-26T12:33:24.5675084Z ^[[1m^[[92m   Compiling^[[0m serde_derive v1.0.229
+test	UNKNOWN STEP	2026-11-26T12:33:24.7185448Z ^[[1m^[[92m   Compiling^[[0m zeroize_derive v1.5.0
+test	UNKNOWN STEP	2026-11-26T12:33:25.1689868Z ^[[1m^[[92m   Compiling^[[0m zeroize v1.9.0
+test	UNKNOWN STEP	2026-11-26T12:33:25.9005517Z ^[[1m^[[92m   Compiling^[[0m crypto-common v0.1.6
+test	UNKNOWN STEP	2026-11-26T12:33:25.9245071Z ^[[1m^[[92m   Compiling^[[0m block-buffer v0.10.4
+test	UNKNOWN STEP	2026-11-26T12:33:26.0164846Z ^[[1m^[[92m   Compiling^[[0m digest v0.10.7
+test	UNKNOWN STEP	2026-11-26T12:33:26.3135558Z ^[[1m^[[92m   Compiling^[[0m darling_macro v0.24.1
+test	UNKNOWN STEP	2026-11-26T12:33:26.5305240Z ^[[1m^[[92m   Compiling^[[0m darling v0.24.1
+test	UNKNOWN STEP	2026-11-26T12:33:26.5675161Z ^[[1m^[[92m   Compiling^[[0m dyn-clone v1.0.20
+test	UNKNOWN STEP	2026-11-26T12:33:26.6735279Z ^[[1m^[[92m   Compiling^[[0m serde_with_macros v3.23.0
+test	UNKNOWN STEP	2026-11-26T12:33:26.7685348Z ^[[1m^[[92m   Compiling^[[0m data-encoding v2.11.1
+test	UNKNOWN STEP	2026-11-26T12:33:27.6365028Z ^[[1m^[[92m   Compiling^[[0m paste v1.0.15
+test	UNKNOWN STEP	2026-11-26T12:33:27.7944726Z ^[[1m^[[92m   Compiling^[[0m rustc_version v0.4.1
+test	UNKNOWN STEP	2026-11-26T12:33:28.0170463Z ^[[1m^[[92m   Compiling^[[0m num-integer v0.1.47
+test	UNKNOWN STEP	2026-11-26T12:33:28.3101912Z ^[[1m^[[92m   Compiling^[[0m crate-git-revision v0.0.6
+test	UNKNOWN STEP	2026-11-26T12:33:28.3774893Z ^[[1m^[[92m   Compiling^[[0m hex v0.4.3
+test	UNKNOWN STEP	2026-11-26T12:33:28.4825317Z ^[[1m^[[92m   Compiling^[[0m stellar-strkey v0.0.13
+test	UNKNOWN STEP	2026-11-26T12:33:28.6045591Z ^[[1m^[[92m   Compiling^[[0m stellar-xdr v27.0.0
+test	UNKNOWN STEP	2026-11-26T12:33:28.7266481Z ^[[1m^[[92m   Compiling^[[0m cfg_eval v0.1.2
+test	UNKNOWN STEP	2026-11-26T12:33:28.9185431Z ^[[1m^[[92m   Compiling^[[0m ethnum v1.5.3
+test	UNKNOWN STEP	2026-11-26T12:33:28.9295076Z ^[[1m^[[92m   Compiling^[[0m escape-bytes v0.1.1
+test	UNKNOWN STEP	2026-11-26T12:33:29.0168935Z ^[[1m^[[92m   Compiling^[[0m num-bigint v0.4.8
+test	UNKNOWN STEP	2026-11-26T12:33:29.7969704Z ^[[1m^[[92m   Compiling^[[0m serde_with v3.23.0
+test	UNKNOWN STEP	2026-11-26T12:33:30.0735184Z ^[[1m^[[92m   Compiling^[[0m sha2 v0.10.9
+test	UNKNOWN STEP	2026-11-26T12:33:30.2610118Z ^[[1m^[[92m   Compiling^[[0m ppv-lite86 v0.2.21
+test	UNKNOWN STEP	2026-11-26T12:33:30.4818616Z ^[[1m^[[92m   Compiling^[[0m enum-ordinalize-derive v4.4.2
+test	UNKNOWN STEP	2026-11-26T12:33:30.6294892Z ^[[1m^[[92m   Compiling^[[0m rand_chacha v0.3.1
+test	UNKNOWN STEP	2026-11-26T12:33:30.8735325Z ^[[1m^[[92m   Compiling^[[0m rand v0.8.8
+test	UNKNOWN STEP	2026-11-26T12:33:30.9315216Z ^[[1m^[[92m   Compiling^[[0m enum-ordinalize v4.4.2
+test	UNKNOWN STEP	2026-11-26T12:33:31.0045284Z ^[[1m^[[92m   Compiling^[[0m der v0.7.10
+test	UNKNOWN STEP	2026-11-26T12:33:31.5615082Z ^[[1m^[[92m   Compiling^[[0m ark-std v0.5.0
+test	UNKNOWN STEP	2026-11-26T12:33:31.7135334Z ^[[1m^[[92m   Compiling^[[0m ark-serialize-derive v0.5.0
+test	UNKNOWN STEP	2026-11-26T12:33:31.9465845Z ^[[1m^[[92m   Compiling^[[0m ff v0.13.1
+test	UNKNOWN STEP	2026-11-26T12:33:32.0355051Z ^[[1m^[[92m   Compiling^[[0m ahash v0.8.12
+test	UNKNOWN STEP	2026-11-26T12:33:32.0815482Z ^[[1m^[[92m   Compiling^[[0m base16ct v0.2.0
+test	UNKNOWN STEP	2026-11-26T12:33:32.1535124Z ^[[1m^[[92m   Compiling^[[0m equivalent v1.0.2
+test	UNKNOWN STEP	2026-11-26T12:33:32.1804731Z ^[[1m^[[92m   Compiling^[[0m hashbrown v0.17.1
+test	UNKNOWN STEP	2026-11-26T12:33:32.1912860Z ^[[1m^[[92m   Compiling^[[0m arrayvec v0.7.8
+test	UNKNOWN STEP	2026-11-26T12:33:32.3505370Z ^[[1m^[[92m   Compiling^[[0m either v1.18.0
+test	UNKNOWN STEP	2026-11-26T12:33:32.6310429Z ^[[1m^[[92m   Compiling^[[0m itertools v0.13.0
+test	UNKNOWN STEP	2026-11-26T12:33:32.7645268Z ^[[1m^[[92m   Compiling^[[0m indexmap v2.14.2
+test	UNKNOWN STEP	2026-11-26T12:33:33.5075570Z ^[[1m^[[92m   Compiling^[[0m ark-serialize v0.5.0
+test	UNKNOWN STEP	2026-11-26T12:33:33.7277942Z ^[[1m^[[92m   Compiling^[[0m sec1 v0.7.3
+test	UNKNOWN STEP	2026-11-26T12:33:33.7510026Z ^[[1m^[[92m   Compiling^[[0m group v0.13.0
+test	UNKNOWN STEP	2026-11-26T12:33:33.8135504Z ^[[1m^[[92m   Compiling^[[0m educe v0.6.0
+test	UNKNOWN STEP	2026-11-26T12:33:33.9465668Z ^[[1m^[[92m   Compiling^[[0m ark-ff-macros v0.5.0
+test	UNKNOWN STEP	2026-11-26T12:33:34.1859465Z ^[[1m^[[92m   Compiling^[[0m signature v2.2.0
+test	UNKNOWN STEP	2026-11-26T12:33:34.6267190Z ^[[1m^[[92m   Compiling^[[0m crypto-bigint v0.5.5
+test	UNKNOWN STEP	2026-11-26T12:33:34.6304897Z ^[[1m^[[92m   Compiling^[[0m ark-ff-asm v0.5.0
+test	UNKNOWN STEP	2026-11-26T12:33:34.9915483Z ^[[1m^[[92m   Compiling^[[0m allocator-api2 v0.2.21
+test	UNKNOWN STEP	2026-11-26T12:33:35.2975234Z ^[[1m^[[92m   Compiling^[[0m once_cell v1.21.4
+test	UNKNOWN STEP	2026-11-26T12:33:35.3940546Z ^[[1m^[[92m   Compiling^[[0m base64 v0.22.1
+test	UNKNOWN STEP	2026-11-26T12:33:35.6895298Z ^[[1m^[[92m   Compiling^[[0m libm v0.2.16
+test	UNKNOWN STEP	2026-11-26T12:33:35.8685590Z ^[[1m^[[92m   Compiling^[[0m elliptic-curve v0.13.8
+test	UNKNOWN STEP	2026-11-26T12:33:36.0977674Z ^[[1m^[[92m   Compiling^[[0m hashbrown v0.15.5
+test	UNKNOWN STEP	2026-11-26T12:33:36.1215715Z ^[[1m^[[92m   Compiling^[[0m wasmparser v0.116.1
+test	UNKNOWN STEP	2026-11-26T12:33:36.3488406Z ^[[1m^[[92m   Compiling^[[0m ark-ff v0.5.0
+test	UNKNOWN STEP	2026-11-26T12:33:36.6043384Z ^[[1m^[[92m   Compiling^[[0m hmac v0.12.1
+test	UNKNOWN STEP	2026-11-26T12:33:36.6832037Z ^[[1m^[[92m   Compiling^[[0m hybrid-array v0.4.15
+test	UNKNOWN STEP	2026-11-26T12:33:37.2525295Z ^[[1m^[[92m   Compiling^[[0m thiserror v1.0.69
+test	UNKNOWN STEP	2026-11-26T12:33:37.4765215Z ^[[1m^[[92m   Compiling^[[0m rfc6979 v0.4.0
+test	UNKNOWN STEP	2026-11-26T12:33:39.1435172Z ^[[1m^[[92m   Compiling^[[0m curve25519-dalek v4.1.3
+test	UNKNOWN STEP	2026-11-26T12:33:39.2710627Z ^[[1m^[[92m   Compiling^[[0m derive_arbitrary v1.3.2
+test	UNKNOWN STEP	2026-11-26T12:33:39.8535222Z ^[[1m^[[92m   Compiling^[[0m thiserror-impl v1.0.69
+test	UNKNOWN STEP	2026-11-26T12:33:40.8625373Z ^[[1m^[[92m   Compiling^[[0m curve25519-dalek-derive v0.1.1
+test	UNKNOWN STEP	2026-11-26T12:33:41.0364062Z ^[[1m^[[92m   Compiling^[[0m ark-poly v0.5.0
+test	UNKNOWN STEP	2026-11-26T12:33:41.2845306Z ^[[1m^[[92m   Compiling^[[0m num-derive v0.4.2
+test	UNKNOWN STEP	2026-11-26T12:33:41.8765393Z ^[[1m^[[92m   Compiling^[[0m indexmap-nostd v0.4.0
+test	UNKNOWN STEP	2026-11-26T12:33:42.0165310Z ^[[1m^[[92m   Compiling^[[0m downcast-rs v1.2.1
+test	UNKNOWN STEP	2026-11-26T12:33:42.0789661Z ^[[1m^[[92m   Compiling^[[0m static_assertions v1.1.0
+test	UNKNOWN STEP	2026-11-26T12:33:42.1071962Z ^[[1m^[[92m   Compiling^[[0m wasmi_core v0.13.0
+test	UNKNOWN STEP	2026-11-26T12:33:42.1235195Z ^[[1m^[[92m   Compiling^[[0m wasmparser-nostd v0.100.2
+test	UNKNOWN STEP	2026-11-26T12:33:42.5905282Z ^[[1m^[[92m   Compiling^[[0m ark-ec v0.5.0
+test	UNKNOWN STEP	2026-11-26T12:33:43.3770140Z ^[[1m^[[92m   Compiling^[[0m arbitrary v1.3.2
+test	UNKNOWN STEP	2026-11-26T12:33:44.2515311Z ^[[1m^[[92m   Compiling^[[0m ecdsa v0.16.9
+test	UNKNOWN STEP	2026-11-26T12:33:44.3403734Z ^[[1m^[[92m   Compiling^[[0m crypto-common v0.2.2
+test	UNKNOWN STEP	2026-11-26T12:33:44.6111922Z ^[[1m^[[92m   Compiling^[[0m block-buffer v0.12.1
+test	UNKNOWN STEP	2026-11-26T12:33:45.4723146Z ^[[1m^[[92m   Compiling^[[0m soroban-env-common v27.0.1
+test	UNKNOWN STEP	2026-11-26T12:33:45.5805248Z ^[[1m^[[92m   Compiling^[[0m curve25519-dalek v5.0.0
+test	UNKNOWN STEP	2026-11-26T12:33:45.7215173Z ^[[1m^[[92m   Compiling^[[0m spin v0.9.9
+test	UNKNOWN STEP	2026-11-26T12:33:45.8220532Z ^[[1m^[[92m   Compiling^[[0m fnv v1.0.7
+test	UNKNOWN STEP	2026-11-26T12:33:45.8655305Z ^[[1m^[[92m   Compiling^[[0m prettyplease v0.2.37
+test	UNKNOWN STEP	2026-11-26T12:33:45.9701420Z ^[[1m^[[92m   Compiling^[[0m wasmi_arena v0.4.1
+test	UNKNOWN STEP	2026-11-26T12:33:46.0806387Z ^[[1m^[[92m   Compiling^[[0m smallvec v1.16.0
+test	UNKNOWN STEP	2026-11-26T12:33:46.2553125Z ^[[1m^[[92m   Compiling^[[0m soroban-wasmi v0.31.1-soroban.20.0.1
+test	UNKNOWN STEP	2026-11-26T12:33:47.7575404Z ^[[1m^[[92m   Compiling^[[0m darling_core v0.20.11
+test	UNKNOWN STEP	2026-11-26T12:33:50.3335414Z ^[[1m^[[92m   Compiling^[[0m digest v0.11.3
+test	UNKNOWN STEP	2026-11-26T12:33:50.3618292Z ^[[1m^[[92m   Compiling^[[0m soroban-env-macros v27.0.1
+test	UNKNOWN STEP	2026-11-26T12:33:51.1605368Z ^[[1m^[[92m   Compiling^[[0m primeorder v0.13.6
+test	UNKNOWN STEP	2026-11-26T12:33:51.3765738Z ^[[1m^[[92m   Compiling^[[0m ed25519 v2.2.3
+test	UNKNOWN STEP	2026-11-26T12:33:51.6082911Z ^[[1m^[[92m   Compiling^[[0m cpufeatures v0.3.1
+test	UNKNOWN STEP	2026-11-26T12:33:51.6475148Z ^[[1m^[[92m   Compiling^[[0m keccak v0.1.6
+test	UNKNOWN STEP	2026-11-26T12:33:51.8385322Z ^[[1m^[[92m   Compiling^[[0m soroban-env-host v27.0.1
+test	UNKNOWN STEP	2026-11-26T12:33:51.8605041Z ^[[1m^[[92m   Compiling^[[0m heapless v0.8.0
+test	UNKNOWN STEP	2026-11-26T12:33:51.9365283Z ^[[1m^[[92m   Compiling^[[0m byteorder v1.5.0
+test	UNKNOWN STEP	2026-11-26T12:33:52.0780437Z ^[[1m^[[92m   Compiling^[[0m hash32 v0.3.1
+test	UNKNOWN STEP	2026-11-26T12:33:52.0945067Z ^[[1m^[[92m   Compiling^[[0m sha3 v0.10.9
+test	UNKNOWN STEP	2026-11-26T12:33:52.3242083Z ^[[1m^[[92m   Compiling^[[0m ed25519-dalek v2.2.0
+test	UNKNOWN STEP	2026-11-26T12:33:52.3635162Z ^[[1m^[[92m   Compiling^[[0m p256 v0.13.2
+test	UNKNOWN STEP	2026-11-26T12:33:52.5365679Z ^[[1m^[[92m   Compiling^[[0m darling_macro v0.20.11
+test	UNKNOWN STEP	2026-11-26T12:33:52.7307135Z ^[[1m^[[92m   Compiling^[[0m soroban-spec v27.0.6
+test	UNKNOWN STEP	2026-11-26T12:33:53.1129822Z ^[[1m^[[92m   Compiling^[[0m k256 v0.13.4
+test	UNKNOWN STEP	2026-11-26T12:33:53.1437697Z ^[[1m^[[92m   Compiling^[[0m ark-bn254 v0.5.0
+test	UNKNOWN STEP	2026-11-26T12:33:53.5682795Z ^[[1m^[[92m   Compiling^[[0m ark-bls12-381 v0.5.0
+test	UNKNOWN STEP	2026-11-26T12:33:53.7301677Z ^[[1m^[[92m   Compiling^[[0m soroban-builtin-sdk-macros v27.0.1
+test	UNKNOWN STEP	2026-11-26T12:33:54.2295829Z ^[[1m^[[92m   Compiling^[[0m stellar-strkey v0.0.16
+test	UNKNOWN STEP	2026-11-26T12:33:54.2685523Z ^[[1m^[[92m   Compiling^[[0m crate-git-revision v0.0.9
+test	UNKNOWN STEP	2026-11-26T12:33:54.3416047Z ^[[1m^[[92m   Compiling^[[0m stable_deref_trait v1.2.1
+test	UNKNOWN STEP	2026-11-26T12:33:54.3741817Z ^[[1m^[[92m   Compiling^[[0m dtor-proc-macro v0.0.6
+test	UNKNOWN STEP	2026-11-26T12:33:54.4319223Z ^[[1m^[[92m   Compiling^[[0m hex-literal v0.4.1
+test	UNKNOWN STEP	2026-11-26T12:33:54.4840866Z ^[[1m^[[92m   Compiling^[[0m soroban-sdk v27.0.6
+test	UNKNOWN STEP	2026-11-26T12:33:54.5465221Z ^[[1m^[[92m   Compiling^[[0m dtor v0.1.1
+test	UNKNOWN STEP	2026-11-26T12:33:54.6385443Z ^[[1m^[[92m   Compiling^[[0m soroban-spec-rust v27.0.6
+test	UNKNOWN STEP	2026-11-26T12:33:55.0515340Z ^[[1m^[[92m   Compiling^[[0m darling v0.20.11
+test	UNKNOWN STEP	2026-11-26T12:33:55.1385358Z ^[[1m^[[92m   Compiling^[[0m macro-string v0.1.4
+test	UNKNOWN STEP	2026-11-26T12:33:55.1674799Z ^[[1m^[[92m   Compiling^[[0m heck v0.5.0
+test	UNKNOWN STEP	2026-11-26T12:33:55.3289952Z ^[[1m^[[92m   Compiling^[[0m ctor-proc-macro v0.0.6
+test	UNKNOWN STEP	2026-11-26T12:33:55.5122844Z ^[[1m^[[92m   Compiling^[[0m ctor v0.5.0
+test	UNKNOWN STEP	2026-11-26T12:33:55.5799795Z ^[[1m^[[92m   Compiling^[[0m bytes-lit v0.0.6
+test	UNKNOWN STEP	2026-11-26T12:33:55.7548837Z ^[[1m^[[92m   Compiling^[[0m visibility v0.1.1
+test	UNKNOWN STEP	2026-11-26T12:33:56.5815360Z ^[[1m^[[92m   Compiling^[[0m soroban-sdk-macros v27.0.6
+test	UNKNOWN STEP	2026-11-26T12:34:13.1101052Z ^[[1m^[[92m   Compiling^[[0m soroban-ledger-snapshot v27.0.6
+test	UNKNOWN STEP	2026-11-26T12:34:18.3011806Z ^[[1m^[[92m   Compiling^[[0m lyricsflip-nft v0.1.0 (/home/runner/work/lyricsflip/lyricsflip/onchain/contracts/lyricsflip-nft)
+test	UNKNOWN STEP	2026-11-26T12:34:18.3013682Z ^[[1m^[[92m   Compiling^[[0m upgrade-fixture v0.1.0 (/home/runner/work/lyricsflip/lyricsflip/onchain/contracts/upgrade-fixture)
+test	UNKNOWN STEP	2026-11-26T12:34:18.3015666Z ^[[1m^[[92m   Compiling^[[0m lyricsflip-escrow v0.1.0 (/home/runner/work/lyricsflip/lyricsflip/onchain/contracts/lyricsflip-escrow)
+test	UNKNOWN STEP	2026-11-26T12:34:20.6155522Z ^[[1m^[[92m   Compiling^[[0m lyricsflip v0.1.0 (/home/runner/work/lyricsflip/lyricsflip/onchain/contracts/lyricsflip)
+test	UNKNOWN STEP	2026-11-26T12:34:24.3277370Z ^[[1m^[[92m    Finished^[[0m `test` profile [unoptimized + debuginfo] target(s) in 1m 06s
+test	UNKNOWN STEP	2026-11-26T12:34:24.3394233Z ^[[1m^[[92m     Running^[[0m unittests src/lib.rs (target/llvm-cov-target/debug/build/lyricsflip/3353443b8e00f095/out/lyricsflip-3353443b8e00f095)
+test	UNKNOWN STEP	2026-11-26T12:34:24.3413240Z 
+test	UNKNOWN STEP	2026-11-26T12:34:24.3413448Z running 152 tests
+test	UNKNOWN STEP	2026-11-26T12:34:24.3427965Z test test::admin::error_codes_are_stable ... ok
+test	UNKNOWN STEP	2026-11-26T12:34:24.3494925Z test test::admin::constructor_grants_owner_admin ... ok
+test	UNKNOWN STEP	2026-11-26T12:34:24.3564766Z test test::admin::set_cards_per_round_rejects_above_cap ... ok
+test	UNKNOWN STEP	2026-11-26T12:34:24.3594688Z test test::admin::owner_can_still_set_roles_after_revoking_own_admin ... ok
+test	UNKNOWN STEP	2026-11-26T12:34:24.3608462Z test test::admin::set_cards_per_round_rejects_zero ... ok
+test	UNKNOWN STEP	2026-11-26T12:34:24.3616760Z test test::admin::ownership_transfer_end_to_end ... ok
+test	UNKNOWN STEP	2026-11-26T12:34:24.3617668Z test test::admin::set_cards_per_round_requires_admin ... ok
+test	UNKNOWN STEP	2026-11-26T12:34:24.3625294Z test test::admin::set_max_players_rejects_above_cap ... ok
+test	UNKNOWN STEP	2026-11-26T12:34:24.3635127Z test test::admin::set_role_emits_role_updated ... ok
+test	UNKNOWN STEP	2026-11-26T12:34:24.3704860Z test test::admin::test_lf156_admin_flags_in_persistent_storage_not_instance ... ok
+test	UNKNOWN STEP	2026-11-26T12:34:24.3724876Z test test::admin::set_role_is_owner_gated_and_updates_is_admin ... ok
+test	UNKNOWN STEP	2026-11-26T12:34:24.3784548Z test test::admin::test_lf156_accept_ownership_updates_persistent_admins ... ok
+test	UNKNOWN STEP	2026-11-26T12:34:24.3819189Z test test::admin::test_lf156_lazy_migration_of_legacy_admins ... ok
+test	UNKNOWN STEP	2026-11-26T12:34:24.3874968Z test test::admin::test_lf156_admin_revocation_removes_key_without_tombstone ... ok
+test	UNKNOWN STEP	2026-11-26T12:34:24.3875863Z test test::admin::test_lf156_admin_addition_and_enumeration ... ok
+test	UNKNOWN STEP	2026-11-26T12:34:24.3876868Z test test::admin::test_lf156_owner_revoking_admin_maintains_owner_rights ... ok
+test	UNKNOWN STEP	2026-11-26T12:34:24.3934606Z test test::cards::add_card_requires_admin ... ok
+test	UNKNOWN STEP	2026-11-26T12:34:24.3994507Z test test::admin::test_lf156_upgrade_migration_v3_to_v4 ... ok
+test	UNKNOWN STEP	2026-11-26T12:34:24.4161627Z test test::cards::add_card_and_get_card_round_trip ... ok
+test	UNKNOWN STEP	2026-11-26T12:34:24.4924541Z test test::cards::card_counts_track_adds ... ok
+test	UNKNOWN STEP	2026-11-26T12:34:24.8245312Z test test::cards::eight_player_abandoned_round_can_be_finalized_by_a_keeper ... ok
+test	UNKNOWN STEP	2026-11-26T12:34:24.8304763Z test test::cards::get_card_errors_for_nonexistent_id ... ok
+test	UNKNOWN STEP	2026-11-26T12:34:24.8364807Z test test::cards::get_cards_of_a_year_errors_when_empty ... ok
+test	UNKNOWN STEP	2026-11-26T12:34:24.8424869Z test test::cards::get_cards_of_artist_errors_when_no_cards ... ok
+test	UNKNOWN STEP	2026-11-26T12:34:24.9594931Z test test::cards::get_cards_of_artist_returns_requested_amount ... ok
+test	UNKNOWN STEP	2026-11-26T12:34:24.9664853Z test test::cards::get_cards_of_genre_errors_when_empty ... ok
+test	UNKNOWN STEP	2026-11-26T12:34:25.0331125Z test test::cards::eight_player_all_wrong_round_has_no_winner ... ok
+test	UNKNOWN STEP	2026-11-26T12:34:25.0895250Z test test::cards::eight_player_all_correct_round_uses_answer_timing ... ok
+test	UNKNOWN STEP	2026-11-26T12:34:25.1021977Z test test::cards::eight_player_exact_tie_splits_the_winner_set ... ok
+test	UNKNOWN STEP	2026-11-26T12:34:25.1145400Z test test::cards::get_cards_of_genre_returns_requested_amount ... ok
+test	UNKNOWN STEP	2026-11-26T12:34:25.1226944Z test test::cards::legacy_cards_default_to_medium_difficulty_when_read ... ok
+test	UNKNOWN STEP	2026-11-26T12:34:25.1275410Z test test::cards::get_cards_of_year_returns_requested_amount ... ok
+test	UNKNOWN STEP	2026-11-26T12:34:25.1364616Z test test::cards::lf161_rejects_control_characters ... ok
+test	UNKNOWN STEP	2026-11-26T12:34:25.1464598Z test test::cards::lf161_case_variant_duplicate_rejected ... ok
+test	UNKNOWN STEP	2026-11-26T12:34:25.1494540Z test test::cards::lf161_rejects_leading_or_trailing_whitespace ... ok
+test	UNKNOWN STEP	2026-11-26T12:34:25.1554439Z test test::cards::lf161_display_value_preserved ... ok
+test	UNKNOWN STEP	2026-11-26T12:34:25.1680589Z test test::cards::lf161_artist_index_is_case_insensitive ... ok
+test	UNKNOWN STEP	2026-11-26T12:34:25.3535444Z test test::cards::lf176_update_card_rejects_answer_change_on_live_round ... ok
+test	UNKNOWN STEP	2026-11-26T12:34:25.3995157Z test test::cards_validation::add_card_rejects_duplicates ... ok
+test	UNKNOWN STEP	2026-11-26T12:34:25.4225243Z test test::cards::lf176_round_survives_removal_of_a_card_it_uses ... ok
+test	UNKNOWN STEP	2026-11-26T12:34:25.4494998Z test test::cards_validation::add_card_returns_id_and_stores_it ... ok
+test	UNKNOWN STEP	2026-11-26T12:34:25.4674819Z test test::cards_validation::add_card_rejects_invalid_cards ... ok
+test	UNKNOWN STEP	2026-11-26T12:34:25.4704570Z test test::cards_validation::add_cards_is_atomic_and_bounded ... ok
+test	UNKNOWN STEP	2026-11-26T12:34:26.0795163Z test test::cards_validation::add_cards_max_batch_fits_budget ... ok
+test	UNKNOWN STEP	2026-11-26T12:34:26.1635307Z test test::cards_validation::add_cards_max_batch_returns_sequential_ids ... ok
+test	UNKNOWN STEP	2026-11-26T12:34:26.2735017Z test test::cards_validation::answer_after_card_window_is_scored_as_wrong ... ok
+test	UNKNOWN STEP	2026-11-26T12:34:26.3295303Z test test::cards_validation::update_and_remove_card_require_admin ... ok
+test	UNKNOWN STEP	2026-11-26T12:34:26.3685115Z test test::cards_validation::remove_card_keeps_indexes_consistent ... ok
+test	UNKNOWN STEP	2026-11-26T12:34:26.3814772Z test test::config::lf158_legacy_round_fallback_and_migration ... ok
+test	UNKNOWN STEP	2026-11-26T12:34:26.4105032Z test test::config::lf158_sane_bounds_are_enforced ... ok
+test	UNKNOWN STEP	2026-11-26T12:34:26.5405057Z test test::cards::seeded_card_removals_preserve_genre_indexes ... ok
+test	UNKNOWN STEP	2026-11-26T12:34:26.5584925Z test test::config::lf158_unauthorized_callers_cannot_set_timing_configs ... ok
+test	UNKNOWN STEP	2026-11-26T12:34:26.5964951Z test test::cards_validation::update_card_moves_indexes ... ok
+test	UNKNOWN STEP	2026-11-26T12:34:26.6143075Z test test::config::lf158_values_can_be_changed_without_upgrade ... ok
+test	UNKNOWN STEP	2026-11-26T12:34:26.7715063Z test test::config::lf162_private_round_admits_only_invitees ... ok
+test	UNKNOWN STEP	2026-11-26T12:34:26.9145086Z test test::config::lf162_public_round_still_joinable_without_code ... ok
+test	UNKNOWN STEP	2026-11-26T12:34:27.1584946Z test test::config::lf163_solo_round_starts_in_one_call ... ok
+test	UNKNOWN STEP	2026-11-26T12:34:27.1645394Z test test::config::lf158_values_are_snapshotted_onto_round_at_creation ... ok
+test	UNKNOWN STEP	2026-11-26T12:34:27.3474119Z test test::finalize::finalize_round_e2e_deadline_path_works_without_all_answers ... ok
+test	UNKNOWN STEP	2026-11-26T12:34:27.3476665Z test test::finalize::finalize_round_e2e_exact_score_and_time_tie_produces_co_winners ... ok
+test	UNKNOWN STEP	2026-11-26T12:34:27.5353155Z test test::finalize::finalize_round_e2e_no_correct_answers_has_no_winners ... ok
+test	UNKNOWN STEP	2026-11-26T12:34:27.5855288Z test test::finalize::finalize_round_e2e_single_winner_updates_stats_and_scores ... ok
+test	UNKNOWN STEP	2026-11-26T12:34:27.7205981Z test test::finalize::finalize_round_e2e_tie_breaks_by_total_answer_time ... ok
+test	UNKNOWN STEP	2026-11-26T12:34:27.7525237Z test test::finalize::finalize_round_rejects_early_and_non_participant ... ok
+test	UNKNOWN STEP	2026-11-26T12:34:27.9055488Z test test::finalize::lf271_departed_winner_is_excluded ... ok
+test	UNKNOWN STEP	2026-11-26T12:34:28.0615049Z test test::finalize::lf271_non_answering_player_is_excluded_and_streak_reset ... ok
+test	UNKNOWN STEP	2026-11-26T12:34:28.1325150Z test test::finalize::lf271_slow_correct_player_beats_fast_lower_score ... ok
+test	UNKNOWN STEP	2026-11-26T12:34:28.5075304Z test test::config::lf158_twenty_card_round_has_enough_time_to_finish ... ok
+test	UNKNOWN STEP	2026-11-26T12:34:28.5104917Z test test::finalize::lf271_solo_round_single_player_wins_with_score ... ok
+test	UNKNOWN STEP	2026-11-26T12:34:28.5653689Z test test::finalize::lf271_tie_co_winners_split_pot_evenly_with_dust_to_first ... ok
+test	UNKNOWN STEP	2026-11-26T12:34:28.6993514Z test test::finalize::lf271_zero_scores_produce_no_winners ... ok
+test	UNKNOWN STEP	2026-11-26T12:34:28.7538562Z test test::gameplay::lf004_cannot_guess_until_correct_by_resubmitting ... ok
+test	UNKNOWN STEP	2026-11-26T12:34:28.8255649Z test test::gameplay::lf004_other_players_can_still_answer_same_card ... ok
+test	UNKNOWN STEP	2026-11-26T12:34:28.9615189Z test test::gameplay::lf004_streak_cannot_grow_more_than_one_per_card ... ok
+test	UNKNOWN STEP	2026-11-26T12:34:28.9994926Z test test::gameplay::lf004_second_answer_for_same_card_fails_with_already_answered ... ok
+test	UNKNOWN STEP	2026-11-26T12:34:29.1185152Z test test::gameplay::next_card_advances_index_and_completes_round ... ok
+test	UNKNOWN STEP	2026-11-26T12:34:29.1905371Z test test::gameplay::next_card_errors_when_round_completed ... ok
+test	UNKNOWN STEP	2026-11-26T12:34:29.2515117Z test test::gameplay::next_card_errors_when_round_not_started ... ok
+test	UNKNOWN STEP	2026-11-26T12:34:29.3045099Z test test::gameplay::lf272_skipping_a_card_resets_streak ... ok
+test	UNKNOWN STEP	2026-11-26T12:34:29.3425580Z test test::gameplay::submit_answer_artist_kind_accepted ... ok
+test	UNKNOWN STEP	2026-11-26T12:34:29.4144297Z test test::gameplay::submit_answer_rejects_non_participant ... ok
+test	UNKNOWN STEP	2026-11-26T12:34:29.4706096Z test test::gameplay::submit_answer_rejects_on_unstarted_round ... ok
+test	UNKNOWN STEP	2026-11-26T12:34:29.5536001Z test test::gameplay::submit_answer_updates_streak_and_reports_correctness ... ok
+test	UNKNOWN STEP	2026-11-26T12:34:29.5654765Z test test::gameplay::submit_answer_year_kind_accepted ... ok
+test	UNKNOWN STEP	2026-11-26T12:34:29.6828683Z test test::lifecycle::invalid_round_difficulty_and_decade_are_rejected ... ok
+test	UNKNOWN STEP	2026-11-26T12:34:29.7095113Z test test::lifecycle::lf003_next_card_after_deck_exhausted_returns_no_more_cards ... ok
+test	UNKNOWN STEP	2026-11-26T12:34:29.7365350Z test test::lifecycle::create_round_filter_selects_decade_genre_and_difficulty_and_multiplies_points ... ok
+test	UNKNOWN STEP	2026-11-26T12:34:29.8495203Z test test::lifecycle::lf003_single_card_round_can_be_answered ... ok
+test	UNKNOWN STEP	2026-11-26T12:34:29.8824978Z test test::lifecycle::lf159_first_ledger_answer_gets_max_points ... ok
+test	UNKNOWN STEP	2026-11-26T12:34:30.0242378Z test test::lifecycle::winner_claims_nft_reward_via_cross_contract_mint ... ok
+test	UNKNOWN STEP	2026-11-26T12:34:30.0445124Z test test::lobbies::create_round_caps_open_lobbies_per_address ... ok
+test	UNKNOWN STEP	2026-11-26T12:34:30.1272009Z test test::lobbies::join_round_fails_with_round_full_past_max_players ... ok
+test	UNKNOWN STEP	2026-11-26T12:34:30.1558270Z test test::lobbies::expired_lobby_cancel_frees_open_lobby_slot ... ok
+test	UNKNOWN STEP	2026-11-26T12:34:30.2131867Z test test::lifecycle::lf003_three_card_round_last_card_is_answerable ... ok
+test	UNKNOWN STEP	2026-11-26T12:34:30.3292391Z test test::lobbies::join_round_rejects_when_full ... ok
+test	UNKNOWN STEP	2026-11-26T12:34:30.3781874Z test test::lobbies::lf265_get_open_rounds_skips_expired_rounds ... ok
+test	UNKNOWN STEP	2026-11-26T12:34:30.4259161Z test test::lobbies::lf265_lobby_expired_after_timeout ... ok
+test	UNKNOWN STEP	2026-11-26T12:34:30.5568852Z test test::lobbies::lf265_lobby_usable_one_second_before_timeout ... ok
+test	UNKNOWN STEP	2026-11-26T12:34:30.6664889Z test test::lobbies::lf265_lobby_expired_at_timeout ... ok
+test	UNKNOWN STEP	2026-11-26T12:34:30.6966179Z test test::lobbies::starting_round_frees_open_lobby_slot ... ok
+test	UNKNOWN STEP	2026-11-26T12:34:30.8235063Z test test::pause::admin_and_gameplay_mutations_emit_events ... ok
+test	UNKNOWN STEP	2026-11-26T12:34:30.8474973Z test test::lobbies::private_and_solo_rounds_do_not_consume_open_lobby_slots ... ok
+test	UNKNOWN STEP	2026-11-26T12:34:30.8734808Z test test::pause::cancel_round_refunds_everyone_while_paused ... ok
+test	UNKNOWN STEP	2026-11-26T12:34:30.8874547Z test test::pause::pause_and_unpause_require_owner ... ok
+test	UNKNOWN STEP	2026-11-26T12:34:30.8984595Z test test::pause::pause_blocks_claim_milestone_entrypoints ... ok
+test	UNKNOWN STEP	2026-11-26T12:34:30.9334916Z test test::pause::leave_round_refunds_while_paused ... ok
+test	UNKNOWN STEP	2026-11-26T12:34:31.0334875Z test test::pause::unpause_restores_create_round_join_round_and_claim ... ok
+test	UNKNOWN STEP	2026-11-26T12:34:31.0785244Z test test::pause::faster_correct_answers_earn_more_points_and_wrong_answers_earn_zero ... ok
+test	UNKNOWN STEP	2026-11-26T12:34:31.1055128Z test test::pause::pause_blocks_create_round_join_round_and_claim_reward ... ok
+test	UNKNOWN STEP	2026-11-26T12:34:31.2014333Z test test::pause::upgrade_keeps_state_and_changes_version ... ok
+test	UNKNOWN STEP	2026-11-26T12:34:31.2995159Z test test::privacy::attacker_cannot_recover_live_answer_from_views_or_events ... ok
+test	UNKNOWN STEP	2026-11-26T12:34:31.5034716Z test test::questions::build_question_card_artist_kind_has_four_unique_options_with_correct_artist ... ok
+test	UNKNOWN STEP	2026-11-26T12:34:31.5725082Z test test::questions::build_question_card_title_kind_has_four_unique_options_with_correct_title ... ok
+test	UNKNOWN STEP	2026-11-26T12:34:31.6295243Z test test::questions::build_question_card_with_four_distinct_cards_has_four_unique_options ... ok
+test	UNKNOWN STEP	2026-11-26T12:34:31.7105169Z test test::questions::build_question_card_with_three_cards_fails_with_not_enough_distinct_cards ... ok
+test	UNKNOWN STEP	2026-11-26T12:34:31.7625277Z test test::questions::build_question_card_with_fifteen_cards_succeeds ... ok
+test	UNKNOWN STEP	2026-11-26T12:34:31.8575047Z test test::questions::lf160_current_year_card_options_are_within_bounds ... ok
+test	UNKNOWN STEP	2026-11-26T12:34:31.9615075Z test test::questions::lf160_edge_year_card_still_has_four_unique_options ... ok
+test	UNKNOWN STEP	2026-11-26T12:34:32.0504880Z test test::questions::build_question_card_year_distractors_are_close_to_correct_year ... ok
+test	UNKNOWN STEP	2026-11-26T12:34:32.0572046Z test test::questions::lf160_min_year_card_options_are_within_bounds ... ok
+test	UNKNOWN STEP	2026-11-26T12:34:32.2205350Z test test::questions::build_question_card_year_kind_has_four_unique_options_with_correct_year ... ok
+test	UNKNOWN STEP	2026-11-26T12:34:32.2344822Z test test::rounds::create_round_requires_a_genre ... ok
+test	UNKNOWN STEP	2026-11-26T12:34:32.7025186Z test test::random::get_random_numbers_worst_case_amount_equals_limit ... ok
+test	UNKNOWN STEP	2026-11-26T12:34:32.9556741Z test test::rounds::get_rounds_paginates_and_respects_limit ... ok
+test	UNKNOWN STEP	2026-11-26T12:34:33.0555055Z test test::random::get_random_numbers_returns_correct_count_for_various_inputs ... ok
+test	UNKNOWN STEP	2026-11-26T12:34:33.1175054Z test test::rounds::join_round_rejects_after_start ... ok
+test	UNKNOWN STEP	2026-11-26T12:34:33.2075048Z test test::rounds::join_round_rejects_duplicate_join ... ok
+test	UNKNOWN STEP	2026-11-26T12:34:33.3535166Z test test::rounds::open_rounds_drop_rounds_once_started ... ok
+test	UNKNOWN STEP	2026-11-26T12:34:33.4104850Z test test::rounds::round_count_tracks_creates ... ok
+test	UNKNOWN STEP	2026-11-26T12:34:33.5255610Z test test::rounds::round_requires_all_players_ready_before_starting ... ok
+test	UNKNOWN STEP	2026-11-26T12:34:33.5825574Z test test::rounds::start_round_rejects_already_ready_player ... ok
+test	UNKNOWN STEP	2026-11-26T12:34:33.6844939Z test test::rounds::start_round_rejects_non_participant ... ok
+test	UNKNOWN STEP	2026-11-26T12:34:33.7736341Z test test::rounds::total_rounds_increments_once_per_player_when_three_player_round_starts ... ok
+test	UNKNOWN STEP	2026-11-26T12:34:33.8515304Z test test::storage::anyone_can_cancel_only_after_lobby_timeout ... ok
+test	UNKNOWN STEP	2026-11-26T12:34:33.8625090Z test test::rounds::total_rounds_unchanged_when_round_never_fully_starts ... ok
+test	UNKNOWN STEP	2026-11-26T12:34:33.9395236Z test test::storage::cancel_round_refunds_everyone_and_blocks_join_and_start ... ok
+test	UNKNOWN STEP	2026-11-26T12:34:33.9635284Z test test::storage::leave_round_fails_after_start_and_for_admin ... ok
+test	UNKNOWN STEP	2026-11-26T12:34:34.0327650Z test test::storage::leave_round_refunds_wager_and_frees_the_seat ... ok
+test	UNKNOWN STEP	2026-11-26T12:34:34.0915828Z test test::storage::ttl_survival_cards_survive_ledger_advance ... ok
+test	UNKNOWN STEP	2026-11-26T12:34:34.1925132Z test test::storage::ttl_survival_game_entries_survive_ledger_advance ... ok
+test	UNKNOWN STEP	2026-11-26T12:34:35.6845022Z test test::rounds::get_rounds_clamps_limit_to_max ... ok
+test	UNKNOWN STEP	2026-11-26T12:35:25.1685132Z test test::cards_validation::add_card_cost_does_not_grow_with_index_size has been running for over 60 seconds
+test	UNKNOWN STEP	2026-11-26T12:35:34.0925096Z test test_budget::answer_and_next_budget has been running for over 60 seconds
+test	UNKNOWN STEP	2026-11-26T12:35:34.1914876Z test test_budget::build_question_card_budget has been running for over 60 seconds
+test	UNKNOWN STEP	2026-11-26T12:35:35.6825072Z test test_budget::build_question_card_budget_large_catalogue has been running for over 60 seconds
+test	UNKNOWN STEP	2026-11-26T12:37:06.5855373Z test test_budget::build_question_card_budget ... ok
+test	UNKNOWN STEP	2026-11-26T12:37:08.4495038Z test test_budget::answer_and_next_budget ... FAILED
+test	UNKNOWN STEP	2026-11-26T12:38:06.5855062Z test test_budget::claim_reward_budget has been running for over 60 seconds
+test	UNKNOWN STEP	2026-11-26T12:38:08.4495220Z test test_budget::create_round_budget has been running for over 60 seconds
+test	UNKNOWN STEP	2026-11-26T12:39:40.7589514Z test test_budget::claim_reward_budget ... FAILED
+test	UNKNOWN STEP	2026-11-26T12:39:42.4125028Z test test_budget::create_round_budget ... FAILED
+test	UNKNOWN STEP	2026-11-26T12:40:40.7635051Z test test_budget::create_round_with_filter_budget has been running for over 60 seconds
+test	UNKNOWN STEP	2026-11-26T12:40:42.4134956Z test test_budget::create_solo_round_budget has been running for over 60 seconds
+test	UNKNOWN STEP	2026-11-26T12:42:14.2344717Z test test_budget::create_round_with_filter_budget ... FAILED
+test	UNKNOWN STEP	2026-11-26T12:42:16.3634865Z test test_budget::create_solo_round_budget ... FAILED
+test	UNKNOWN STEP	2026-11-26T12:42:48.5345161Z test test::cards_validation::add_card_cost_does_not_grow_with_index_size ... FAILED
+test	UNKNOWN STEP	2026-11-26T12:43:14.2365193Z test test_budget::finalize_round_budget has been running for over 60 seconds
+test	UNKNOWN STEP	2026-11-26T12:43:16.3607673Z test test_budget::start_round_budget has been running for over 60 seconds
+test	UNKNOWN STEP	2026-11-26T12:43:48.5345015Z test test_budget::submit_answer_budget has been running for over 60 seconds
+test	UNKNOWN STEP	2026-11-26T12:44:52.0575099Z test test_budget::start_round_budget ... FAILED
+test	UNKNOWN STEP	2026-11-26T12:45:38.5550750Z test test_budget::finalize_round_budget ... FAILED
+test	UNKNOWN STEP	2026-11-26T12:45:39.8700639Z test test_budget::submit_answer_budget ... FAILED
+test	UNKNOWN STEP	2026-11-26T12:47:57.7901856Z test test_budget::build_question_card_budget_large_catalogue ... FAILED
+test	UNKNOWN STEP	2026-11-26T12:47:57.7950257Z 
+test	UNKNOWN STEP	2026-11-26T12:47:57.7950473Z failures:
+test	UNKNOWN STEP	2026-11-26T12:47:57.7950707Z 
+test	UNKNOWN STEP	2026-11-26T12:47:57.7950943Z ---- test_budget::answer_and_next_budget stdout ----
+test	UNKNOWN STEP	2026-11-26T12:47:57.7951520Z answer_and_next: cpu=36958854 mem=11541410
+test	UNKNOWN STEP	2026-11-26T12:47:57.7951871Z 
+test	UNKNOWN STEP	2026-11-26T12:47:57.7952461Z thread 'test_budget::answer_and_next_budget' (5365) panicked at contracts/lyricsflip/src/test_budget.rs:102:5:
+test	UNKNOWN STEP	2026-11-26T12:47:57.7953343Z answer_and_next CPU 36958854 exceeds 24000000
+test	UNKNOWN STEP	2026-11-26T12:47:57.7954272Z note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test	UNKNOWN STEP	2026-11-26T12:47:57.7955451Z Writing test snapshot file for test "test_budget::answer_and_next_budget" to "test_snapshots/test_budget/answer_and_next_budget.1.json".
+test	UNKNOWN STEP	2026-11-26T12:47:57.7956334Z 
+test	UNKNOWN STEP	2026-11-26T12:47:57.7956598Z ---- test_budget::claim_reward_budget stdout ----
+test	UNKNOWN STEP	2026-11-26T12:47:57.7957268Z claim_reward: cpu=39744771 mem=11006394
+test	UNKNOWN STEP	2026-11-26T12:47:57.7957664Z 
+test	UNKNOWN STEP	2026-11-26T12:47:57.7958390Z thread 'test_budget::claim_reward_budget' (5391) panicked at contracts/lyricsflip/src/test_budget.rs:102:5:
+test	UNKNOWN STEP	2026-11-26T12:47:57.7959588Z claim_reward CPU 39744771 exceeds 15000000
+test	UNKNOWN STEP	2026-11-26T12:47:57.7960827Z Writing test snapshot file for test "test_budget::claim_reward_budget" to "test_snapshots/test_budget/claim_reward_budget.1.json".
+test	UNKNOWN STEP	2026-11-26T12:47:57.7961974Z 
+test	UNKNOWN STEP	2026-11-26T12:47:57.7962694Z ---- test_budget::create_round_budget stdout ----
+test	UNKNOWN STEP	2026-11-26T12:47:57.7963415Z create_round: cpu=46153630 mem=12195355
+test	UNKNOWN STEP	2026-11-26T12:47:57.7964092Z 
+test	UNKNOWN STEP	2026-11-26T12:47:57.7964886Z thread 'test_budget::create_round_budget' (5392) panicked at contracts/lyricsflip/src/test_budget.rs:102:5:
+test	UNKNOWN STEP	2026-11-26T12:47:57.7966069Z create_round CPU 46153630 exceeds 22000000
+test	UNKNOWN STEP	2026-11-26T12:47:57.7967919Z Writing test snapshot file for test "test_budget::create_round_budget" to "test_snapshots/test_budget/create_round_budget.1.json".
+test	UNKNOWN STEP	2026-11-26T12:47:57.7969151Z 
+test	UNKNOWN STEP	2026-11-26T12:47:57.7969485Z ---- test_budget::create_round_with_filter_budget stdout ----
+test	UNKNOWN STEP	2026-11-26T12:47:57.7969920Z 
+test	UNKNOWN STEP	2026-11-26T12:47:57.7970928Z thread 'test_budget::create_round_with_filter_budget' (5533) panicked at /home/runner/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/soroban-env-host-27.0.1/src/host.rs:910:9:
+test	UNKNOWN STEP	2026-11-26T12:47:57.7972341Z HostError: Error(Budget, ExceededLimit)
+test	UNKNOWN STEP	2026-11-26T12:47:57.7972669Z 
+test	UNKNOWN STEP	2026-11-26T12:47:57.7972821Z Event log (newest first):
+test	UNKNOWN STEP	2026-11-26T12:47:57.7973583Z    0: [Diagnostic Event] topics:[error, Error(Budget, ExceededLimit)], data:"escalating error to panic"
+test	UNKNOWN STEP	2026-11-26T12:47:57.7975706Z    1: [Diagnostic Event] topics:[error, Error(Budget, ExceededLimit)], data:["contract call failed", create_round_with_filter, [CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD2KM, {decade: 1990, genre: 1}, 2, []]]
+test	UNKNOWN STEP	2026-11-26T12:47:57.7978257Z    2: [Diagnostic Event] contract:CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFCT4, topics:[error, Error(Budget, ExceededLimit)], data:"caught error from function"
+test	UNKNOWN STEP	2026-11-26T12:47:57.7980505Z    3: [Diagnostic Event] contract:CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFCT4, topics:[error, Error(Budget, ExceededLimit)], data:"escalating error to panic"
+test	UNKNOWN STEP	2026-11-26T12:47:57.7983168Z    4: [Diagnostic Event] topics:[fn_call, CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFCT4, create_round_with_filter], data:[CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD2KM, {decade: 1990, genre: 1}, 2, []]
+test	UNKNOWN STEP	2026-11-26T12:47:57.7985150Z 
+test	UNKNOWN STEP	2026-11-26T12:47:57.7986046Z Writing test snapshot file for test "test_budget::create_round_with_filter_budget" to "test_snapshots/test_budget/create_round_with_filter_budget.1.json".
+test	UNKNOWN STEP	2026-11-26T12:47:57.7987102Z 
+test	UNKNOWN STEP	2026-11-26T12:47:57.7987333Z ---- test_budget::create_solo_round_budget stdout ----
+test	UNKNOWN STEP	2026-11-26T12:47:57.7987692Z create_solo_round: cpu=79717059 mem=21631366
+test	UNKNOWN STEP	2026-11-26T12:47:57.7987895Z 
+test	UNKNOWN STEP	2026-11-26T12:47:57.7988231Z thread 'test_budget::create_solo_round_budget' (5535) panicked at contracts/lyricsflip/src/test_budget.rs:102:5:
+test	UNKNOWN STEP	2026-11-26T12:47:57.7988760Z create_solo_round CPU 79717059 exceeds 59000000
+test	UNKNOWN STEP	2026-11-26T12:47:57.7989371Z Writing test snapshot file for test "test_budget::create_solo_round_budget" to "test_snapshots/test_budget/create_solo_round_budget.1.json".
+test	UNKNOWN STEP	2026-11-26T12:47:57.7989870Z 
+test	UNKNOWN STEP	2026-11-26T12:47:57.7990090Z ---- test::cards_validation::add_card_cost_does_not_grow_with_index_size stdout ----
+test	UNKNOWN STEP	2026-11-26T12:47:57.7990411Z 
+test	UNKNOWN STEP	2026-11-26T12:47:57.7991038Z thread 'test::cards_validation::add_card_cost_does_not_grow_with_index_size' (5262) panicked at /home/runner/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/soroban-env-host-27.0.1/src/host.rs:910:9:
+test	UNKNOWN STEP	2026-11-26T12:47:57.7991858Z HostError: Error(Budget, ExceededLimit)
+test	UNKNOWN STEP	2026-11-26T12:47:57.7992041Z 
+test	UNKNOWN STEP	2026-11-26T12:47:57.7992133Z Event log (newest first):
+test	UNKNOWN STEP	2026-11-26T12:47:57.7992560Z    0: [Diagnostic Event] topics:[error, Error(Budget, ExceededLimit)], data:"escalating error to panic"
+test	UNKNOWN STEP	2026-11-26T12:47:57.7994045Z    1: [Diagnostic Event] topics:[error, Error(Budget, ExceededLimit)], data:["contract call failed", add_card, [CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD2KM, {artist: "Artist 0", card_id: 0, difficulty: 2, genre: 1, lyrics: "sample lyric line", title: "Title 999", year: 1994}]]
+test	UNKNOWN STEP	2026-11-26T12:47:57.7995645Z    2: [Diagnostic Event] contract:CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFCT4, topics:[error, Error(Budget, ExceededLimit)], data:"caught error from function"
+test	UNKNOWN STEP	2026-11-26T12:47:57.7997029Z    3: [Diagnostic Event] contract:CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFCT4, topics:[error, Error(Budget, ExceededLimit)], data:"escalating error to panic"
+test	UNKNOWN STEP	2026-11-26T12:47:57.7998621Z    4: [Diagnostic Event] topics:[fn_call, CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFCT4, add_card], data:[CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD2KM, {artist: "Artist 0", card_id: 0, difficulty: 2, genre: 1, lyrics: "sample lyric line", title: "Title 999", year: 1994}]
+test	UNKNOWN STEP	2026-11-26T12:47:57.7999796Z 
+test	UNKNOWN STEP	2026-11-26T12:47:57.8000390Z Writing test snapshot file for test "test::cards_validation::add_card_cost_does_not_grow_with_index_size" to "test_snapshots/test/cards_validation/add_card_cost_does_not_grow_with_index_size.1.json".
+test	UNKNOWN STEP	2026-11-26T12:47:57.8001074Z 
+test	UNKNOWN STEP	2026-11-26T12:47:57.8001193Z ---- test_budget::start_round_budget stdout ----
+test	UNKNOWN STEP	2026-11-26T12:47:57.8001498Z start_round: cpu=55186845 mem=14523630
+test	UNKNOWN STEP	2026-11-26T12:47:57.8001666Z 
+test	UNKNOWN STEP	2026-11-26T12:47:57.8001977Z thread 'test_budget::start_round_budget' (5561) panicked at contracts/lyricsflip/src/test_budget.rs:102:5:
+test	UNKNOWN STEP	2026-11-26T12:47:57.8002461Z start_round CPU 55186845 exceeds 40300000
+test	UNKNOWN STEP	2026-11-26T12:47:57.8003001Z Writing test snapshot file for test "test_budget::start_round_budget" to "test_snapshots/test_budget/start_round_budget.1.json".
+test	UNKNOWN STEP	2026-11-26T12:47:57.8003457Z 
+test	UNKNOWN STEP	2026-11-26T12:47:57.8003578Z ---- test_budget::finalize_round_budget stdout ----
+test	UNKNOWN STEP	2026-11-26T12:47:57.8004069Z finalize_round: cpu=72382597 mem=16089425
+test	UNKNOWN STEP	2026-11-26T12:47:57.8004256Z 
+test	UNKNOWN STEP	2026-11-26T12:47:57.8004564Z thread 'test_budget::finalize_round_budget' (5560) panicked at contracts/lyricsflip/src/test_budget.rs:102:5:
+test	UNKNOWN STEP	2026-11-26T12:47:57.8005070Z finalize_round CPU 72382597 exceeds 60000000
+test	UNKNOWN STEP	2026-11-26T12:47:57.8005647Z Writing test snapshot file for test "test_budget::finalize_round_budget" to "test_snapshots/test_budget/finalize_round_budget.1.json".
+test	UNKNOWN STEP	2026-11-26T12:47:57.8006157Z 
+test	UNKNOWN STEP	2026-11-26T12:47:57.8006291Z ---- test_budget::submit_answer_budget stdout ----
+test	UNKNOWN STEP	2026-11-26T12:47:57.8006604Z submit_answer: cpu=19521986 mem=5460870
+test	UNKNOWN STEP	2026-11-26T12:47:57.8006781Z 
+test	UNKNOWN STEP	2026-11-26T12:47:57.8007086Z thread 'test_budget::submit_answer_budget' (5566) panicked at contracts/lyricsflip/src/test_budget.rs:103:5:
+test	UNKNOWN STEP	2026-11-26T12:47:57.8007578Z submit_answer memory 5460870 exceeds 600000
+test	UNKNOWN STEP	2026-11-26T12:47:57.8008153Z Writing test snapshot file for test "test_budget::submit_answer_budget" to "test_snapshots/test_budget/submit_answer_budget.1.json".
+test	UNKNOWN STEP	2026-11-26T12:47:57.8008629Z 
+test	UNKNOWN STEP	2026-11-26T12:47:57.8008813Z ---- test_budget::build_question_card_budget_large_catalogue stdout ----
+test	UNKNOWN STEP	2026-11-26T12:47:57.8009511Z Invocation exceeded the transaction resource limits, it's likely going to fail when executed in a real network. The following limits are exceeded:
+test	UNKNOWN STEP	2026-11-26T12:47:57.8010114Z memory bytes: 41968102 > 41943040 
+test	UNKNOWN STEP	2026-11-26T12:47:57.8010374Z See diagnostic events for invocation trace.
+test	UNKNOWN STEP	2026-11-26T12:47:57.8010568Z 
+test	UNKNOWN STEP	2026-11-26T12:47:57.8011247Z thread 'test_budget::build_question_card_budget_large_catalogue' (5367) panicked at /home/runner/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/soroban-env-host-27.0.1/src/host/invocation_metering.rs:518:13:
+test	UNKNOWN STEP	2026-11-26T12:47:57.8012103Z HostError: Error(Budget, ExceededLimit)
+test	UNKNOWN STEP	2026-11-26T12:47:57.8012290Z 
+test	UNKNOWN STEP	2026-11-26T12:47:57.8012381Z Event log (newest first):
+test	UNKNOWN STEP	2026-11-26T12:47:57.8012955Z    0: [Diagnostic Event] topics:[error, Error(Budget, ExceededLimit)], data:"invocation resource limits are exceeded: memory bytes: 41968102 > 41943040"
+test	UNKNOWN STEP	2026-11-26T12:47:57.8014070Z    1: [Diagnostic Event] contract:CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFCT4, topics:[fn_return, add_card], data:1187
+test	UNKNOWN STEP	2026-11-26T12:47:57.8014997Z    2: [Contract Event] contract:CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFCT4, topics:[card_added, 1187, 1], data:{}
+test	UNKNOWN STEP	2026-11-26T12:47:57.8016602Z    3: [Diagnostic Event] topics:[fn_call, CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFCT4, add_card], data:[CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD2KM, {artist: "Artist 1186", card_id: 0, difficulty: 2, genre: 1, lyrics: "sample lyric line", title: "Title 1186", year: 2016}]
+test	UNKNOWN STEP	2026-11-26T12:47:57.8017689Z 
+test	UNKNOWN STEP	2026-11-26T12:47:57.8018225Z Writing test snapshot file for test "test_budget::build_question_card_budget_large_catalogue" to "test_snapshots/test_budget/build_question_card_budget_large_catalogue.1.json".
+test	UNKNOWN STEP	2026-11-26T12:47:57.8018949Z 
+test	UNKNOWN STEP	2026-11-26T12:47:57.8018953Z 
+test	UNKNOWN STEP	2026-11-26T12:47:57.8019035Z failures:
+test	UNKNOWN STEP	2026-11-26T12:47:57.8019316Z     test::cards_validation::add_card_cost_does_not_grow_with_index_size
+test	UNKNOWN STEP	2026-11-26T12:47:57.8019682Z     test_budget::answer_and_next_budget
+test	UNKNOWN STEP	2026-11-26T12:47:57.8019994Z     test_budget::build_question_card_budget_large_catalogue
+test	UNKNOWN STEP	2026-11-26T12:47:57.8020314Z     test_budget::claim_reward_budget
+test	UNKNOWN STEP	2026-11-26T12:47:57.8020571Z     test_budget::create_round_budget
+test	UNKNOWN STEP	2026-11-26T12:47:57.8020847Z     test_budget::create_round_with_filter_budget
+test	UNKNOWN STEP	2026-11-26T12:47:57.8021148Z     test_budget::create_solo_round_budget
+test	UNKNOWN STEP	2026-11-26T12:47:57.8021421Z     test_budget::finalize_round_budget
+test	UNKNOWN STEP	2026-11-26T12:47:57.8021693Z     test_budget::start_round_budget
+test	UNKNOWN STEP	2026-11-26T12:47:57.8021962Z     test_budget::submit_answer_budget
+test	UNKNOWN STEP	2026-11-26T12:47:57.8022130Z 
+test	UNKNOWN STEP	2026-11-26T12:47:57.8022412Z test result: FAILED. 142 passed; 10 failed; 0 ignored; 0 measured; 0 filtered out; finished in 813.45s
+test	UNKNOWN STEP	2026-11-26T12:47:57.8022785Z 
+test	UNKNOWN STEP	2026-11-26T12:47:57.8050698Z ^[[1m^[[91merror^[[0m: test failed, to rerun pass `-p lyricsflip --lib`
+test	UNKNOWN STEP	2026-11-26T12:47:57.8108016Z error: process didn't exit successfully: `/home/runner/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/cargo test --tests --manifest-path /home/runner/work/lyricsflip/lyricsflip/onchain/Cargo.toml --target-dir /home/runner/work/lyricsflip/lyricsflip/onchain/target/llvm-cov-target --workspace` (exit status: 101)
+test	UNKNOWN STEP	2026-11-26T12:47:57.8123254Z ##[error]Process completed with exit code 101.
+test	UNKNOWN STEP	2026-11-26T12:47:57.8190312Z ##[group]Run actions/upload-artifact@v4
+test	UNKNOWN STEP	2026-11-26T12:47:57.8190605Z with:
+test	UNKNOWN STEP	2026-11-26T12:47:57.8190800Z   name: contracts-lcov
+test	UNKNOWN STEP	2026-11-26T12:47:57.8191026Z   path: onchain/lcov.info
+test	UNKNOWN STEP	2026-11-26T12:47:57.8191256Z   if-no-files-found: warn
+test	UNKNOWN STEP	2026-11-26T12:47:57.8191477Z   compression-level: 6
+test	UNKNOWN STEP	2026-11-26T12:47:57.8191685Z   overwrite: false
+test	UNKNOWN STEP	2026-11-26T12:47:57.8191895Z   include-hidden-files: false
+test	UNKNOWN STEP	2026-11-26T12:47:57.8192121Z env:
+test	UNKNOWN STEP	2026-11-26T12:47:57.8192324Z   CARGO_HOME: /home/runner/.cargo
+test	UNKNOWN STEP	2026-11-26T12:47:57.8192568Z   CARGO_INCREMENTAL: 0
+test	UNKNOWN STEP	2026-11-26T12:47:57.8192783Z   CARGO_TERM_COLOR: always
+test	UNKNOWN STEP	2026-11-26T12:47:57.8193057Z   CACHE_ON_FAILURE: false
+test	UNKNOWN STEP	2026-11-26T12:47:57.8193262Z ##[endgroup]
+test	UNKNOWN STEP	2026-11-26T12:47:57.9978892Z (node:5617) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+test	UNKNOWN STEP	2026-11-26T12:47:57.9979907Z (Use `node --trace-deprecation ...` to show where the warning was created)
+test	UNKNOWN STEP	2026-11-26T12:47:58.0034753Z ##[warning]No files were found with the provided path: onchain/lcov.info. No artifacts will be uploaded.
+test	UNKNOWN STEP	2026-11-26T12:47:58.0235641Z Post job cleanup.
+test	UNKNOWN STEP	2026-11-26T12:47:58.1174731Z [command]/usr/bin/git version
+test	UNKNOWN STEP	2026-11-26T12:47:58.1215736Z git version 2.56.1
+test	UNKNOWN STEP	2026-11-26T12:47:58.1265383Z Temporarily overriding HOME='/home/runner/work/_temp/99502170-eb41-42ef-97a8-ba93369c7d60' before making global git config changes
+test	UNKNOWN STEP	2026-11-26T12:47:58.1266794Z Adding repository directory to the temporary git global config as a safe directory
+test	UNKNOWN STEP	2026-11-26T12:47:58.1270637Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/lyricsflip/lyricsflip
+test	UNKNOWN STEP	2026-11-26T12:47:58.1313096Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+test	UNKNOWN STEP	2026-11-26T12:47:58.1354033Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+test	UNKNOWN STEP	2026-11-26T12:47:58.1665760Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+test	UNKNOWN STEP	2026-11-26T12:47:58.1694831Z http.https://github.com/.extraheader
+test	UNKNOWN STEP	2026-11-26T12:47:58.1708932Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+test	UNKNOWN STEP	2026-11-26T12:47:58.1749267Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+test	UNKNOWN STEP	2026-11-26T12:47:58.2058978Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+test	UNKNOWN STEP	2026-11-26T12:47:58.2104533Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+test	UNKNOWN STEP	2026-11-26T12:47:58.2624809Z Cleaning up orphan processes
+test	UNKNOWN STEP	2026-11-26T12:47:58.3126559Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@v4, actions/upload-artifact@v4. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+LyricsFlip Contracts	UNKNOWN STEP	﻿2026-11-26T12:48:02.6007624Z Current runner version: '2.338.2'
+LyricsFlip Contracts	UNKNOWN STEP	2026-11-26T12:48:02.6042614Z ##[group]Runner Image Provisioner
+LyricsFlip Contracts	UNKNOWN STEP	2026-11-26T12:48:02.6043196Z Hosted Compute Agent
+LyricsFlip Contracts	UNKNOWN STEP	2026-11-26T12:48:02.6043548Z Version: 20261111.635
+LyricsFlip Contracts	UNKNOWN STEP	2026-11-26T12:48:02.6043988Z Commit: b8a594ea514ff44cadb5342986c68b1eac6e22ed
+LyricsFlip Contracts	UNKNOWN STEP	2026-11-26T12:48:02.6044445Z Build Date: 2026-11-11T01:49:01Z
+LyricsFlip Contracts	UNKNOWN STEP	2026-11-26T12:48:02.6044894Z Worker ID: {4038e65a-afe0-42cc-a224-4486cced46fd}
+LyricsFlip Contracts	UNKNOWN STEP	2026-11-26T12:48:02.6045363Z Region: centralus
+LyricsFlip Contracts	UNKNOWN STEP	2026-11-26T12:48:02.6045702Z Cloud: Azure
+LyricsFlip Contracts	UNKNOWN STEP	2026-11-26T12:48:02.6046066Z ##[endgroup]
+LyricsFlip Contracts	UNKNOWN STEP	2026-11-26T12:48:02.6046884Z ##[group]Operating System
+LyricsFlip Contracts	UNKNOWN STEP	2026-11-26T12:48:02.6047285Z Ubuntu
+LyricsFlip Contracts	UNKNOWN STEP	2026-11-26T12:48:02.6047654Z 26.04.1
+LyricsFlip Contracts	UNKNOWN STEP	2026-11-26T12:48:02.6047973Z LTS
+LyricsFlip Contracts	UNKNOWN STEP	2026-11-26T12:48:02.6048321Z ##[endgroup]
+LyricsFlip Contracts	UNKNOWN STEP	2026-11-26T12:48:02.6048663Z ##[group]Runner Image
+LyricsFlip Contracts	UNKNOWN STEP	2026-11-26T12:48:02.6049011Z Image: ubuntu-26.04
+LyricsFlip Contracts	UNKNOWN STEP	2026-11-26T12:48:02.6049429Z Version: 20261122.9.1
+LyricsFlip Contracts	UNKNOWN STEP	2026-11-26T12:48:02.6050158Z Included Software: https://github.com/actions/runner-images/blob/ubuntu26/20261122.9/images/ubuntu/Ubuntu2604-Readme.md
+LyricsFlip Contracts	UNKNOWN STEP	2026-11-26T12:48:02.6051247Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu26%2F20261122.9
+LyricsFlip Contracts	UNKNOWN STEP	2026-11-26T12:48:02.6051799Z ##[endgroup]
+LyricsFlip Contracts	UNKNOWN STEP	2026-11-26T12:48:02.6053503Z ##[group]GITHUB_TOKEN Permissions
+LyricsFlip Contracts	UNKNOWN STEP	2026-11-26T12:48:02.6055357Z Actions: read
+LyricsFlip Contracts	UNKNOWN STEP	2026-11-26T12:48:02.6055737Z ArtifactMetadata: read
+LyricsFlip Contracts	UNKNOWN STEP	2026-11-26T12:48:02.6056112Z Attestations: read
+LyricsFlip Contracts	UNKNOWN STEP	2026-11-26T12:48:02.6056537Z Checks: read
+LyricsFlip Contracts	UNKNOWN STEP	2026-11-26T12:48:02.6056877Z CodeQuality: read
+LyricsFlip Contracts	UNKNOWN STEP	2026-11-26T12:48:02.6057208Z Contents: read
+LyricsFlip Contracts	UNKNOWN STEP	2026-11-26T12:48:02.6057587Z Deployments: read
+LyricsFlip Contracts	UNKNOWN STEP	2026-11-26T12:48:02.6057930Z Discussions: read
+LyricsFlip Contracts	UNKNOWN STEP	2026-11-26T12:48:02.6058367Z Drives: read
+LyricsFlip Contracts	UNKNOWN STEP	2026-11-26T12:48:02.6058699Z Issues: read
+LyricsFlip Contracts	UNKNOWN STEP	2026-11-26T12:48:02.6059021Z Metadata: read
+LyricsFlip Contracts	UNKNOWN STEP	2026-11-26T12:48:02.6059447Z Models: read
+LyricsFlip Contracts	UNKNOWN STEP	2026-11-26T12:48:02.6059780Z Packages: read
+LyricsFlip Contracts	UNKNOWN STEP	2026-11-26T12:48:02.6060163Z Pages: read
+LyricsFlip Contracts	UNKNOWN STEP	2026-11-26T12:48:02.6060506Z PullRequests: read
+LyricsFlip Contracts	UNKNOWN STEP	2026-11-26T12:48:02.6061004Z RepositoryProjects: read
+LyricsFlip Contracts	UNKNOWN STEP	2026-11-26T12:48:02.6061424Z SecurityEvents: read
+LyricsFlip Contracts	UNKNOWN STEP	2026-11-26T12:48:02.6061806Z Statuses: read
+LyricsFlip Contracts	UNKNOWN STEP	2026-11-26T12:48:02.6062211Z VulnerabilityAlerts: read
+LyricsFlip Contracts	UNKNOWN STEP	2026-11-26T12:48:02.6062590Z ##[endgroup]
+LyricsFlip Contracts	UNKNOWN STEP	2026-11-26T12:48:02.6064123Z Secret source: None
+LyricsFlip Contracts	UNKNOWN STEP	2026-11-26T12:48:02.6064698Z Cache mode: write
+LyricsFlip Contracts	UNKNOWN STEP	2026-11-26T12:48:02.6065358Z Prepare workflow directory
+LyricsFlip Contracts	UNKNOWN STEP	2026-11-26T12:48:02.6280109Z Prepare all required actions
+LyricsFlip Contracts	UNKNOWN STEP	2026-11-26T12:48:02.6343359Z Complete job name: LyricsFlip Contracts
+LyricsFlip Contracts	UNKNOWN STEP	2026-11-26T12:48:02.7247824Z ##[group]Run if [[ "failure" != "success" || "failure" != "success" || "success" != "success" || "success" != "success" || "success" != "success" ]]; then
+LyricsFlip Contracts	UNKNOWN STEP	2026-11-26T12:48:02.7248751Z ^[[36;1mif [[ "failure" != "success" || "failure" != "success" || "success" != "success" || "success" != "success" || "success" != "success" ]]; then^[[0m
+LyricsFlip Contracts	UNKNOWN STEP	2026-11-26T12:48:02.7249363Z ^[[36;1m  echo "Contract checks did not all pass."^[[0m
+LyricsFlip Contracts	UNKNOWN STEP	2026-11-26T12:48:02.7249713Z ^[[36;1m  exit 1^[[0m
+LyricsFlip Contracts	UNKNOWN STEP	2026-11-26T12:48:02.7249966Z ^[[36;1mfi^[[0m
+LyricsFlip Contracts	UNKNOWN STEP	2026-11-26T12:48:02.7513981Z shell: /usr/bin/bash -e {0}
+LyricsFlip Contracts	UNKNOWN STEP	2026-11-26T12:48:02.7514639Z ##[endgroup]
+LyricsFlip Contracts	UNKNOWN STEP	2026-11-26T12:48:02.7660139Z Contract checks did not all pass.
+LyricsFlip Contracts	UNKNOWN STEP	2026-11-26T12:48:02.7674791Z ##[error]Process completed with exit code 1.
+LyricsFlip Contracts	UNKNOWN STEP	2026-11-26T12:48:02.7780637Z Cleaning up orphan processes

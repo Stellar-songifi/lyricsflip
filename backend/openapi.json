@@ -1,11 +1,4097 @@
 {
   "openapi": "3.0.0",
   "paths": {
-    "/health/live": {
+    "/api/v1": {
+      "get": {
+        "operationId": "AppController_getHello",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/auth/sign-in": {
+      "post": {
+        "operationId": "AuthController_signIn",
+        "summary": "Sign in a user",
+        "description": "Authenticates a user and returns an access token if the credentials are valid.",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "description": "Login credentials including email and password.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SignInDto"
+              },
+              "examples": {
+                "example": {
+                  "summary": "Valid login credentials",
+                  "value": {
+                    "email": "user@example.com",
+                    "password": "password123"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "User signed in successfully."
+          },
+          "401": {
+            "description": "Invalid credentials."
+          }
+        },
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/auth/sign-up": {
+      "post": {
+        "operationId": "AuthController_createUser",
+        "summary": "Sign up a new user",
+        "description": "Registers a new user and returns the user details upon successful registration.",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "description": "User details required for registration.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserDTO"
+              },
+              "examples": {
+                "example": {
+                  "summary": "Valid user details",
+                  "value": {
+                    "name": "John Doe",
+                    "email": "john.doe@example.com",
+                    "password": "securePassword123"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "User registered successfully."
+          },
+          "400": {
+            "description": "Invalid user input data."
+          }
+        },
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/auth/refresh": {
+      "post": {
+        "operationId": "AuthController_refreshToken",
+        "summary": "Refresh access token",
+        "description": "Reads the refresh token from the HttpOnly `refreshToken` cookie, rotates it, and returns a new access token. Requires `X-Requested-With: XMLHttpRequest` (CSRF).",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Token refreshed successfully."
+          },
+          "401": {
+            "description": "Missing or invalid refresh token."
+          },
+          "403": {
+            "description": "Missing CSRF header."
+          }
+        },
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/auth/logout": {
+      "post": {
+        "operationId": "AuthController_logout",
+        "summary": "Log out",
+        "description": "Revokes the refresh-token family in the `refreshToken` cookie and clears the cookie. Requires `X-Requested-With: XMLHttpRequest` (CSRF).",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": "Logged out; token family revoked."
+          },
+          "401": {
+            "description": "Missing or invalid access token."
+          },
+          "403": {
+            "description": "Missing CSRF header."
+          }
+        },
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/auth/forgot-password": {
+      "post": {
+        "operationId": "AuthController_forgotPassword",
+        "summary": "Request password reset",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ForgotPasswordDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Reset email sent."
+          }
+        },
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/auth/reset-password": {
+      "post": {
+        "operationId": "AuthController_resetPassword",
+        "summary": "Reset password",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResetPasswordDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Password reset successful."
+          }
+        },
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/auth/challenge": {
+      "post": {
+        "operationId": "AuthController_challenge",
+        "summary": "Request a wallet-auth challenge",
+        "description": "Returns a one-time challenge (domain, network passphrase, nonce, issued-at, expiry) for the given Stellar G... address to sign via SEP-53 signMessage. Contract (C...) accounts are not supported (no SEP-45).",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WalletChallengeRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Challenge issued."
+          }
+        },
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/auth/verify": {
+      "post": {
+        "operationId": "AuthController_verify",
+        "summary": "Verify a signed wallet-auth challenge",
+        "description": "Verifies the signature over a previously issued challenge for the (upserted) wallet account. Returns the access token; the refresh token is set as the HttpOnly `refreshToken` cookie.",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WalletVerifyDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Signature verified; tokens issued."
+          },
+          "401": {
+            "description": "Invalid signature, or challenge expired/not found."
+          }
+        },
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/user/players/{address}": {
+      "get": {
+        "operationId": "UserController_getPlayerProfile",
+        "summary": "Get player profile (deprecated)",
+        "description": "Deprecated: use GET /players/:address. Returns indexed stats, recent rounds, badges and unclaimed winnings for a player address.",
+        "deprecated": true,
+        "parameters": [
+          {
+            "name": "address",
+            "required": true,
+            "in": "path",
+            "description": "Stellar account address of the player",
+            "schema": {
+              "example": "GABCDEFGHIJKLMNOPQRSTUVWXYZ234567ABCDEFGHIJKLMNOPQRSTUV",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Player profile successfully retrieved"
+          },
+          "404": {
+            "description": "Player not found"
+          }
+        },
+        "tags": [
+          "user"
+        ]
+      }
+    },
+    "/api/v1/user": {
+      "get": {
+        "operationId": "UserController_getUsers",
+        "parameters": [
+          {
+            "name": "limit",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "page",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "user"
+        ]
+      }
+    },
+    "/api/v1/user/signup": {
+      "post": {
+        "operationId": "UserController_signUp",
+        "summary": "Sign up a new user",
+        "description": "Create a new user account",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserDTO"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "User successfully created"
+          },
+          "400": {
+            "description": "Invalid input"
+          }
+        },
+        "tags": [
+          "user"
+        ]
+      }
+    },
+    "/api/v1/user/signin": {
+      "post": {
+        "operationId": "UserController_signIn",
+        "summary": "Sign in a user",
+        "description": "Authenticate user credentials",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "User successfully signed in"
+          },
+          "401": {
+            "description": "Invalid credentials"
+          }
+        },
+        "tags": [
+          "user"
+        ]
+      }
+    },
+    "/api/v1/user/refresh-token": {
+      "post": {
+        "operationId": "UserController_refreshToken",
+        "summary": "Refresh user access token",
+        "description": "Generate a new access token using refresh token",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Access token successfully refreshed"
+          },
+          "401": {
+            "description": "Invalid refresh token"
+          }
+        },
+        "tags": [
+          "user"
+        ]
+      }
+    },
+    "/api/v1/user/admin": {
+      "get": {
+        "operationId": "UserController_getAdminData",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "user"
+        ]
+      }
+    },
+    "/api/v1/user/admin/{id}": {
+      "get": {
+        "operationId": "UserController_getAdminById",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "user"
+        ]
+      },
+      "put": {
+        "operationId": "UserController_updateAdminById",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserDTO"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "user"
+        ]
+      },
+      "delete": {
+        "operationId": "UserController_deleteAdminById",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "user"
+        ]
+      }
+    },
+    "/api/v1/user/admins": {
+      "get": {
+        "operationId": "UserController_getAllAdmins",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "user"
+        ]
+      }
+    },
+    "/api/v1/user/player": {
+      "get": {
+        "operationId": "UserController_getPlayerData",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "user"
+        ]
+      }
+    },
+    "/api/v1/user/player/{id}": {
+      "get": {
+        "operationId": "UserController_getPlayerById",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "user"
+        ]
+      },
+      "put": {
+        "operationId": "UserController_updatePlayerById",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserDTO"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "user"
+        ]
+      },
+      "delete": {
+        "operationId": "UserController_deletePlayerById",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "user"
+        ]
+      }
+    },
+    "/api/v1/user/players": {
+      "get": {
+        "operationId": "UserController_getAllPlayers",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "user"
+        ]
+      }
+    },
+    "/api/v1/user/user": {
+      "get": {
+        "operationId": "UserController_getViewerData",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "user"
+        ]
+      }
+    },
+    "/api/v1/user/user/{id}": {
+      "get": {
+        "operationId": "UserController_getUserById",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "user"
+        ]
+      },
+      "put": {
+        "operationId": "UserController_updateUserById",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserDTO"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "user"
+        ]
+      },
+      "delete": {
+        "operationId": "UserController_deleteUserById",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "user"
+        ]
+      }
+    },
+    "/api/v1/user/users": {
+      "get": {
+        "operationId": "UserController_getAllUsers",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "user"
+        ]
+      }
+    },
+    "/api/v1/user/profile": {
+      "put": {
+        "operationId": "UserController_updateProfile",
+        "summary": "Update user profile",
+        "description": "Modify user profile information",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Profile successfully updated"
+          },
+          "400": {
+            "description": "Invalid profile data"
+          }
+        },
+        "tags": [
+          "user"
+        ]
+      }
+    },
+    "/api/v1/user/me/export": {
+      "get": {
+        "operationId": "UserController_exportAccountData",
+        "summary": "Export account data",
+        "description": "Download a JSON copy of all off-chain personal data (profile, notifications). Includes a privacy note about immutable on-chain records.",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Account data export",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExportAccountDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorised"
+          },
+          "404": {
+            "description": "User not found"
+          }
+        },
+        "tags": [
+          "user"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/user/me": {
+      "delete": {
+        "operationId": "UserController_deleteAccount",
+        "summary": "Delete account",
+        "description": "Anonymises the account and permanently deletes all off-chain personal data: email address, username, notifications, and password reset tokens. On-chain records (game results, scores, wager transactions on the Stellar blockchain) are public and immutable and cannot be erased.",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Account successfully anonymised and personal data deleted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    },
+                    "privacyNote": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorised"
+          },
+          "404": {
+            "description": "User not found"
+          }
+        },
+        "tags": [
+          "user"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/user/me/username": {
+      "patch": {
+        "operationId": "UserController_setUsername",
+        "summary": "Set or update the authenticated user's username",
+        "description": "Reserves a unique, case-insensitive display name for the wallet-linked account. Names must be 3–20 characters ([a-z0-9_]), cannot be reserved words, and cannot impersonate another account.",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetUsernameDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Username updated."
+          },
+          "400": {
+            "description": "Invalid or reserved username."
+          },
+          "401": {
+            "description": "Missing or invalid access token."
+          },
+          "409": {
+            "description": "Username already taken."
+          }
+        },
+        "tags": [
+          "user"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/user/by-address/{address}": {
+      "get": {
+        "operationId": "UserController_getUserByAddress",
+        "summary": "Get user profile by Stellar wallet address",
+        "description": "Looks up the account associated with a Stellar G… public key and returns its public profile (id, username, totalScore, gamesPlayed, gamesWon).",
+        "parameters": [
+          {
+            "name": "address",
+            "required": true,
+            "in": "path",
+            "description": "Stellar Ed25519 public key (G… format)",
+            "schema": {
+              "example": "GABCDEFGHIJKLMNOPQRSTUVWXYZ234567ABCDEFGHIJKLMNOPQRSTUV",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User profile returned."
+          },
+          "404": {
+            "description": "No account for that address."
+          }
+        },
+        "tags": [
+          "user"
+        ]
+      }
+    },
+    "/api/v1/user/by-addresses": {
+      "post": {
+        "operationId": "UserController_batchLookupByAddresses",
+        "summary": "Batch lookup of usernames by Stellar address (scoreboards)",
+        "description": "Accepts up to 100 Stellar addresses and returns a { address: username } map for all addresses that have a registered account.",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BatchLookupDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Address → username map returned.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "example": {
+                    "GABCDE...1": "stellar_wizard",
+                    "GABCDE...2": "crypto_bard"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error on address list."
+          }
+        },
+        "tags": [
+          "user"
+        ]
+      }
+    },
+    "/api/v1/leaderboard": {
+      "get": {
+        "operationId": "LeaderboardController_getLeaderboard",
+        "summary": "Get leaderboard",
+        "description": "Ranking derived from indexed on-chain data, for a daily, weekly or all-time window and a wins, points or streak metric",
+        "parameters": [
+          {
+            "name": "window",
+            "required": false,
+            "in": "query",
+            "description": "daily = since 00:00 UTC today, weekly = last 7 UTC days incl. today",
+            "schema": {
+              "default": "all",
+              "enum": [
+                "daily",
+                "weekly",
+                "all"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "metric",
+            "required": false,
+            "in": "query",
+            "description": "wins = rounds won, points = total points, streak = best answer streak",
+            "schema": {
+              "default": "wins",
+              "enum": [
+                "wins",
+                "points",
+                "streak"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Leaderboard successfully retrieved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedLeaderboardDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid window, metric or page"
+          }
+        },
+        "tags": [
+          "leaderboard"
+        ]
+      }
+    },
+    "/api/v1/leaderboard/rank/{address}": {
+      "get": {
+        "operationId": "LeaderboardController_getPlayerRank",
+        "summary": "Get player rank",
+        "description": "Rank and score of an address on the board for a window and metric",
+        "parameters": [
+          {
+            "name": "address",
+            "required": true,
+            "in": "path",
+            "description": "Stellar address of the player",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "window",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "default": "all",
+              "enum": [
+                "daily",
+                "weekly",
+                "all"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "metric",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "default": "wins",
+              "enum": [
+                "wins",
+                "points",
+                "streak"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Player rank successfully retrieved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlayerRankDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Player has no ranked rounds"
+          }
+        },
+        "tags": [
+          "leaderboard"
+        ]
+      }
+    },
+    "/api/v1/players/{address}": {
+      "get": {
+        "operationId": "PlayersController_getPlayerProfile",
+        "summary": "Get player profile",
+        "description": "Retrieves stats, recent rounds, badges and unclaimed winnings for a player address",
+        "parameters": [
+          {
+            "name": "address",
+            "required": true,
+            "in": "path",
+            "description": "Stellar address of the player",
+            "schema": {
+              "example": "GABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789ABCDEFGHIJKLMNOPQRSTUV",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Player profile successfully retrieved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlayerProfileDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Player not found"
+          },
+          "500": {
+            "description": "Internal server error occurred"
+          }
+        },
+        "tags": [
+          "players"
+        ]
+      }
+    },
+    "/api/v1/admin/anti-cheat/flags": {
+      "get": {
+        "operationId": "AntiCheatController_listFlags",
+        "summary": "List moderation queue",
+        "description": "Returns all anti-cheat flags, optionally filtered by status or address. Defaults to PENDING flags when no status filter is provided.",
+        "parameters": [
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "description": "Filter by moderation status (omit for all)",
+            "schema": {
+              "default": "pending",
+              "enum": [
+                "pending",
+                "reviewed",
+                "hidden",
+                "banned"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "address",
+            "required": false,
+            "in": "query",
+            "description": "Filter to a specific Stellar address",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Moderation queue entries",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PlayerFlagDto"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorised"
+          },
+          "403": {
+            "description": "Admin role required"
+          }
+        },
+        "tags": [
+          "admin-anti-cheat"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/anti-cheat/flags/{id}": {
+      "patch": {
+        "operationId": "AntiCheatController_reviewFlag",
+        "summary": "Review a flag",
+        "description": "Update the moderation status of a flag (reviewed / hidden / banned) and optionally attach a reviewer note.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Flag UUID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReviewFlagDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Flag updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlayerFlagDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorised"
+          },
+          "403": {
+            "description": "Admin role required"
+          },
+          "404": {
+            "description": "Flag not found"
+          }
+        },
+        "tags": [
+          "admin-anti-cheat"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/anti-cheat/addresses/{address}/status": {
+      "get": {
+        "operationId": "AntiCheatController_getAddressStatus",
+        "summary": "Get flag status for an address",
+        "description": "Returns the most-severe moderation status for the given address (BANNED > HIDDEN > PENDING > REVIEWED), or null if no flags exist.",
+        "parameters": [
+          {
+            "name": "address",
+            "required": true,
+            "in": "path",
+            "description": "Stellar G… address",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Status or null"
+          },
+          "401": {
+            "description": "Unauthorised"
+          },
+          "403": {
+            "description": "Admin role required"
+          }
+        },
+        "tags": [
+          "admin-anti-cheat"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/anti-cheat/evaluate/{roundId}": {
+      "patch": {
+        "operationId": "AntiCheatController_evaluateRound",
+        "summary": "Manually evaluate a round",
+        "description": "Runs all anti-cheat heuristics against an already-indexed round and writes any new flags to the moderation queue.",
+        "parameters": [
+          {
+            "name": "roundId",
+            "required": true,
+            "in": "path",
+            "description": "On-chain round ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Flags raised (empty array if none)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PlayerFlagDto"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorised"
+          },
+          "403": {
+            "description": "Admin role required"
+          }
+        },
+        "tags": [
+          "admin-anti-cheat"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/wagers/me": {
+      "get": {
+        "operationId": "WagerController_getMyWagers",
+        "summary": "Get my wager history",
+        "description": "Paginated history of the current user's wagers",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Wager history successfully retrieved"
+          }
+        },
+        "tags": [
+          "wager"
+        ]
+      }
+    },
+    "/api/v1/wagers/reconciliation-status": {
+      "get": {
+        "operationId": "WagerController_getReconciliationStatus",
+        "summary": "Get the latest wager reconciliation status",
+        "description": "LF-340: Returns the most recent nightly reconciliation result comparing the database open-pot sum with the escrow contract on-chain balance. Returns 404 when no reconciliation has run yet.",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Last reconciliation result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReconciliationResultDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "wager"
+        ]
+      }
+    },
+    "/api/v1/rounds/{id}/wagers": {
+      "get": {
+        "operationId": "RoundWagerController_getRoundWagers",
+        "summary": "Get wagers for a round",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Round id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Round wagers successfully retrieved"
+          }
+        },
+        "tags": [
+          "wager"
+        ]
+      }
+    },
+    "/api/v1/songs": {
+      "get": {
+        "operationId": "SongsController_findAll",
+        "summary": "List songs with filtering, search, sorting and pagination",
+        "parameters": [
+          {
+            "name": "q",
+            "required": false,
+            "in": "query",
+            "description": "Matches title or artist",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "genre",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "enum": [
+                "HipHop",
+                "Pop",
+                "Rock",
+                "RnB",
+                "Electronic",
+                "Classical",
+                "Jazz",
+                "Country",
+                "Blues",
+                "Reggae",
+                "Afrobeat",
+                "Gospel",
+                "Folk"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "difficulty",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "enum": [
+                "easy",
+                "medium",
+                "hard"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "tag",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sortBy",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "enum": [
+                "title",
+                "artist",
+                "year",
+                "playCount",
+                "createdAt"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "sortOrder",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "enum": [
+                "ASC",
+                "DESC"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "default": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "default": 20,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "songs"
+        ]
+      }
+    },
+    "/api/v1/songs/submit": {
+      "post": {
+        "operationId": "SongsController_submitSong",
+        "summary": "Submit a song for review",
+        "description": "Creates a card in SUBMITTED status. An admin will review it before it becomes publicly visible. The license must be one of the values allowed by the content policy: CC0-1.0, CC-PDDC, LicenseRef-PublicDomain, or LicenseRef-<provider>.",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubmitSongDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Song submitted — pending admin review"
+          },
+          "400": {
+            "description": "Validation error or license not permitted by content policy"
+          }
+        },
+        "tags": [
+          "songs"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/songs/random": {
+      "get": {
+        "operationId": "SongsController_getRandom",
+        "summary": "Get a random song, optionally within a genre",
+        "parameters": [
+          {
+            "name": "genre",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "enum": [
+                "HipHop",
+                "Pop",
+                "Rock",
+                "RnB",
+                "Electronic",
+                "Classical",
+                "Jazz",
+                "Country",
+                "Blues",
+                "Reggae",
+                "Afrobeat",
+                "Gospel",
+                "Folk"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "songs"
+        ]
+      }
+    },
+    "/api/v1/songs/genres": {
+      "get": {
+        "operationId": "SongsController_listGenres",
+        "summary": "List the genres supported by the contract",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "songs"
+        ]
+      }
+    },
+    "/api/v1/songs/genres/preferences": {
+      "get": {
+        "operationId": "SongsController_getPreferences",
+        "summary": "Get the current user's genre preferences",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "songs"
+        ]
+      }
+    },
+    "/api/v1/songs/genres/{genre}/plays": {
+      "post": {
+        "operationId": "SongsController_recordGenrePlay",
+        "summary": "Record a round played in a genre for the current user",
+        "parameters": [
+          {
+            "name": "genre",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecordGenrePlayDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "songs"
+        ]
+      }
+    },
+    "/api/v1/songs/recommended": {
+      "get": {
+        "operationId": "SongsController_recommend",
+        "summary": "Songs ordered by the current user's genre preferences",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "songs"
+        ]
+      }
+    },
+    "/api/v1/songs/genre/{genre}": {
+      "get": {
+        "operationId": "SongsController_findByGenre",
+        "summary": "Get songs by genre",
+        "parameters": [
+          {
+            "name": "genre",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "songs"
+        ]
+      }
+    },
+    "/api/v1/songs/genres/{genre}": {
+      "get": {
+        "operationId": "SongsController_findByGenreAlias",
+        "summary": "Get songs by genre (alias)",
+        "parameters": [
+          {
+            "name": "genre",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "songs"
+        ]
+      }
+    },
+    "/api/v1/songs/card/{cardId}": {
+      "get": {
+        "operationId": "SongsController_findByCard",
+        "summary": "Get the song for an on-chain card id",
+        "parameters": [
+          {
+            "name": "cardId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "songs"
+        ]
+      }
+    },
+    "/api/v1/songs/{id}": {
+      "get": {
+        "operationId": "SongsController_findOne",
+        "summary": "Get a song by id",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "songs"
+        ]
+      }
+    },
+    "/api/v1/songs/{id}/play": {
+      "post": {
+        "operationId": "SongsController_incrementPlayCount",
+        "summary": "Increment play count",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "songs"
+        ]
+      }
+    },
+    "/api/v1/questions": {
+      "post": {
+        "operationId": "QuestionsController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateQuestionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "questions"
+        ]
+      },
+      "get": {
+        "operationId": "QuestionsController_getQuestions",
+        "summary": "Get all Questions",
+        "parameters": [
+          {
+            "name": "limit",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "page",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "difficulty",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "songId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "minPoints",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "maxPoints",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of all Questions successfully retrieved"
+          }
+        },
+        "tags": [
+          "questions"
+        ]
+      }
+    },
+    "/api/v1/questions/{id}": {
+      "get": {
+        "operationId": "QuestionsController_findOne",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "questions"
+        ]
+      },
+      "patch": {
+        "operationId": "QuestionsController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateQuestionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "questions"
+        ]
+      },
+      "delete": {
+        "operationId": "QuestionsController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "questions"
+        ]
+      }
+    },
+    "/api/v1/practice": {
+      "get": {
+        "operationId": "PracticeCardsController_getPracticeRound",
+        "summary": "Get a set of practice cards (no wallet required)",
+        "description": "Returns 5 random lyric cards with shuffled answer options. Practice results are not recorded on-chain or in the database.",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "practice"
+        ]
+      }
+    },
+    "/api/v1/rounds": {
+      "post": {
+        "operationId": "RoundsController_start",
+        "summary": "Start a new round",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateGameSessionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "rounds"
+        ]
+      }
+    },
+    "/api/v1/rounds/active": {
+      "get": {
+        "operationId": "RoundsController_active",
+        "summary": "List in-progress rounds",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "rounds"
+        ]
+      }
+    },
+    "/api/v1/rounds/{id}/guess": {
+      "post": {
+        "operationId": "RoundsController_guess",
+        "summary": "Submit a guess for a round",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "rounds"
+        ]
+      }
+    },
+    "/api/v1/rounds/{id}": {
+      "get": {
+        "operationId": "RoundsController_findOne",
+        "summary": "Get a round by id",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "rounds"
+        ]
+      }
+    },
+    "/api/v1/rounds/open": {
+      "get": {
+        "operationId": "RoundsReadController_getOpenRounds",
+        "summary": "List open (joinable) rounds",
+        "description": "Returns all rounds with status \"open\", with their current player roster. Served from the indexer with 10 s Redis caching and ETag support. No Soroban RPC call is made.",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "Page number (1-based)",
+            "schema": {
+              "default": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Maximum number of open rounds to return (capped at 50)",
+            "schema": {
+              "default": 50,
+              "type": "number"
+            }
+          },
+          {
+            "name": "genre",
+            "required": false,
+            "in": "query",
+            "description": "Filter by genre",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "if-none-match",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "If-None-Match",
+            "in": "header",
+            "description": "ETag from a previous response; returns 304 if unchanged",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated list of open rounds",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedOpenRoundsDto"
+                }
+              }
+            }
+          },
+          "304": {
+            "description": "Not modified (ETag matched)"
+          }
+        },
+        "tags": [
+          "rounds-read"
+        ]
+      }
+    },
+    "/api/v1/rounds/chain/{roundId}": {
+      "get": {
+        "operationId": "RoundsReadController_getRoundById",
+        "summary": "Get on-chain round detail",
+        "description": "Returns full on-chain round detail: status, genre, players, and final results (once completed). Served from the indexer with 15 s Redis caching and ETag support.",
+        "parameters": [
+          {
+            "name": "roundId",
+            "required": true,
+            "in": "path",
+            "description": "On-chain round ID (not a UUID)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "if-none-match",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "If-None-Match",
+            "in": "header",
+            "description": "ETag from a previous response",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Round detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoundDetailDto"
+                }
+              }
+            }
+          },
+          "304": {
+            "description": "Not modified"
+          },
+          "404": {
+            "description": "Round not found in index"
+          }
+        },
+        "tags": [
+          "rounds-read"
+        ]
+      }
+    },
+    "/api/v1/rounds/players/{address}/stats": {
+      "get": {
+        "operationId": "RoundsReadController_getPlayerStats",
+        "summary": "Get player on-chain stats",
+        "description": "Returns aggregated stats (rounds played, wins, accuracy, points) for a Stellar address, derived from indexed chain_round_result rows. Cached in Redis for 30 s.",
+        "parameters": [
+          {
+            "name": "address",
+            "required": true,
+            "in": "path",
+            "description": "Stellar G… address",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "if-none-match",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "If-None-Match",
+            "in": "header",
+            "description": "ETag from a previous response",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Player stats",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChainPlayerStatsDto"
+                }
+              }
+            }
+          },
+          "304": {
+            "description": "Not modified"
+          }
+        },
+        "tags": [
+          "rounds-read"
+        ]
+      }
+    },
+    "/api/v1/game-modes": {
+      "get": {
+        "operationId": "GameModeController_getAllModes",
+        "summary": "List built-in game modes",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "game-modes"
+        ]
+      }
+    },
+    "/api/v1/game-modes/custom": {
+      "get": {
+        "operationId": "GameModeController_getCustomModes",
+        "summary": "List player-created game modes",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "game-modes"
+        ]
+      },
+      "post": {
+        "operationId": "GameModeController_createCustomMode",
+        "summary": "Create a custom game mode",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCustomGameModeDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "game-modes"
+        ]
+      }
+    },
+    "/api/v1/game-modes/custom/{id}/upvote": {
+      "post": {
+        "operationId": "GameModeController_upvoteCustomMode",
+        "summary": "Upvote a custom game mode",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "game-modes"
+        ]
+      }
+    },
+    "/api/v1/game-modes/queue": {
+      "post": {
+        "operationId": "GameModeController_queueForGame",
+        "summary": "Join the matchmaking queue",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/QueuePlayerDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "game-modes"
+        ]
+      },
+      "delete": {
+        "operationId": "GameModeController_leaveQueue",
+        "summary": "Leave the matchmaking queue",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "game-modes"
+        ]
+      }
+    },
+    "/api/v1/game-modes/queue/status": {
+      "get": {
+        "operationId": "GameModeController_getQueueStatus",
+        "summary": "Get the current user's queue position",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "game-modes"
+        ]
+      }
+    },
+    "/api/v1/game-modes/sessions": {
+      "post": {
+        "operationId": "GameModeController_startSession",
+        "summary": "Start a session directly, without matchmaking",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StartGameDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "game-modes"
+        ]
+      }
+    },
+    "/api/v1/game-modes/sessions/active": {
+      "get": {
+        "operationId": "GameModeController_getActiveSessions",
+        "summary": "List in-progress sessions",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "game-modes"
+        ]
+      }
+    },
+    "/api/v1/game-modes/sessions/{id}/end": {
+      "post": {
+        "operationId": "GameModeController_endSession",
+        "summary": "End a session and record its result",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "game-modes"
+        ]
+      }
+    },
+    "/api/v1/game-modes/players/{id}/stats": {
+      "get": {
+        "operationId": "GameModeController_getPlayerStats",
+        "summary": "Get a player's stats across modes",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "game-modes"
+        ]
+      }
+    },
+    "/api/v1/game-modes/{id}": {
+      "get": {
+        "operationId": "GameModeController_getModeById",
+        "summary": "Get a built-in game mode",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "game-modes"
+        ]
+      }
+    },
+    "/api/v1/game-modes/{id}/stats": {
+      "get": {
+        "operationId": "GameModeController_getModeStats",
+        "summary": "Get stats for a game mode",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "game-modes"
+        ]
+      }
+    },
+    "/api/v1/game-modes/{id}/leaderboard": {
+      "get": {
+        "operationId": "GameModeController_getModeLeaderboard",
+        "summary": "Get the leaderboard for a game mode",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "game-modes"
+        ]
+      }
+    },
+    "/api/v1/game-session": {
+      "post": {
+        "operationId": "GameSessionController_startGameSession",
+        "summary": "Start a new game session",
+        "deprecated": true,
+        "description": "Creates a new game session and returns the session details.",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateGameSessionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Game session successfully created."
+          },
+          "500": {
+            "description": "Internal server error."
+          }
+        },
+        "tags": [
+          "game-session"
+        ]
+      }
+    },
+    "/api/v1/game-session/active": {
+      "get": {
+        "operationId": "GameSessionController_getActiveSessions",
+        "summary": "List in-progress game sessions",
+        "deprecated": true,
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "game-session"
+        ]
+      }
+    },
+    "/api/v1/game-session/{id}/guess": {
+      "post": {
+        "operationId": "GameSessionController_submitGuess",
+        "summary": "Submit a guess for a game session",
+        "deprecated": true,
+        "description": "Allows a player to submit a guess for an ongoing game session.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "The ID of the game session.",
+            "schema": {
+              "example": "abc123"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "description": "Details of the submitted guess.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "example": {
+                  "playerId": "player1",
+                  "guess": "word123"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Guess successfully submitted."
+          },
+          "400": {
+            "description": "Invalid guess data."
+          }
+        },
+        "tags": [
+          "game-session"
+        ]
+      }
+    },
+    "/api/v1/game-session/{id}": {
+      "get": {
+        "operationId": "GameSessionController_getSessionDetails",
+        "summary": "Get game session details",
+        "deprecated": true,
+        "description": "Retrieves details of a specific game session by its ID.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "The ID of the game session.",
+            "schema": {
+              "example": "abc123",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Game session details retrieved."
+          },
+          "404": {
+            "description": "Game session not found."
+          }
+        },
+        "tags": [
+          "game-session"
+        ]
+      }
+    },
+    "/api/v1/game-results": {
+      "post": {
+        "operationId": "GameResultsController_createResult",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateGameResultDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "game-results"
+        ]
+      }
+    },
+    "/api/v1/game-results/leaderboard/{gameId}": {
+      "get": {
+        "operationId": "GameResultsController_getLeaderboard",
+        "parameters": [
+          {
+            "name": "gameId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "game-results"
+        ]
+      }
+    },
+    "/api/v1/game-results/user/{userId}/game/{gameId}/best": {
+      "get": {
+        "operationId": "GameResultsController_getUserBest",
+        "parameters": [
+          {
+            "name": "userId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "gameId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "game-results"
+        ]
+      }
+    },
+    "/api/v1/game-results/user/{userId}": {
+      "get": {
+        "operationId": "GameResultsController_getUserResults",
+        "summary": "Get user results with pagination",
+        "parameters": [
+          {
+            "name": "userId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "page",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of user results successfully retrieved"
+          }
+        },
+        "tags": [
+          "game-results"
+        ]
+      }
+    },
+    "/api/v1/quick-game/rounds": {
+      "post": {
+        "operationId": "QuickGameController_start",
+        "summary": "Start an off-chain Quick Game round",
+        "deprecated": true,
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StartRoundDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "quick-game"
+        ]
+      }
+    },
+    "/api/v1/quick-game/rounds/{roundId}/question": {
+      "get": {
+        "operationId": "QuickGameController_next",
+        "summary": "Get the current question (without its answer)",
+        "deprecated": true,
+        "parameters": [
+          {
+            "name": "roundId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "quick-game"
+        ]
+      }
+    },
+    "/api/v1/quick-game/rounds/{roundId}/answers": {
+      "post": {
+        "operationId": "QuickGameController_answer",
+        "summary": "Answer the current question; the server scores it",
+        "deprecated": true,
+        "parameters": [
+          {
+            "name": "roundId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubmitAnswerDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "quick-game"
+        ]
+      }
+    },
+    "/api/v1/quick-game/rounds/{roundId}": {
+      "get": {
+        "operationId": "QuickGameController_summary",
+        "summary": "Round summary: score and anti-cheat flags",
+        "deprecated": true,
+        "parameters": [
+          {
+            "name": "roundId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "quick-game"
+        ]
+      }
+    },
+    "/api/v1/rooms": {
+      "post": {
+        "operationId": "RoomController_create",
+        "summary": "Create a new room",
+        "deprecated": true,
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateRoomDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Room created successfully"
+          }
+        },
+        "tags": [
+          "rooms"
+        ]
+      },
+      "get": {
+        "operationId": "RoomController_findAll",
+        "summary": "List active rooms",
+        "deprecated": true,
+        "parameters": [
+          {
+            "name": "limit",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "page",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "rooms"
+        ]
+      }
+    },
+    "/api/v1/rooms/players/{playerId}/current": {
+      "get": {
+        "operationId": "RoomController_getCurrentRoom",
+        "summary": "Get a player's current room",
+        "deprecated": true,
+        "parameters": [
+          {
+            "name": "playerId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "rooms"
+        ]
+      }
+    },
+    "/api/v1/rooms/players/{playerId}/history": {
+      "get": {
+        "operationId": "RoomController_getPlayerRoomHistory",
+        "summary": "Get a player's room history",
+        "deprecated": true,
+        "parameters": [
+          {
+            "name": "playerId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "rooms"
+        ]
+      }
+    },
+    "/api/v1/rooms/players/{playerId}/status": {
+      "put": {
+        "operationId": "RoomController_updatePlayerStatus",
+        "summary": "Update a player's online status",
+        "deprecated": true,
+        "parameters": [
+          {
+            "name": "playerId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdatePlayerStatusDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "rooms"
+        ]
+      }
+    },
+    "/api/v1/rooms/{id}": {
+      "get": {
+        "operationId": "RoomController_findOne",
+        "summary": "Get a room by id",
+        "deprecated": true,
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "rooms"
+        ]
+      },
+      "patch": {
+        "operationId": "RoomController_update",
+        "summary": "Update a room",
+        "deprecated": true,
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateRoomDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "rooms"
+        ]
+      },
+      "delete": {
+        "operationId": "RoomController_remove",
+        "summary": "Close a room",
+        "deprecated": true,
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "rooms"
+        ]
+      }
+    },
+    "/api/v1/rooms/{id}/player-count": {
+      "get": {
+        "operationId": "RoomController_getPlayerCount",
+        "summary": "Get the number of players in a room",
+        "deprecated": true,
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "rooms"
+        ]
+      }
+    },
+    "/api/v1/rooms/{id}/players": {
+      "get": {
+        "operationId": "RoomController_getRoomPlayers",
+        "summary": "List players currently in a room",
+        "deprecated": true,
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "rooms"
+        ]
+      }
+    },
+    "/api/v1/rooms/{id}/join": {
+      "post": {
+        "operationId": "RoomController_join",
+        "summary": "Join a room",
+        "deprecated": true,
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlayerIdDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "rooms"
+        ]
+      }
+    },
+    "/api/v1/rooms/{id}/leave": {
+      "post": {
+        "operationId": "RoomController_leave",
+        "summary": "Leave a room",
+        "deprecated": true,
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlayerIdDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "rooms"
+        ]
+      }
+    },
+    "/api/v1/scoring/record": {
+      "post": {
+        "operationId": "ScoringController_recordScore",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateScoringDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "scoring"
+        ]
+      }
+    },
+    "/api/v1/scoring/rankings": {
+      "get": {
+        "operationId": "ScoringController_calculateRankings",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "scoring"
+        ]
+      }
+    },
+    "/api/v1/scoring/user/{userId}": {
+      "get": {
+        "operationId": "ScoringController_getUserStatistics",
+        "parameters": [
+          {
+            "name": "userId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "scoring"
+        ]
+      }
+    },
+    "/api/v1/scoring/leaderboard": {
+      "get": {
+        "operationId": "ScoringController_getLeaderboard",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "scoring"
+        ]
+      }
+    },
+    "/api/v1/scoring/{id}": {
+      "patch": {
+        "operationId": "ScoringController_updateScore",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateScoringDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "scoring"
+        ]
+      }
+    },
+    "/api/v1/notifications": {
+      "get": {
+        "operationId": "NotificationController_getNotifications",
+        "summary": "Get the current user's notifications",
+        "parameters": [
+          {
+            "name": "unread",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Notifications successfully retrieved"
+          }
+        },
+        "tags": [
+          "notifications"
+        ]
+      }
+    },
+    "/api/v1/notifications/unread-count": {
+      "get": {
+        "operationId": "NotificationController_getUnreadCount",
+        "summary": "Get the current user's unread notification count",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Unread count successfully retrieved"
+          }
+        },
+        "tags": [
+          "notifications"
+        ]
+      }
+    },
+    "/api/v1/notifications/{id}/read": {
+      "patch": {
+        "operationId": "NotificationController_markRead",
+        "summary": "Mark one notification as read",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "notifications"
+        ]
+      }
+    },
+    "/api/v1/notifications/mark-read": {
+      "post": {
+        "operationId": "NotificationController_markAllRead",
+        "summary": "Mark all of the current user's notifications as read",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "notifications"
+        ]
+      }
+    },
+    "/api/v1/notifications/preferences": {
+      "get": {
+        "operationId": "NotificationController_getPreferences",
+        "summary": "Get the current user's notification opt-out preferences",
+        "description": "Returns a nested map of { type: { channel: enabled } }. Missing entries default to enabled (true).",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Preference map returned"
+          }
+        },
+        "tags": [
+          "notifications"
+        ]
+      },
+      "put": {
+        "operationId": "NotificationController_updatePreference",
+        "summary": "Update a single notification opt-out preference",
+        "description": "Set enabled=false to opt out of a type+channel combination. Supported channels: in_app, email.",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdatePreferenceDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Preference updated"
+          }
+        },
+        "tags": [
+          "notifications"
+        ]
+      }
+    },
+    "/api/v1/friends/request": {
+      "post": {
+        "operationId": "FriendController_sendFriendRequest",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "friends"
+        ]
+      }
+    },
+    "/api/v1/friends/request/{requestId}/accept": {
+      "post": {
+        "operationId": "FriendController_acceptFriendRequest",
+        "parameters": [
+          {
+            "name": "requestId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "friends"
+        ]
+      }
+    },
+    "/api/v1/friends": {
+      "get": {
+        "operationId": "FriendController_getFriends",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "friends"
+        ]
+      }
+    },
+    "/api/v1/rewards": {
+      "get": {
+        "operationId": "RewardsController_getRewards",
+        "summary": "Get available rewards",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "rewards"
+        ]
+      }
+    },
+    "/api/v1/rewards/claim": {
+      "post": {
+        "operationId": "RewardsController_claimReward",
+        "summary": "Claim a reward",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "rewards"
+        ]
+      }
+    },
+    "/api/v1/reward": {
+      "get": {
+        "operationId": "RewardController_getRewards",
+        "summary": "Get available rewards",
+        "deprecated": true,
+        "description": "Retrieve list of all available rewards",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "List of rewards successfully retrieved"
+          },
+          "500": {
+            "description": "Internal server error occurred"
+          }
+        },
+        "tags": [
+          "reward"
+        ]
+      }
+    },
+    "/api/v1/reward/claim": {
+      "post": {
+        "operationId": "RewardController_claimReward",
+        "summary": "Claim a reward",
+        "deprecated": true,
+        "description": "Process a reward claim with provided details",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Reward successfully claimed"
+          },
+          "400": {
+            "description": "Invalid reward claim details"
+          },
+          "500": {
+            "description": "Internal server error occurred"
+          }
+        },
+        "tags": [
+          "reward"
+        ]
+      }
+    },
+    "/api/v1/achievements": {
+      "post": {
+        "operationId": "AchievementController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateAchievementDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/achievements/user": {
+      "get": {
+        "operationId": "AchievementController_getUserAchievements",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/achievements/leaderboard": {
+      "get": {
+        "operationId": "AchievementController_getLeaderboard",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/progression/xp": {
+      "post": {
+        "operationId": "ProgressionController_addXp",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/XpEventDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "progression"
+        ]
+      }
+    },
+    "/api/v1/progression/{userId}": {
+      "get": {
+        "operationId": "ProgressionController_getPlayerStats",
+        "parameters": [
+          {
+            "name": "userId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "progression"
+        ]
+      }
+    },
+    "/api/v1/admin/songs": {
+      "get": {
+        "operationId": "AdminSongsController_findAll",
+        "summary": "List every song regardless of curation status",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "admin-songs"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "post": {
+        "operationId": "AdminSongsController_create",
+        "summary": "Add a song to the catalogue (starts in SUBMITTED status)",
+        "description": "License must be one of the values allowed by docs/content-policy.md (CC0-1.0, CC-PDDC, LicenseRef-PublicDomain, or LicenseRef-<provider>). The card is not visible to players until it reaches APPROVED or ON_CHAIN.",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubmitSongDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Song created in SUBMITTED status"
+          },
+          "400": {
+            "description": "License not permitted by content policy"
+          }
+        },
+        "tags": [
+          "admin-songs"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/songs/{id}": {
+      "patch": {
+        "operationId": "AdminSongsController_update",
+        "summary": "Update a song",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateSongDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "admin-songs"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "delete": {
+        "operationId": "AdminSongsController_remove",
+        "summary": "Delete a song",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "admin-songs"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/songs/{id}/review": {
+      "post": {
+        "operationId": "AdminSongsController_startReview",
+        "summary": "Start review — SUBMITTED | DRAFT → IN_REVIEW",
+        "description": "Assigns the calling admin as reviewer and moves the card into review. Cards in IN_REVIEW are still hidden from public listings.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Song moved to IN_REVIEW"
+          },
+          "400": {
+            "description": "Song is not in a reviewable status"
+          },
+          "404": {
+            "description": "Song not found"
+          }
+        },
+        "tags": [
+          "admin-songs"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/songs/{id}/approve": {
+      "post": {
+        "operationId": "AdminSongsController_approve",
+        "summary": "Approve a card — IN_REVIEW | SUBMITTED | DRAFT → APPROVED",
+        "description": "Re-validates the license at approval time and makes the card eligible for the next POST /admin/songs/publish run.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Song approved"
+          },
+          "400": {
+            "description": "Song is not in an approvable status, or license is disallowed"
+          },
+          "404": {
+            "description": "Song not found"
+          }
+        },
+        "tags": [
+          "admin-songs"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/songs/{id}/reject": {
+      "post": {
+        "operationId": "AdminSongsController_reject",
+        "summary": "Reject a card — IN_REVIEW | SUBMITTED | DRAFT → REJECTED",
+        "description": "A rejection reason is required; it is stored on the card and shown in the admin dashboard. Rejected cards are hidden from all public listings.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RejectSongDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Song rejected"
+          },
+          "400": {
+            "description": "Song is not in a rejectable status"
+          },
+          "404": {
+            "description": "Song not found"
+          }
+        },
+        "tags": [
+          "admin-songs"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/songs/publish": {
+      "post": {
+        "operationId": "AdminSongsController_publish",
+        "summary": "Build unsigned add_cards XDR batches for all APPROVED songs",
+        "description": "Returns one unsigned Soroban transaction XDR per batch of ≤20 cards. The admin wallet (LF-219) must sign and submit each XDR, then call POST /admin/songs/:id/mark-published with the returned on-chain card_id. The API holds no secret key (LF-227); it never signs or submits.",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": "Unsigned XDR batch(es) ready for the admin wallet to sign",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublishResultDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "admin-songs"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/songs/{id}/mark-published": {
+      "post": {
+        "operationId": "AdminSongsController_markPublished",
+        "summary": "Record the on-chain card_id for a confirmed card — APPROVED → ON_CHAIN",
+        "description": "Call this for each song after the admin wallet has signed and submitted the XDR from POST /admin/songs/publish and the transaction is confirmed. Stores the contract-returned card_id and flips the song to ON_CHAIN, satisfying the acceptance criterion: every on-chain card has a database record with its license and reviewer.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MarkPublishedDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Song marked as ON_CHAIN with card_id recorded"
+          },
+          "400": {
+            "description": "Song is not in APPROVED status"
+          },
+          "404": {
+            "description": "Song not found"
+          }
+        },
+        "tags": [
+          "admin-songs"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/songs/sync": {
+      "post": {
+        "operationId": "AdminSongsController_sync",
+        "summary": "[Deprecated] Use POST /admin/songs/publish instead",
+        "deprecated": true,
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "admin-songs"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/analytics/player-engagement": {
+      "get": {
+        "operationId": "AnalyticsController_getPlayerEngagement",
+        "summary": "Get player engagement metrics",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Analytics"
+        ]
+      }
+    },
+    "/api/v1/analytics/song-categories": {
+      "get": {
+        "operationId": "AnalyticsController_getSongCategories",
+        "summary": "Get popular song categories",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Analytics"
+        ]
+      }
+    },
+    "/api/v1/analytics/token-economy": {
+      "get": {
+        "operationId": "AnalyticsController_getTokenEconomyStats",
+        "summary": "Get token economy statistics",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Analytics"
+        ]
+      }
+    },
+    "/api/v1/analytics/user-progression": {
+      "get": {
+        "operationId": "AnalyticsController_getUserProgressionTrends",
+        "summary": "Get user progression trends",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Analytics"
+        ]
+      }
+    },
+    "/api/v1/analytics/aggregate": {
+      "get": {
+        "operationId": "AnalyticsController_getAggregatedAnalytics",
+        "summary": "Get aggregated analytics",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Analytics"
+        ]
+      }
+    },
+    "/api/v1/analytics/onboarding-funnel": {
+      "get": {
+        "operationId": "AnalyticsController_getOnboardingFunnel",
+        "summary": "Get anonymous onboarding funnel counts for 30 days",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Analytics"
+        ]
+      }
+    },
+    "/api/v1/analytics/onboarding": {
+      "post": {
+        "operationId": "OnboardingFunnelController_recordStep",
+        "summary": "Record an anonymous onboarding funnel step",
+        "description": "Stores only a daily aggregate count for the provided step. No user or wallet identifier is accepted.",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OnboardingStepDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Step recorded"
+          }
+        },
+        "tags": [
+          "Analytics"
+        ]
+      }
+    },
+    "/api/v1/health/live": {
       "get": {
         "operationId": "HealthController_live",
-        "summary": "Liveness probe",
-        "description": "Returns 200 while the process is running. No dependency checks.",
         "parameters": [],
         "responses": {
           "200": {
@@ -17,11 +4103,9 @@
         ]
       }
     },
-    "/health/ready": {
+    "/api/v1/health/ready": {
       "get": {
         "operationId": "HealthController_ready",
-        "summary": "Readiness probe",
-        "description": "Returns 200 when all dependencies are healthy, 503 when any are down.",
         "parameters": [],
         "responses": {
           "200": {
@@ -37,14 +4121,61 @@
                     },
                     "info": {
                       "type": "object",
+                      "example": {
+                        "database": {
+                          "status": "up"
+                        }
+                      },
+                      "additionalProperties": {
+                        "type": "object",
+                        "required": [
+                          "status"
+                        ],
+                        "properties": {
+                          "status": {
+                            "type": "string"
+                          }
+                        },
+                        "additionalProperties": true
+                      },
                       "nullable": true
                     },
                     "error": {
                       "type": "object",
+                      "example": {},
+                      "additionalProperties": {
+                        "type": "object",
+                        "required": [
+                          "status"
+                        ],
+                        "properties": {
+                          "status": {
+                            "type": "string"
+                          }
+                        },
+                        "additionalProperties": true
+                      },
                       "nullable": true
                     },
                     "details": {
-                      "type": "object"
+                      "type": "object",
+                      "example": {
+                        "database": {
+                          "status": "up"
+                        }
+                      },
+                      "additionalProperties": {
+                        "type": "object",
+                        "required": [
+                          "status"
+                        ],
+                        "properties": {
+                          "status": {
+                            "type": "string"
+                          }
+                        },
+                        "additionalProperties": true
+                      }
                     }
                   }
                 }
@@ -52,7 +4183,87 @@
             }
           },
           "503": {
-            "description": "The Health Check is not successful"
+            "description": "The Health Check is not successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "error"
+                    },
+                    "info": {
+                      "type": "object",
+                      "example": {
+                        "database": {
+                          "status": "up"
+                        }
+                      },
+                      "additionalProperties": {
+                        "type": "object",
+                        "required": [
+                          "status"
+                        ],
+                        "properties": {
+                          "status": {
+                            "type": "string"
+                          }
+                        },
+                        "additionalProperties": true
+                      },
+                      "nullable": true
+                    },
+                    "error": {
+                      "type": "object",
+                      "example": {
+                        "redis": {
+                          "status": "down",
+                          "message": "Could not connect"
+                        }
+                      },
+                      "additionalProperties": {
+                        "type": "object",
+                        "required": [
+                          "status"
+                        ],
+                        "properties": {
+                          "status": {
+                            "type": "string"
+                          }
+                        },
+                        "additionalProperties": true
+                      },
+                      "nullable": true
+                    },
+                    "details": {
+                      "type": "object",
+                      "example": {
+                        "database": {
+                          "status": "up"
+                        },
+                        "redis": {
+                          "status": "down",
+                          "message": "Could not connect"
+                        }
+                      },
+                      "additionalProperties": {
+                        "type": "object",
+                        "required": [
+                          "status"
+                        ],
+                        "properties": {
+                          "status": {
+                            "type": "string"
+                          }
+                        },
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                }
+              }
+            }
           }
         },
         "tags": [
@@ -60,17 +4271,167 @@
         ]
       }
     },
-    "/health": {
+    "/v1/health": {
       "get": {
         "operationId": "HealthController_check",
-        "summary": "Readiness probe (alias)",
         "parameters": [],
         "responses": {
           "200": {
-            "description": "The Health Check is successful"
+            "description": "The Health Check is successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "ok"
+                    },
+                    "info": {
+                      "type": "object",
+                      "example": {
+                        "database": {
+                          "status": "up"
+                        }
+                      },
+                      "additionalProperties": {
+                        "type": "object",
+                        "required": [
+                          "status"
+                        ],
+                        "properties": {
+                          "status": {
+                            "type": "string"
+                          }
+                        },
+                        "additionalProperties": true
+                      },
+                      "nullable": true
+                    },
+                    "error": {
+                      "type": "object",
+                      "example": {},
+                      "additionalProperties": {
+                        "type": "object",
+                        "required": [
+                          "status"
+                        ],
+                        "properties": {
+                          "status": {
+                            "type": "string"
+                          }
+                        },
+                        "additionalProperties": true
+                      },
+                      "nullable": true
+                    },
+                    "details": {
+                      "type": "object",
+                      "example": {
+                        "database": {
+                          "status": "up"
+                        }
+                      },
+                      "additionalProperties": {
+                        "type": "object",
+                        "required": [
+                          "status"
+                        ],
+                        "properties": {
+                          "status": {
+                            "type": "string"
+                          }
+                        },
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                }
+              }
+            }
           },
           "503": {
-            "description": "The Health Check is not successful"
+            "description": "The Health Check is not successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "error"
+                    },
+                    "info": {
+                      "type": "object",
+                      "example": {
+                        "database": {
+                          "status": "up"
+                        }
+                      },
+                      "additionalProperties": {
+                        "type": "object",
+                        "required": [
+                          "status"
+                        ],
+                        "properties": {
+                          "status": {
+                            "type": "string"
+                          }
+                        },
+                        "additionalProperties": true
+                      },
+                      "nullable": true
+                    },
+                    "error": {
+                      "type": "object",
+                      "example": {
+                        "redis": {
+                          "status": "down",
+                          "message": "Could not connect"
+                        }
+                      },
+                      "additionalProperties": {
+                        "type": "object",
+                        "required": [
+                          "status"
+                        ],
+                        "properties": {
+                          "status": {
+                            "type": "string"
+                          }
+                        },
+                        "additionalProperties": true
+                      },
+                      "nullable": true
+                    },
+                    "details": {
+                      "type": "object",
+                      "example": {
+                        "database": {
+                          "status": "up"
+                        },
+                        "redis": {
+                          "status": "down",
+                          "message": "Could not connect"
+                        }
+                      },
+                      "additionalProperties": {
+                        "type": "object",
+                        "required": [
+                          "status"
+                        ],
+                        "properties": {
+                          "status": {
+                            "type": "string"
+                          }
+                        },
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                }
+              }
+            }
           }
         },
         "tags": [
@@ -95,15 +4456,34 @@
     "termsOfService": "https://songify.com/terms"
   },
   "tags": [
-    { "name": "lyricflip" },
-    { "name": "songs" },
-    { "name": "users" },
-    { "name": "players" },
-    { "name": "leaderboard" },
-    { "name": "indexer" },
-    { "name": "admin" },
-    { "name": "health" },
-    { "name": "auth" }
+    {
+      "name": "lyricflip",
+      "description": ""
+    },
+    {
+      "name": "songs",
+      "description": ""
+    },
+    {
+      "name": "users",
+      "description": ""
+    },
+    {
+      "name": "players",
+      "description": ""
+    },
+    {
+      "name": "leaderboard",
+      "description": ""
+    },
+    {
+      "name": "indexer",
+      "description": ""
+    },
+    {
+      "name": "admin",
+      "description": ""
+    }
   ],
   "servers": [],
   "components": {
@@ -112,6 +4492,1262 @@
         "scheme": "bearer",
         "bearerFormat": "JWT",
         "type": "http"
+      }
+    },
+    "schemas": {
+      "SignInDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "UserDTO": {
+        "type": "object",
+        "properties": {}
+      },
+      "ForgotPasswordDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "ResetPasswordDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "WalletChallengeRequestDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "WalletVerifyDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "ExportNotificationDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "metadata": {
+            "type": "object",
+            "nullable": true
+          },
+          "isRead": {
+            "type": "boolean"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "type",
+          "message",
+          "metadata",
+          "isRead",
+          "createdAt"
+        ]
+      },
+      "ExportAccountDto": {
+        "type": "object",
+        "properties": {
+          "profile": {
+            "type": "object",
+            "description": "User profile data"
+          },
+          "notifications": {
+            "description": "All notifications addressed to the user",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ExportNotificationDto"
+            }
+          },
+          "privacyNote": {
+            "type": "object",
+            "description": "Privacy note explaining what data is on-chain and cannot be erased"
+          }
+        },
+        "required": [
+          "profile",
+          "notifications",
+          "privacyNote"
+        ]
+      },
+      "SetUsernameDto": {
+        "type": "object",
+        "properties": {
+          "username": {
+            "type": "string",
+            "description": "Desired username. 3–20 characters, lowercase letters/digits/underscores only.",
+            "example": "stellar_wizard",
+            "minLength": 3,
+            "maxLength": 20
+          }
+        },
+        "required": [
+          "username"
+        ]
+      },
+      "BatchLookupDto": {
+        "type": "object",
+        "properties": {
+          "addresses": {
+            "description": "List of Stellar wallet addresses to look up (max 100 per call).",
+            "example": [
+              "GABCDE...1",
+              "GABCDE...2"
+            ],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "addresses"
+        ]
+      },
+      "LeaderboardEntryDto": {
+        "type": "object",
+        "properties": {
+          "rank": {
+            "type": "number",
+            "description": "1-based position on the board"
+          },
+          "address": {
+            "type": "string",
+            "description": "Stellar address of the player"
+          },
+          "score": {
+            "type": "number",
+            "description": "Value of the requested metric"
+          },
+          "username": {
+            "type": "string"
+          },
+          "totalPoints": {
+            "type": "number",
+            "description": "Total points accumulated in the period"
+          },
+          "roundsWon": {
+            "type": "number"
+          },
+          "roundsPlayed": {
+            "type": "number"
+          },
+          "winRate": {
+            "type": "number",
+            "description": "roundsWon / roundsPlayed, in [0, 1]"
+          },
+          "accuracy": {
+            "type": "number",
+            "description": "Correct answers / total answers, in [0, 1]"
+          },
+          "bestRoundScore": {
+            "type": "number",
+            "description": "Highest single-round score in the period"
+          },
+          "maxStreak": {
+            "type": "number"
+          },
+          "flagStatus": {
+            "type": "string",
+            "nullable": true,
+            "description": "Anti-cheat moderation status. Null = no flags. 'hidden'/'banned' entries are suppressed on public leaderboards."
+          }
+        },
+        "required": [
+          "rank",
+          "address"
+        ]
+      },
+      "PaginatedLeaderboardDto": {
+        "type": "object",
+        "properties": {
+          "window": {
+            "type": "string",
+            "enum": [
+              "daily",
+              "weekly",
+              "all"
+            ]
+          },
+          "metric": {
+            "type": "string",
+            "enum": [
+              "wins",
+              "points",
+              "streak"
+            ]
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LeaderboardEntryDto"
+            }
+          },
+          "page": {
+            "type": "number"
+          },
+          "limit": {
+            "type": "number"
+          },
+          "total": {
+            "type": "number"
+          },
+          "totalPages": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "window",
+          "metric",
+          "data",
+          "page",
+          "limit",
+          "total",
+          "totalPages"
+        ]
+      },
+      "PlayerRankDto": {
+        "type": "object",
+        "properties": {
+          "address": {
+            "type": "string"
+          },
+          "window": {
+            "type": "string",
+            "enum": [
+              "daily",
+              "weekly",
+              "all"
+            ]
+          },
+          "metric": {
+            "type": "string",
+            "enum": [
+              "wins",
+              "points",
+              "streak"
+            ]
+          },
+          "rank": {
+            "type": "number",
+            "description": "1-based position on the board"
+          },
+          "score": {
+            "type": "number",
+            "description": "Value of the requested metric"
+          },
+          "total": {
+            "type": "number",
+            "description": "Number of players on the board"
+          }
+        },
+        "required": [
+          "address",
+          "window",
+          "metric",
+          "rank",
+          "score",
+          "total"
+        ]
+      },
+      "PlayerStatsDto": {
+        "type": "object",
+        "properties": {
+          "totalPoints": {
+            "type": "number",
+            "description": "Total points accumulated across all rounds"
+          },
+          "roundsPlayed": {
+            "type": "number"
+          },
+          "roundsWon": {
+            "type": "number"
+          },
+          "winRate": {
+            "type": "number",
+            "description": "roundsWon / roundsPlayed, in [0, 1]"
+          },
+          "accuracy": {
+            "type": "number",
+            "description": "Correct answers / total answers, in [0, 1]"
+          },
+          "maxStreak": {
+            "type": "number"
+          },
+          "bestRoundScore": {
+            "type": "number",
+            "description": "Highest single-round score"
+          },
+          "currentStreak": {
+            "type": "number",
+            "description": "Current consecutive-win streak"
+          },
+          "correctAnswers": {
+            "type": "number"
+          },
+          "totalAnswers": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "totalPoints",
+          "roundsPlayed",
+          "roundsWon",
+          "winRate",
+          "accuracy",
+          "maxStreak",
+          "bestRoundScore",
+          "correctAnswers",
+          "totalAnswers"
+        ]
+      },
+      "PlayerRecentRoundDto": {
+        "type": "object",
+        "properties": {
+          "roundId": {
+            "type": "string",
+            "description": "Round identifier"
+          },
+          "genre": {
+            "type": "string",
+            "description": "Genre of the round"
+          },
+          "points": {
+            "type": "number",
+            "description": "Points earned in the round"
+          },
+          "correctAnswers": {
+            "type": "number",
+            "description": "Correct answers in the round"
+          },
+          "totalAnswers": {
+            "type": "number",
+            "description": "Total answers submitted in the round"
+          },
+          "won": {
+            "type": "boolean",
+            "description": "Whether the player won the round"
+          },
+          "playedAt": {
+            "type": "string",
+            "description": "When the round was played (ISO 8601)"
+          }
+        },
+        "required": [
+          "roundId",
+          "genre",
+          "points",
+          "correctAnswers",
+          "totalAnswers",
+          "won",
+          "playedAt"
+        ]
+      },
+      "PlayerBadgeDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Badge identifier"
+          },
+          "name": {
+            "type": "string",
+            "description": "Human-readable badge name"
+          },
+          "description": {
+            "type": "string",
+            "description": "Badge description"
+          },
+          "awardedAt": {
+            "type": "string",
+            "description": "When the badge was awarded (ISO 8601)"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ]
+      },
+      "PlayerProfileDto": {
+        "type": "object",
+        "properties": {
+          "address": {
+            "type": "string"
+          },
+          "rank": {
+            "type": "number"
+          },
+          "username": {
+            "type": "string"
+          },
+          "stats": {
+            "$ref": "#/components/schemas/PlayerStatsDto"
+          },
+          "recentRounds": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PlayerRecentRoundDto"
+            }
+          },
+          "badges": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PlayerBadgeDto"
+            }
+          },
+          "unclaimedWinnings": {
+            "type": "string",
+            "description": "Total unclaimed amount, in stroops"
+          }
+        },
+        "required": [
+          "address",
+          "stats",
+          "recentRounds",
+          "badges",
+          "unclaimedWinnings"
+        ]
+      },
+      "PlayerFlagDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "address": {
+            "type": "string"
+          },
+          "roundId": {
+            "type": "string"
+          },
+          "reasons": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "totalAnswers": {
+            "type": "number"
+          },
+          "correctAnswers": {
+            "type": "number"
+          },
+          "accuracy": {
+            "type": "number"
+          },
+          "medianAnswerTimeS": {
+            "type": "number",
+            "nullable": true
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "reviewed",
+              "hidden",
+              "banned"
+            ]
+          },
+          "reviewerNote": {
+            "type": "string",
+            "nullable": true
+          },
+          "reviewedBy": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "address",
+          "roundId",
+          "reasons",
+          "totalAnswers",
+          "correctAnswers",
+          "accuracy",
+          "status",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "ReviewFlagDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "reviewed",
+              "hidden",
+              "banned"
+            ],
+            "description": "New moderation status to apply"
+          },
+          "reviewerNote": {
+            "type": "string",
+            "description": "Optional reviewer note"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "ReconciliationResultDto": {
+        "type": "object",
+        "properties": {
+          "checkedAt": {
+            "type": "string",
+            "description": "When the reconciliation job last ran."
+          },
+          "dbEscrowedTotals": {
+            "type": "object",
+            "description": "Sum of escrowed wager amounts in the database, per asset.",
+            "example": {
+              "native": "1500000000"
+            }
+          },
+          "contractBalances": {
+            "type": "object",
+            "description": "Escrow contract token balance read from the chain, per asset.",
+            "example": {
+              "native": "1500000000"
+            }
+          },
+          "differences": {
+            "type": "object",
+            "description": "Per-asset difference (contract balance minus DB escrowed total).",
+            "example": {
+              "native": "0"
+            }
+          },
+          "matched": {
+            "type": "boolean",
+            "description": "True when every asset matches within the tolerance."
+          },
+          "alert": {
+            "type": "string",
+            "description": "Human-readable summary when a mismatch is detected."
+          }
+        },
+        "required": [
+          "checkedAt",
+          "dbEscrowedTotals",
+          "contractBalances",
+          "differences",
+          "matched"
+        ]
+      },
+      "SubmitSongDto": {
+        "type": "object",
+        "properties": {
+          "genre": {
+            "type": "string",
+            "enum": [
+              "HipHop",
+              "Pop",
+              "Rock",
+              "RnB",
+              "Electronic",
+              "Classical",
+              "Jazz",
+              "Country",
+              "Blues",
+              "Reggae",
+              "Afrobeat",
+              "Gospel",
+              "Folk"
+            ]
+          },
+          "artist": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "year": {
+            "type": "number",
+            "minimum": 1000,
+            "maximum": 9999
+          },
+          "lyrics": {
+            "type": "string",
+            "description": "Lyric snippet. At most 20 words, single line/phrase (content-policy.md)."
+          },
+          "difficulty": {
+            "type": "string",
+            "enum": [
+              "easy",
+              "medium",
+              "hard"
+            ],
+            "default": "medium"
+          },
+          "tags": {
+            "description": "Tag names",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "source": {
+            "type": "string",
+            "description": "Where the lyric text came from, e.g. \"Original demo lyrics written for LyricsFlip (CC0)\"."
+          },
+          "license": {
+            "type": "string",
+            "description": "SPDX identifier or LicenseRef-<provider> for licensed data. Allowed values: CC0-1.0, CC-PDDC, LicenseRef-PublicDomain, or any LicenseRef-<provider>."
+          }
+        },
+        "required": [
+          "genre",
+          "artist",
+          "title",
+          "year",
+          "lyrics",
+          "source",
+          "license"
+        ]
+      },
+      "RecordGenrePlayDto": {
+        "type": "object",
+        "properties": {
+          "score": {
+            "type": "number",
+            "description": "Score for the round, 0-100"
+          },
+          "enjoymentRating": {
+            "type": "number",
+            "description": "Optional 0-5 enjoyment rating"
+          }
+        },
+        "required": [
+          "score"
+        ]
+      },
+      "CreateQuestionDto": {
+        "type": "object",
+        "properties": {
+          "songId": {
+            "type": "string"
+          },
+          "lyricSnippet": {
+            "type": "string"
+          },
+          "options": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "correctAnswer": {
+            "type": "number"
+          },
+          "difficulty": {
+            "type": "number"
+          },
+          "timeLimit": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "songId",
+          "lyricSnippet",
+          "options",
+          "correctAnswer",
+          "difficulty",
+          "timeLimit"
+        ]
+      },
+      "UpdateQuestionDto": {
+        "type": "object",
+        "properties": {
+          "songId": {
+            "type": "string"
+          },
+          "lyricSnippet": {
+            "type": "string"
+          },
+          "options": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "correctAnswer": {
+            "type": "number"
+          },
+          "difficulty": {
+            "type": "number"
+          },
+          "timeLimit": {
+            "type": "number"
+          }
+        }
+      },
+      "CreateGameSessionDto": {
+        "type": "object",
+        "properties": {
+          "gameMode": {
+            "type": "string",
+            "description": "Game mode id, e.g. classic"
+          },
+          "playerIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "maxPlayers": {
+            "type": "number",
+            "default": 4
+          },
+          "description": {
+            "type": "string"
+          },
+          "metadata": {
+            "type": "object"
+          }
+        }
+      },
+      "RoundPlayerDto": {
+        "type": "object",
+        "properties": {
+          "address": {
+            "type": "string",
+            "description": "Stellar address of the player"
+          },
+          "ready": {
+            "type": "boolean",
+            "description": "Whether the player has signalled ready"
+          },
+          "joinedLedger": {
+            "type": "number",
+            "description": "Ledger sequence when this player joined"
+          }
+        },
+        "required": [
+          "address",
+          "ready"
+        ]
+      },
+      "OpenRoundDto": {
+        "type": "object",
+        "properties": {
+          "roundId": {
+            "type": "string",
+            "description": "On-chain round identifier"
+          },
+          "admin": {
+            "type": "string",
+            "description": "Stellar address of the round admin/owner"
+          },
+          "status": {
+            "type": "string",
+            "description": "Round status",
+            "example": "open"
+          },
+          "genre": {
+            "type": "string",
+            "description": "Music genre for this round"
+          },
+          "players": {
+            "description": "Players who have joined",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RoundPlayerDto"
+            }
+          },
+          "playerCount": {
+            "type": "number",
+            "description": "Number of players currently in the round"
+          },
+          "createdLedger": {
+            "type": "number",
+            "description": "Ledger sequence when the round was created"
+          },
+          "startedAt": {
+            "type": "string",
+            "description": "ISO 8601 timestamp when the round started; null if not yet started"
+          }
+        },
+        "required": [
+          "roundId",
+          "status",
+          "players",
+          "playerCount"
+        ]
+      },
+      "PaginatedOpenRoundsDto": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OpenRoundDto"
+            }
+          },
+          "page": {
+            "type": "number"
+          },
+          "limit": {
+            "type": "number"
+          },
+          "total": {
+            "type": "number"
+          },
+          "totalPages": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "data",
+          "page",
+          "limit",
+          "total",
+          "totalPages"
+        ]
+      },
+      "RoundPlayerResultDto": {
+        "type": "object",
+        "properties": {
+          "address": {
+            "type": "string"
+          },
+          "won": {
+            "type": "boolean"
+          },
+          "points": {
+            "type": "number"
+          },
+          "correctAnswers": {
+            "type": "number"
+          },
+          "totalAnswers": {
+            "type": "number"
+          },
+          "streakAfter": {
+            "type": "number"
+          },
+          "ledger": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "address",
+          "won",
+          "points",
+          "correctAnswers",
+          "totalAnswers",
+          "streakAfter"
+        ]
+      },
+      "RoundDetailDto": {
+        "type": "object",
+        "properties": {
+          "roundId": {
+            "type": "string"
+          },
+          "admin": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "genre": {
+            "type": "string"
+          },
+          "players": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RoundPlayerDto"
+            }
+          },
+          "playerCount": {
+            "type": "number"
+          },
+          "createdLedger": {
+            "type": "number"
+          },
+          "startedAt": {
+            "type": "string"
+          },
+          "completedAt": {
+            "type": "string"
+          },
+          "txHash": {
+            "type": "string"
+          },
+          "results": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RoundPlayerResultDto"
+            }
+          }
+        },
+        "required": [
+          "roundId",
+          "status",
+          "players",
+          "playerCount",
+          "results"
+        ]
+      },
+      "ChainPlayerStatsDto": {
+        "type": "object",
+        "properties": {
+          "address": {
+            "type": "string",
+            "description": "Stellar address queried"
+          },
+          "roundsPlayed": {
+            "type": "number"
+          },
+          "roundsWon": {
+            "type": "number"
+          },
+          "winRate": {
+            "type": "number",
+            "description": "roundsWon / roundsPlayed, in [0, 1]"
+          },
+          "accuracy": {
+            "type": "number",
+            "description": "correctAnswers / totalAnswers, in [0, 1]"
+          },
+          "correctAnswers": {
+            "type": "number"
+          },
+          "totalAnswers": {
+            "type": "number"
+          },
+          "totalPoints": {
+            "type": "number"
+          },
+          "maxStreak": {
+            "type": "number"
+          },
+          "bestRoundScore": {
+            "type": "number",
+            "description": "Highest single-round score"
+          }
+        },
+        "required": [
+          "address",
+          "roundsPlayed",
+          "roundsWon",
+          "winRate",
+          "accuracy",
+          "correctAnswers",
+          "totalAnswers",
+          "totalPoints",
+          "maxStreak",
+          "bestRoundScore"
+        ]
+      },
+      "CreateCustomGameModeDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "QueuePlayerDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "StartGameDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "CreateGameResultDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "StartRoundDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "SubmitAnswerDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "CreateRoomDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "capacity": {
+            "type": "number",
+            "default": 10
+          }
+        },
+        "required": [
+          "name",
+          "description"
+        ]
+      },
+      "UpdatePlayerStatusDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "UpdateRoomDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "capacity": {
+            "type": "number",
+            "default": 10
+          }
+        }
+      },
+      "PlayerIdDto": {
+        "type": "object",
+        "properties": {
+          "playerId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "playerId"
+        ]
+      },
+      "CreateScoringDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "UpdateScoringDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "UpdatePreferenceDto": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "info",
+              "success",
+              "warning",
+              "friend_request",
+              "new_share",
+              "share_engagement",
+              "round_joined",
+              "round_started",
+              "round_completed",
+              "reward_claimable",
+              "nft_minted",
+              "round_cancelled"
+            ]
+          },
+          "channel": {
+            "type": "string",
+            "enum": [
+              "in_app",
+              "email"
+            ]
+          },
+          "enabled": {
+            "type": "boolean",
+            "description": "false to opt out, true to re-enable."
+          }
+        },
+        "required": [
+          "type",
+          "channel",
+          "enabled"
+        ]
+      },
+      "CreateAchievementDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "XpEventDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "UpdateSongDto": {
+        "type": "object",
+        "properties": {
+          "onChainCardId": {
+            "type": "string",
+            "description": "Contract card_id, once the card is on-chain"
+          },
+          "genre": {
+            "type": "string",
+            "enum": [
+              "HipHop",
+              "Pop",
+              "Rock",
+              "RnB",
+              "Electronic",
+              "Classical",
+              "Jazz",
+              "Country",
+              "Blues",
+              "Reggae",
+              "Afrobeat",
+              "Gospel",
+              "Folk"
+            ]
+          },
+          "artist": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "year": {
+            "type": "number"
+          },
+          "lyrics": {
+            "type": "string"
+          },
+          "difficulty": {
+            "type": "string",
+            "enum": [
+              "easy",
+              "medium",
+              "hard"
+            ]
+          },
+          "tags": {
+            "description": "Tag names",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "source": {
+            "type": "string",
+            "description": "Where the lyric text came from"
+          },
+          "license": {
+            "type": "string",
+            "description": "SPDX identifier or LicenseRef-<provider>"
+          }
+        }
+      },
+      "RejectSongDto": {
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": "string",
+            "description": "Human-readable reason for rejection (shown to submitter and stored in the audit log).",
+            "maxLength": 1000
+          }
+        },
+        "required": [
+          "reason"
+        ]
+      },
+      "PublishBatchDto": {
+        "type": "object",
+        "properties": {
+          "xdr": {
+            "type": "string",
+            "description": "Unsigned add_cards transaction XDR."
+          },
+          "songIds": {
+            "description": "Database UUIDs of the songs in this batch, in wire order.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "xdr",
+          "songIds"
+        ]
+      },
+      "PublishResultDto": {
+        "type": "object",
+        "properties": {
+          "total": {
+            "type": "number",
+            "description": "Total number of approved songs batched."
+          },
+          "batches": {
+            "description": "One entry per add_cards batch (max 20 cards each).",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublishBatchDto"
+            }
+          }
+        },
+        "required": [
+          "total",
+          "batches"
+        ]
+      },
+      "MarkPublishedDto": {
+        "type": "object",
+        "properties": {
+          "onChainCardId": {
+            "type": "string",
+            "description": "On-chain card_id returned by the add_cards transaction."
+          }
+        },
+        "required": [
+          "onChainCardId"
+        ]
+      },
+      "AnalyticsResponseDto": {
+        "type": "object",
+        "properties": {
+          "timestamp": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "data": {
+            "type": "object"
+          },
+          "metadata": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "timestamp",
+          "data"
+        ]
+      },
+      "OnboardingStepDto": {
+        "type": "object",
+        "properties": {
+          "step": {
+            "type": "string",
+            "enum": [
+              "wallet_connected",
+              "funded",
+              "funding_skipped",
+              "username_set",
+              "tutorial_started"
+            ]
+          }
+        },
+        "required": [
+          "step"
+        ]
       }
     }
   }

@@ -45,16 +45,16 @@ describe('GameResultsService', () => {
 
   describe('calculateFinalScore', () => {
     it('should calculate correct score based on game data and time', () => {
-      const gameData = { 
+      const gameData = {
         baseScore: 500,
-        achievements: ['first_win', 'perfect_score'] 
+        achievements: ['first_win', 'perfect_score'],
       };
       const timeSpent = 300;
-      
+
       const result = service.calculateFinalScore(gameData, timeSpent);
-      
-      // Expected: 500 (base) + (1000-300)*0.1 (time bonus) + 2*50 (achievements) = 570
-      expect(result).toBe(570);
+
+      // Expected: 500 (base) + (1000-300)*0.1 (time bonus) + 2*50 (achievements) = 670
+      expect(result).toBe(670);
     });
   });
 
@@ -67,13 +67,13 @@ describe('GameResultsService', () => {
         timeSpent: 300,
         achievements: ['first_win'],
       };
-      
+
       const createdEntity = { ...dto, id: 'new-id', createdAt: new Date() };
       mockRepository.create.mockReturnValue(createdEntity);
       mockRepository.save.mockResolvedValue(createdEntity);
-      
+
       const result = await service.createResult(dto);
-      
+
       expect(mockRepository.create).toHaveBeenCalled();
       expect(mockRepository.save).toHaveBeenCalled();
       expect(mockEventEmitter.emit).toHaveBeenCalled();
@@ -87,11 +87,11 @@ describe('GameResultsService', () => {
         { userId: 'user1', gameId: 'game1', score: 1000, achievements: ['a1'] },
         { userId: 'user2', gameId: 'game1', score: 900, achievements: ['a2'] },
       ];
-      
+
       mockRepository.find.mockResolvedValue(gameResults);
-      
+
       const leaderboard = await service.generateLeaderboard('game1');
-      
+
       expect(mockRepository.find).toHaveBeenCalled();
       expect(leaderboard.length).toBe(2);
       expect(leaderboard[0].rank).toBe(1);

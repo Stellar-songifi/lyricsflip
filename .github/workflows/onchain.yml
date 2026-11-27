@@ -226,6 +226,28 @@ jobs:
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
 
+  deny:
+    name: Supply-chain checks (LF-367)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: onchain
+      - uses: taiki-e/install-action@cargo-deny
+      - name: cargo deny
+        working-directory: onchain
+        run: |
+          set -o pipefail
+          cargo deny check advisories licenses bans 2>&1 | tee deny.log
+          {
+            echo "### cargo deny"
+            echo '```'
+            cat deny.log
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
   bindings-check:
     name: TypeScript bindings are up to date (LF-032)
     runs-on: ubuntu-latest
@@ -241,10 +263,9 @@ jobs:
         with:
           node-version-file: .nvmrc
       - name: Install Stellar CLI
-        run: |
-          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-          cargo install stellar-cli --locked
-        shell: bash
+        uses: taiki-e/install-action@v2
+        with:
+          tool: stellar-cli
       - name: Check TypeScript bindings are fresh
         run: bash onchain/scripts/check-bindings-fresh.sh
 

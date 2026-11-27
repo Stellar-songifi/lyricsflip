@@ -1,4 +1,4 @@
-import { Activity, ActivityType } from '../entities/activity.entity';
+import { Activity } from '../entities/activity.entity';
 import { ActivityService } from './activity.service';
 
 describe('ActivityService', () => {
@@ -11,13 +11,13 @@ describe('ActivityService', () => {
     const service = new ActivityService(repository as never);
 
     await service.createActivity({
-      type: ActivityType.GAME_PLAYED,
+      type: 'round_completed',
       userId: 'user-id',
       data: { gameId: 'game-id' },
     });
 
     expect(repository.create).toHaveBeenCalledWith({
-      type: ActivityType.GAME_PLAYED,
+      type: 'round_completed',
       userId: 'user-id',
       metadata: { gameId: 'game-id' },
     });

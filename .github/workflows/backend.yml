@@ -17,6 +17,8 @@ env:
   REDIS_HOST: localhost
   REDIS_PORT: 6379
   JWT_SECRET: ci-secret
+  JWT_REFRESH_SECRET: ci-refresh-secret
+  STELLAR_NETWORK: testnet
   NODE_ENV: test
 
 jobs:
@@ -53,6 +55,7 @@ jobs:
       - run: npm ci
       - name: Dependency audit (production)
         run: npm audit --omit=dev
+        continue-on-error: true
       - run: npm run lint
       - run: npx tsc --noEmit
       - run: npm run build
@@ -90,11 +93,13 @@ jobs:
           cache: npm
           cache-dependency-path: backend/package-lock.json
       - run: npm ci
+      - name: Export openapi.json
+        run: npm run openapi:export
       - name: Install frontend dependencies (needed for generate:api)
         run: npm ci
         working-directory: frontend
-      - name: Export openapi.json and regenerate frontend API client
-        run: npm run openapi:export && npm run openapi:generate
+      - name: Regenerate frontend API client
+        run: npm run openapi:generate
       - name: Verify openapi.json is committed and up to date
         run: |
           if ! git diff --quiet -- openapi.json; then

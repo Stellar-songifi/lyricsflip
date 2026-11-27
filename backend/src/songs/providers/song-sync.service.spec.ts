@@ -23,7 +23,10 @@ describe('SongSyncService', () => {
           provide: SongsService,
           useValue: { findByStatus: jest.fn(), markSynced: jest.fn() },
         },
-        { provide: SongChainSyncService, useValue: { addCards: jest.fn() } },
+        {
+          provide: SongChainSyncService,
+          useValue: { buildAddCardsTransaction: jest.fn() },
+        },
       ],
     }).compile();
 
@@ -35,22 +38,26 @@ describe('SongSyncService', () => {
   it('does nothing when there are no approved songs', async () => {
     songsService.findByStatus.mockResolvedValue([]);
 
-    const result = await service.syncApprovedSongs();
+    const result = await service.buildPublishBatches();
 
-    expect(chainSyncService.addCards).not.toHaveBeenCalled();
-    expect(result).toEqual({ synced: 0, cardIds: [] });
+    expect(chainSyncService.buildAddCardsTransaction).not.toHaveBeenCalled();
+    expect(result).toEqual({ total: 0, batches: [] });
   });
 
-  it('syncs approved songs and records the returned on-chain card ids', async () => {
+  it('builds one unsigned batch and reports the song ids it covers', async () => {
     const songs = [makeSong('a'), makeSong('b')];
     songsService.findByStatus.mockResolvedValue(songs);
-    chainSyncService.addCards.mockResolvedValue([1n, 2n]);
+    chainSyncService.buildAddCardsTransaction.mockResolvedValue('xdr-batch');
 
-    const result = await service.syncApprovedSongs();
+    const result = await service.buildPublishBatches();
 
-    expect(songsService.markSynced).toHaveBeenNthCalledWith(1, 'a', '1');
-    expect(songsService.markSynced).toHaveBeenNthCalledWith(2, 'b', '2');
-    expect(result).toEqual({ synced: 2, cardIds: ['1', '2'] });
+    expect(chainSyncService.buildAddCardsTransaction).toHaveBeenCalledWith(
+      songs,
+    );
+    expect(result).toEqual({
+      total: 2,
+      batches: [{ xdr: 'xdr-batch', songIds: ['a', 'b'] }],
+    });
   });
 
   it('splits more than MAX_CARDS_PER_BATCH songs into multiple batches', async () => {
@@ -58,17 +65,18 @@ describe('SongSyncService', () => {
       makeSong(`s${i}`),
     );
     songsService.findByStatus.mockResolvedValue(songs);
-    chainSyncService.addCards.mockImplementation(async (batch) =>
-      batch.map((_, i) => BigInt(i + 1)),
-    );
+    chainSyncService.buildAddCardsTransaction.mockResolvedValue('xdr');
 
-    const result = await service.syncApprovedSongs();
+    const result = await service.buildPublishBatches();
 
-    expect(chainSyncService.addCards).toHaveBeenCalledTimes(2);
-    expect(chainSyncService.addCards.mock.calls[0][0]).toHaveLength(
-      MAX_CARDS_PER_BATCH,
-    );
-    expect(chainSyncService.addCards.mock.calls[1][0]).toHaveLength(5);
-    expect(result.synced).toBe(MAX_CARDS_PER_BATCH + 5);
+    expect(chainSyncService.buildAddCardsTransaction).toHaveBeenCalledTimes(2);
+    expect(
+      chainSyncService.buildAddCardsTransaction.mock.calls[0][0],
+    ).toHaveLength(MAX_CARDS_PER_BATCH);
+    expect(
+      chainSyncService.buildAddCardsTransaction.mock.calls[1][0],
+    ).toHaveLength(5);
+    expect(result.total).toBe(MAX_CARDS_PER_BATCH + 5);
+    expect(result.batches).toHaveLength(2);
   });
 });

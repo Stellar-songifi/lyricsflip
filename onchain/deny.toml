@@ -1,0 +1,57 @@
+# cargo-deny configuration for the onchain/ Rust workspace.
+#
+# Run locally with:
+#   cargo deny check advisories licenses bans
+#
+# CI runs the same command in .github/workflows/onchain.yml.
+
+[graph]
+# Target the workspace's own targets; keep this broad so CI and local runs agree.
+all-features = false
+no-default-features = false
+
+[advisories]
+# Advisory database configuration (cargo-deny v2 schema).
+version = 2
+# Unmaintained crates scope ("all", "workspace", "transitive", "none").
+unmaintained = "none"
+# Do not fail on yanked crates; they are still usable and often unavoidable.
+yanked = "warn"
+# Ignore advisories are intentionally empty to start; add entries with a
+# justification comment if a transitive advisory cannot be resolved promptly.
+ignore = [
+    # Transitive dependency of soroban-sdk; cannot be bumped until upstream Soroban SDK upgrades crypto-bigint.
+    "RUSTSEC-2026-0387",
+]
+
+[licenses]
+# Allow only the licenses used by this workspace and its dependency tree
+# (including soroban-sdk and its transitive crates).
+version = 2
+confidence-threshold = 0.9
+allow = [
+    "MIT",
+    "Apache-2.0",
+    "Apache-2.0 WITH LLVM-exception",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "ISC",
+    "Unicode-3.0",
+    "Zlib",
+    "MPL-2.0",
+]
+# Do not blanket-allow OSI licenses; keep the allowlist explicit.
+exceptions = []
+
+[bans]
+# Warn (rather than fail) when multiple versions of the same crate are present.
+multiple-versions = "warn"
+# Deny wildcard version requirements; they make upgrades unpredictable.
+wildcards = "deny"
+# Allow path dependencies (e.g., { path = "../foo" }) to omit version numbers
+allow-wildcard-paths = true
+# Start with an empty skip list; add crates here only with a justification.
+skip = []
+# Deny dependencies on git sources by default to keep builds reproducible.
+# (Soroban crates are pulled from crates.io.)
+deny = []

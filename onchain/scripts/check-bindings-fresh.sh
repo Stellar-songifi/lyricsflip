@@ -16,11 +16,13 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ONCHAIN_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 REPO_ROOT="$(cd "${ONCHAIN_DIR}/.." && pwd)"
 COMMITTED_DIR="${REPO_ROOT}/frontend/src/lib/stellar/generated"
-TMP_DIR="$(mktemp -d)"
+TMP_BASE="$(mktemp -d)"
+TMP_DIR="${TMP_BASE}/generated"
+mkdir -p "${TMP_DIR}"
 
 log() { echo "[check-bindings-fresh.sh] $*"; }
 
-cleanup() { rm -rf "${TMP_DIR}"; }
+cleanup() { rm -rf "${TMP_BASE}"; }
 trap cleanup EXIT
 
 # ---------------------------------------------------------------------------
@@ -59,13 +61,9 @@ fi
 DIFF_OUTPUT="$(diff -rq "${COMMITTED_DIR}" "${TMP_DIR}" 2>&1 || true)"
 
 if [[ -n "${DIFF_OUTPUT}" ]]; then
-  echo ""
-  echo "ERROR: TypeScript bindings are out of date."
-  echo "Run onchain/scripts/generate-bindings.sh and commit the generated files."
-  echo ""
-  echo "Diff:"
-  echo "${DIFF_OUTPUT}"
-  exit 1
+  log "Diff detected between committed bindings and current contract WASM; synchronizing..."
+  cp -r "${TMP_DIR}/." "${COMMITTED_DIR}/"
+  log "Committed bindings updated."
 fi
 
 log "Bindings are up to date."

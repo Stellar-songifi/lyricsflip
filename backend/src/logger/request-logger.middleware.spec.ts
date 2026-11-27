@@ -78,6 +78,7 @@ describe('RequestLoggerMiddleware', () => {
     const middleware = new RequestLoggerMiddleware(logger);
     const { req, res } = makeReqRes();
     let capturedId: string | undefined;
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
     const { currentRequestId } = require('./request-context');
     const next = jest.fn(() => {
       capturedId = currentRequestId();

@@ -17,13 +17,14 @@ import { AnalyticsRepository } from "./repositories/analytics.repository"
 import { OnboardingFunnelService } from "./services/onboarding-funnel.service"
 import { AnalyticsAuthGuard } from "./guards/analytics-auth.guard"
 import { AnalyticsRolesGuard } from "./guards/analytics-roles.guard"
+import { UserActivity } from "../user/user-activity.entity"
 
 @Module({
   imports: [
     CacheModule.register({
       ttl: 300, // 5 minutes cache
     }),
-    TypeOrmModule.forFeature([PlayerEngagementMetric, SongCategoryMetric, TokenMetric, UserProgressionMetric, OnboardingFunnelMetric]),
+    TypeOrmModule.forFeature([PlayerEngagementMetric, SongCategoryMetric, TokenMetric, UserProgressionMetric, OnboardingFunnelMetric, UserActivity]),
   ],
   controllers: [AnalyticsController, OnboardingFunnelController],
   providers: [

@@ -33,9 +33,17 @@ export class NotificationTitleAndPreferences1790293906000
     );
 
     // 2. Create notification_preferences
+    // Postgres has no `CREATE TYPE IF NOT EXISTS`; swallow the duplicate
+    // object error so the migration stays idempotent.
     await queryRunner.query(`
-      CREATE TYPE IF NOT EXISTS "public"."notification_preferences_channel_enum"
-        AS ENUM('in_app', 'email')
+      DO $$
+      BEGIN
+        CREATE TYPE "public"."notification_preferences_channel_enum"
+          AS ENUM('in_app', 'email');
+      EXCEPTION
+        WHEN duplicate_object THEN NULL;
+      END
+      $$
     `);
 
     await queryRunner.query(`

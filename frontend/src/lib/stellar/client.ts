@@ -106,7 +106,6 @@ export interface SystemCalls {
     wagerAmount?: bigint,
     inviteCode?: string,
   ) => Promise<bigint>;
-  createRound: (genre: Genre, wagerAmount?: bigint) => Promise<bigint>;
   createRoundWithFilter: (
     filter: RoundFilter,
     difficulty?: number,
@@ -135,7 +134,6 @@ export interface SystemCalls {
   unpause: () => Promise<void>;
   /** The caller's current question in `roundId` (simulation only, no signature). */
   getQuestion: (roundId: bigint) => Promise<QuestionCard>;
-  joinRound: (roundId: bigint) => Promise<void>;
   joinRound: (roundId: bigint, inviteCode?: string) => Promise<void>;
   /** Leaves a lobby you joined (non-hosts only) and refunds your stake (LF-306). */
   leaveRound: (roundId: bigint) => Promise<void>;
@@ -373,10 +371,6 @@ type EscrowContract = {
   claim_winnings: (args: { caller: string; round_id: bigint }) => Promise<contract.AssembledTransaction<bigint>>;
 };
 
-type GameClientInstance = Awaited<ReturnType<typeof contract.Client.from<LyricsFlipContract>>>;
-
-const gameClientCache = new Map<string, Promise<GameClientInstance>>();
-
 function getClientCacheKey(config: StellarConfig, publicKey: string | null): string {
   return `${config.lyricsflipContractId}:${config.rpcUrl}:${config.networkPassphrase}:${publicKey ?? ''}`;
 }
@@ -542,17 +536,6 @@ export function createSystemCalls(config: StellarConfig, publicKey: string | nul
   };
 
   return {
-    createRound: async (genre, _wagerAmount) => {
-      const caller = requireAccount();
-      const client = await getGameClient(config, caller);
-      return submit(() =>
-        client.create_round({
-          caller,
-          genre: genreWire(genre),
-          seed: contractSeed(),
-          invite_hash: undefined,
-        }),
-      );
     // LF-304: the deployed contract has no wager parameters yet (LF-256), so
     // `_wagerAmount` cannot be forwarded; the wager UI stays behind
     // `wageringEnabled` until it can.
@@ -561,12 +544,13 @@ export function createSystemCalls(config: StellarConfig, publicKey: string | nul
       const client = await getGameClient(config, caller);
       const invite_hash = inviteCode ? await hashInviteCode(inviteCode) : null;
       return submit(() =>
-        client.create_round({ caller, genre: genreToWire(genre), seed, invite_hash }),
+        client.create_round({
+          caller,
+          genre: genreToWire(genre),
+          seed,
+          invite_hash,
+        }),
       );
-    createRound: async (genre, _wagerAmount) => {
-      const caller = requireAccount();
-      const client = await getGameClient(config, caller);
-      return submit(() => client.create_round({ caller, genre: genreToWire(genre) }));
     },
 
     createRoundWithFilter: async (filter, difficulty, _wagerAmount) => {
@@ -682,17 +666,6 @@ export function createSystemCalls(config: StellarConfig, publicKey: string | nul
         }),
       );
       return pages.flat().sort((left, right) => right.ledger - left.ledger);
-    },
-
-    joinRound: async (roundId) => {
-      const caller = requireAccount();
-      const client = await getGameClient(config, caller);
-      await submit(() =>
-        client.join_round({ caller, round_id: roundId, invite_code: undefined }),
-      );
-          difficulty: difficulty ?? null,
-        }),
-      );
     },
 
     joinRound: async (roundId, inviteCode) => {
@@ -918,9 +891,6 @@ export function createSystemCalls(config: StellarConfig, publicKey: string | nul
     },
 
     getRoundCards: async (roundId) => {
-      const caller = requireAccount();
-      const client = await getGameClient(config, caller);
-      const res = await client.get_round_cards({ caller, round_id: roundId });
       const client = await getGameClient(config, publicKey);
       // LF-292: no auth needed once the round is finalized or cancelled, so
       // visitors without a wallet pass the contract id as a placeholder.
@@ -957,22 +927,28 @@ export function createSystemCalls(config: StellarConfig, publicKey: string | nul
 
     getCardsOfGenre: async (genre) => {
       const client = await getGameClient(config, publicKey);
-      const res = await client.get_cards_of_genre({ genre: genreWire(genre), seed: contractSeed() });
-      const res = await client.get_cards_of_genre({ genre: genreToWire(genre) });
+      const res = await client.get_cards_of_genre({
+        genre: genreWire(genre),
+        seed: contractSeed(),
+      });
       return res.result.map(cardFromWire);
     },
 
     getCardsOfArtist: async (artist) => {
       const client = await getGameClient(config, publicKey);
-      const res = await client.get_cards_of_artist({ artist, seed: contractSeed() });
-      const res = await client.get_cards_of_artist({ artist });
+      const res = await client.get_cards_of_artist({
+        artist,
+        seed: contractSeed(),
+      });
       return res.result.map(cardFromWire);
     },
 
     getCardsOfAYear: async (year) => {
       const client = await getGameClient(config, publicKey);
-      const res = await client.get_cards_of_a_year({ year: BigInt(year), seed: contractSeed() });
-      const res = await client.get_cards_of_a_year({ year: BigInt(year) });
+      const res = await client.get_cards_of_a_year({
+        year: BigInt(year),
+        seed: contractSeed(),
+      });
       return res.result.map(cardFromWire);
     },
 
@@ -982,7 +958,6 @@ export function createSystemCalls(config: StellarConfig, publicKey: string | nul
         card: cardToWire(card),
         seed: contractSeed(),
         kind: questionKindToWire(kind) as WireQuestionCard['kind'],
-        kind: questionKindToWire(kind),
       });
       return questionFromWire(res.result);
     },

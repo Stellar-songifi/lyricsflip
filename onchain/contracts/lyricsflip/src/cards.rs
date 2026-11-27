@@ -71,9 +71,9 @@ pub(crate) fn ascii_lower_string(env: &Env, value: &String) -> String {
     let bytes = value.to_bytes();
     let mut buf = [0u8; 256];
     let len = bytes.len().min(256) as usize;
-    for i in 0..len {
+    for (i, item) in buf.iter_mut().enumerate().take(len) {
         let b = bytes.get(i as u32).unwrap();
-        buf[i] = if b >= b'A' && b <= b'Z' { b + 32 } else { b };
+        *item = b.to_ascii_lowercase();
     }
     String::from_bytes(env, &buf[..len])
 }
@@ -82,11 +82,7 @@ pub(crate) fn ascii_lower_bytes(env: &Env, value: &String) -> Bytes {
     let bytes = value.to_bytes();
     let mut out = Bytes::new(env);
     for b in bytes.iter() {
-        if b >= b'A' && b <= b'Z' {
-            out.push_back(b + 32)
-        } else {
-            out.push_back(b)
-        }
+        out.push_back(b.to_ascii_lowercase());
     }
     out
 }
@@ -227,7 +223,7 @@ impl LyricsFlip {
             difficulty: 0,
             genre_decade: 0,
         };
-        for index in Index::of(&env, &card).iter() {
+        for index in Index::of(env, &card).iter() {
             *index.pos(&mut pos) = Self::index_push(env, index, card_id);
         }
         // LF-267: maintain the filter indexes too.
@@ -350,7 +346,7 @@ impl LyricsFlip {
             attempts += 1;
             let idx = env.prng().gen_range::<u64>(0..(source_count as u64)) as u32;
             let card_id = Self::index_get(env, &source, idx);
-            if cards.contains(&card_id) {
+            if cards.contains(card_id) {
                 continue;
             }
             let card = Self::read_card(env, card_id);

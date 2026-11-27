@@ -1,83 +1,71 @@
-import { ConflictException, NotFoundException } from '@nestjs/common';
+import { ConflictException } from '@nestjs/common';
+import { QueryFailedError } from 'typeorm';
 import { User } from '../user.entity';
 import { UserService } from './user.service';
 
-describe('UserService profile updates', () => {
+describe('UserService username updates', () => {
   let service: UserService;
   let user: User;
   let repository: {
-    findOneBy: jest.Mock;
-    createQueryBuilder: jest.Mock;
-    save: jest.Mock;
+    findOneByOrFail: jest.Mock;
+    update: jest.Mock;
   };
-  let queryBuilder: {
-    where: jest.Mock;
-    andWhere: jest.Mock;
-    getOne: jest.Mock;
-  };
+  let usernameValidator: { validate: jest.Mock };
 
   beforeEach(() => {
     user = Object.assign(new User(), {
       id: 'user-id',
-      username: 'old-name',
+      username: 'new-name',
       avatar: null,
     });
-    queryBuilder = {
-      where: jest.fn().mockReturnThis(),
-      andWhere: jest.fn().mockReturnThis(),
-      getOne: jest.fn().mockResolvedValue(null),
-    };
     repository = {
-      findOneBy: jest.fn().mockResolvedValue(user),
-      createQueryBuilder: jest.fn().mockReturnValue(queryBuilder),
-      save: jest.fn().mockImplementation(async (value) => value),
+      findOneByOrFail: jest.fn().mockResolvedValue(user),
+      update: jest.fn().mockResolvedValue(undefined),
     };
+    usernameValidator = { validate: jest.fn().mockResolvedValue(undefined) };
     service = new UserService(
       {} as never,
       {} as never,
       repository as never,
       {} as never,
+      {} as never,
+      usernameValidator as never,
     );
   });
 
-  it('updates the username and avatar for the authenticated user', async () => {
-    await service.updateMyProfile('user-id', {
+  it('normalises and persists the username for the authenticated user', async () => {
+    await service.setUsername('user-id', 'New-Name');
+
+    expect(usernameValidator.validate).toHaveBeenCalledWith(
+      'new-name',
+      'user-id',
+    );
+    expect(repository.update).toHaveBeenCalledWith('user-id', {
       username: 'new-name',
-      avatarUrl: 'https://example.com/avatar.png',
     });
-
-    expect(queryBuilder.where).toHaveBeenCalledWith(
-      'LOWER(user.username) = LOWER(:username)',
-      { username: 'new-name' },
-    );
-    expect(queryBuilder.andWhere).toHaveBeenCalledWith('user.id != :userId', {
-      userId: 'user-id',
-    });
-    expect(repository.save).toHaveBeenCalledWith(
-      expect.objectContaining({
-        username: 'new-name',
-        avatar: 'https://example.com/avatar.png',
-      }),
-    );
+    expect(repository.findOneByOrFail).toHaveBeenCalledWith({ id: 'user-id' });
   });
 
-  it('rejects usernames already used by another account', async () => {
-    queryBuilder.getOne.mockResolvedValue(
-      Object.assign(new User(), { id: 'other-user' }),
+  it('rejects usernames rejected by the validator', async () => {
+    usernameValidator.validate.mockRejectedValue(
+      new ConflictException('taken'),
     );
 
-    await expect(
-      service.updateMyProfile('user-id', { username: 'taken' }),
-    ).rejects.toBeInstanceOf(ConflictException);
-    expect(repository.save).not.toHaveBeenCalled();
+    await expect(service.setUsername('user-id', 'taken')).rejects.toBeInstanceOf(
+      ConflictException,
+    );
+    expect(repository.update).not.toHaveBeenCalled();
   });
 
-  it('rejects updates for a missing user', async () => {
-    repository.findOneBy.mockResolvedValue(null);
+  it('translates a unique-index violation into a conflict', async () => {
+    const error = new QueryFailedError('INSERT', [], new Error('duplicate'));
+    (error as unknown as { driverError: { code: string } }).driverError = {
+      code: '23505',
+    };
+    repository.update.mockRejectedValue(error);
 
-    await expect(
-      service.updateMyProfile('missing-user', { username: 'new-name' }),
-    ).rejects.toBeInstanceOf(NotFoundException);
-    expect(repository.createQueryBuilder).not.toHaveBeenCalled();
+    await expect(service.setUsername('user-id', 'taken')).rejects.toBeInstanceOf(
+      ConflictException,
+    );
   });
 });

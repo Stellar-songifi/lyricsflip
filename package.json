@@ -9,6 +9,7 @@
     "backend"
   ],
   "scripts": {
+    "//": "npm workspaces: run a single `npm install` at the repo root. Do not run installs inside frontend/ or backend/; the root package-lock.json is the only lockfile.",
     "dev": "bash onchain/scripts/dev-local.sh",
     "dev:all": "npm run dev",
     "dev:frontend": "npm --prefix frontend run dev",

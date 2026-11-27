@@ -4,6 +4,7 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { ScoringService } from './scoring.service';
 import { SCORING_CONSTANTS } from './constants/scoring.constants';
 import { Player } from '@app/player/player.entity';
+import { Scoring } from './entities/scoring.entity';
 
 describe('ScoringService', () => {
   let service: ScoringService;
@@ -14,6 +15,13 @@ describe('ScoringService', () => {
     save: jest.fn(),
   };
 
+  const mockScoringRepository = {
+    findOne: jest.fn(),
+    save: jest.fn(),
+    find: jest.fn(),
+    create: jest.fn(),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -21,6 +29,10 @@ describe('ScoringService', () => {
         {
           provide: getRepositoryToken(Player),
           useValue: mockPlayerRepository,
+        },
+        {
+          provide: getRepositoryToken(Scoring),
+          useValue: mockScoringRepository,
         },
         EventEmitter2,
       ],

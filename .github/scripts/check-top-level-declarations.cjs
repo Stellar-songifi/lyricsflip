@@ -3,7 +3,8 @@ const { readFileSync } = require("node:fs");
 
 const files = execFileSync("git", ["ls-files", "-z"], { encoding: "utf8" })
   .split("\0")
-  .filter((file) => /\.(?:[cm]?[jt]sx?)$/.test(file));
+  .filter((file) => /\.(?:[cm]?[jt]sx?)$/.test(file))
+  .filter((file) => !/(^|\/)generated\//.test(file));
 const declarationPattern =
   /^(?:(?:export\s+(?:default\s+)?)|(?:declare\s+)|(?:abstract\s+))*(?:(?:const\s+)?enum|class|type|interface|const|let|var|(?:async\s+)?function)\s+([A-Za-z_$][\w$]*)\b/;
 const duplicates = [];

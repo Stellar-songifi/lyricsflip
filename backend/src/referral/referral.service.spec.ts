@@ -185,7 +185,7 @@ describe('ReferralService', () => {
       roundPlayerRepo.findOne.mockResolvedValue({ joinedLedger: 500 });
 
       const txManager = makeTxManager({});
-      txManager.findOneOrFail.mockResolvedValue({ ...REFERRER });
+      txManager.findOneOrFail.mockResolvedValue({ ...REFERRER } as never);
       dataSource.transaction.mockImplementation((cb: (m: any) => Promise<void>) =>
         cb(txManager),
       );

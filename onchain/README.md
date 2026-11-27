@@ -17,6 +17,32 @@ contracts:
   ```
 - [Stellar CLI](https://developers.stellar.org/docs/tools/stellar-cli) (`stellar`) for deploying and invoking contracts, if you don't already have it.
 
+## Toolchain and dependency policy
+
+The Rust toolchain version is pinned in `../.tool-versions` and must be bumped
+deliberately (in its own PR, with a full CI run) rather than tracking `stable`
+implicitly. The `wasm32v1-none` target requirement above is tied to that pin.
+
+`soroban-sdk` upgrades change contract behavior (storage, host functions, fees,
+WASM size), so they are never bundled with feature work. Upgrade it in a
+dedicated PR that:
+
+1. bumps the version in `onchain/Cargo.toml` (and `Cargo.lock`),
+2. runs the full test suite (`cargo test` plus the WASM build),
+3. checks the resulting WASM size against the deploy limits, and
+4. notes any behavior change in this README or the changelog.
+
+Dependabot is configured for the `cargo` ecosystem on `/onchain` and groups
+`soroban-*` crate updates into a single PR, so SDK bumps arrive as one reviewable
+change.
+
+### Supply-chain checks
+
+CI runs `cargo audit` and `cargo deny check advisories licenses bans` against the
+workspace. The `cargo deny` configuration lives in [`deny.toml`](deny.toml). A
+known advisory in any Rust dependency, or a dependency whose license is not on
+the allowlist, fails the build.
+
 ## Round scoring and finalization
 
 Each correct answer earns the time-adjusted base points multiplied by the card

@@ -1,0 +1,6 @@
+# Configuration for cargo-audit
+[advisories]
+ignore = [
+    # Transitive dependency of soroban-sdk; cannot be bumped until upstream Soroban SDK upgrades crypto-bigint.
+    "RUSTSEC-2026-0387",
+]

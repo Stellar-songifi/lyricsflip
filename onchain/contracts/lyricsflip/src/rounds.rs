@@ -47,7 +47,7 @@ impl LyricsFlip {
                 panic_with_error!(env, Error::InvalidDecade);
             }
         }
-        Self::require_not_paused(&env);
+        Self::require_not_paused(env);
 
         let amount = Self::get_cards_per_round((*env).clone()) as u64;
         let cards = Self::draw_round_cards(env, &filter, difficulty, amount);
@@ -82,7 +82,7 @@ impl LyricsFlip {
             round_id,
             admin: caller.clone(),
             genre,
-            wager_amount: wager_amount,
+            wager_amount,
             wager_token: wager_token.clone(),
             start_time: 0,
             is_started: false,
@@ -98,16 +98,16 @@ impl LyricsFlip {
             max_players,
         };
 
-        let mut players: Vec<Address> = Vec::new(&env);
+        let mut players: Vec<Address> = Vec::new(env);
         players.push_back(caller.clone());
         env.storage()
             .persistent()
             .set(&DataKey::RoundPlayers(round_id), &players);
-        bump_persistent(&env, &DataKey::RoundPlayers(round_id));
-        Self::push_player_round(&env, &caller, round_id);
-        set_persistent(&env, &DataKey::RoundPlayers(round_id), &players);
+        bump_persistent(env, &DataKey::RoundPlayers(round_id));
+        Self::push_player_round(env, &caller, round_id);
+        set_persistent(env, &DataKey::RoundPlayers(round_id), &players);
 
-        set_persistent(&env, &DataKey::RoundCards(round_id), &cards);
+        set_persistent(env, &DataKey::RoundCards(round_id), &cards);
 
         // LF-264: remember the allowlist for private rounds. The round
         // creator is implicitly allowed to join their own round.
@@ -115,7 +115,7 @@ impl LyricsFlip {
             env.storage()
                 .persistent()
                 .set(&DataKey::RoundInvitees(round_id), &invitees);
-            bump_persistent(&env, &DataKey::RoundInvitees(round_id));
+            bump_persistent(env, &DataKey::RoundInvitees(round_id));
         }
 
         // LF-176: track which rounds reference each card so `update_card`
@@ -124,10 +124,10 @@ impl LyricsFlip {
             Self::add_live_round(env, card_id, round_id);
         }
 
-        set_persistent(&env, &DataKey::Round(round_id), &round);
+        set_persistent(env, &DataKey::Round(round_id), &round);
 
         set_persistent(
-            &env,
+            env,
             &DataKey::RoundCreatedAt(round_id),
             &env.ledger().timestamp(),
         );
